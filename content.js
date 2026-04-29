@@ -11,6 +11,8 @@ const TEMPLATES = window.QM_TEMPLATES || {};
 const SHORTCUTS = window.QM_SHORTCUTS || {};
 const STALE = window.QM_STALE_PR || {};
 const API_HELPERS = window.QM_API || {};
+const BULK_OPS = window.QM_BULK_OPS || {};
+const LIST_MODE = window.QM_LIST_MODE || {};
 
 const state = {
   token: "",
@@ -23,6 +25,10 @@ const state = {
   // array of { id, shortcut, description } overrides
   shortcuts: [],
   staleDays: 14,
+  // owner/repo -> override stale-day threshold (QM-063)
+  repoStaleThresholds: {},
+  // QM-067 — when true, skip per-PR detail fetch; use list endpoint data only
+  listMode: false,
 };
 
 const prKey = (pr) => `${pr.owner}/${pr.repo}#${pr.num}`;
@@ -38,7 +44,14 @@ async function loadInitialState() {
   const [localStore, syncStore] = await Promise.all([
     chrome.storage.local.get(["token", "pro"]).catch(() => ({})),
     chrome.storage.sync
-      .get(["repoDefaults", "qm_templates", "qm_shortcuts", "qm_stale_days"])
+      .get([
+        "repoDefaults",
+        "qm_templates",
+        "qm_shortcuts",
+        "qm_stale_days",
+        "qm_repo_stale_thresholds",
+        "listModeEnabled",
+      ])
       .catch(() => ({})),
   ]);
   state.token = localStore.token || "";
@@ -51,6 +64,9 @@ async function loadInitialState() {
   state.shortcuts = Array.isArray(cs) ? cs : (SHORTCUTS.DEFAULT_BINDINGS || []);
   const sd = Number(syncStore.qm_stale_days);
   state.staleDays = Number.isFinite(sd) && sd > 0 ? sd : 14;
+  const rst = syncStore.qm_repo_stale_thresholds;
+  state.repoStaleThresholds = rst && typeof rst === "object" ? rst : {};
+  state.listMode = !!syncStore.listModeEnabled;
 }
 
 function pickDefaultForBulkLocal(prs, map) {
@@ -67,7 +83,16 @@ function pickDefaultForBulkLocal(prs, map) {
   return chosen;
 }
 
-function applyStaleBadge(container, prState) {
+function _staleThresholdFor(pr) {
+  if (pr && pr.owner && pr.repo) {
+    const override = state.repoStaleThresholds[`${pr.owner}/${pr.repo}`];
+    const n = Number(override);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return state.staleDays;
+}
+
+function applyStaleBadge(container, prState, pr) {
   if (!container) return;
   // Remove any prior badge so re-renders stay accurate.
   const existing = container.querySelector(".qm-stale-badge");
@@ -75,13 +100,14 @@ function applyStaleBadge(container, prState) {
   if (!prState || !prState.updated_at || !STALE.classifyStaleness) return;
   const updatedAt = new Date(prState.updated_at);
   if (Number.isNaN(updatedAt.getTime())) return;
+  const threshold = _staleThresholdFor(pr);
   const klass = STALE.classifyStaleness(
     {
       updatedAt,
       draft: prState.draft,
       hasReviewerRequested: prState.has_reviewer_requested,
     },
-    { warmingDays: 7, staleDays: state.staleDays, abandonedDays: state.staleDays * 2 },
+    { warmingDays: 7, staleDays: threshold, abandonedDays: threshold * 2 },
     new Date(),
   );
   if (klass !== "stale" && klass !== "abandoned") return;
@@ -90,7 +116,11 @@ function applyStaleBadge(container, prState) {
   badge.className = `qm-stale-badge qm-stale-${klass}`;
   badge.textContent = (label && label.label) || klass;
   badge.setAttribute("role", "status");
-  badge.setAttribute("aria-label", `Pull request is ${klass}`);
+  const days = Math.max(0, Math.round((Date.now() - updatedAt.getTime()) / 86400000));
+  const sourceTag = (pr && state.repoStaleThresholds[`${pr.owner}/${pr.repo}`]) ? "per-repo" : "global";
+  const tip = `Last update ${days} day${days === 1 ? "" : "s"} ago — ${klass} threshold ${threshold}d (${sourceTag}).`;
+  badge.title = tip;
+  badge.setAttribute("aria-label", tip);
   // Place badge after the merge buttons.
   container.appendChild(badge);
 }
@@ -181,19 +211,27 @@ function setRowState(container, prState) {
   const klass = classifyMergeState(prState);
   const ready = klass === "ready";
   const blocked = klass === "blocked";
+  // In list mode the GitHub list endpoint doesn't return mergeable_state,
+  // so merge buttons stay disabled but selection should still work for
+  // close / label bulk ops.
+  const allowSelect = ready || prState.listMode;
   buttons.forEach((b) => {
     b.disabled = !ready;
     b.title = ready
       ? `Ready: ${mergeable_state}`
       : blocked
       ? `Blocked: ${mergeable_state}`
+      : prState.listMode
+      ? "Fast mode: merge readiness not fetched. Disable fast mode in options to enable merging."
       : `State: ${mergeable_state ?? "unknown"}`;
   });
   const checkbox = container.querySelector(".qm-select");
   if (checkbox) {
-    checkbox.disabled = !ready;
+    checkbox.disabled = !allowSelect;
     checkbox.title = ready
       ? "Select for bulk merge (Pro)"
+      : prState.listMode
+      ? "Select for bulk close / label"
       : `Not selectable: ${mergeable_state ?? "unknown"}`;
     if (!ready && checkbox.checked) {
       checkbox.checked = false;
@@ -371,12 +409,21 @@ async function injectRow(row) {
     return;
   }
 
-  const prState = await fetchPrState(pr, token);
+  const prState = state.listMode
+    ? { mergeable: null, mergeable_state: null, head_sha: null, listMode: true }
+    : await fetchPrState(pr, token);
   setRowState(container, prState);
-  applyStaleBadge(container, prState);
+  applyStaleBadge(container, prState, pr);
+  if (state.listMode) {
+    const note = document.createElement("span");
+    note.className = "qm-list-mode-note";
+    note.textContent = "fast";
+    note.title = "Fast mode: GitHub list endpoint doesn't return mergeable_state. Toggle off in options for full state.";
+    container.appendChild(note);
+  }
 
-  // If null/pending, retry once after a short delay
-  if (prState && prState.mergeable === null) {
+  // If null/pending (and not list mode), retry once after a short delay.
+  if (!state.listMode && prState && prState.mergeable === null) {
     setTimeout(async () => {
       state.cache.delete(prKey(pr));
       const refreshed = await fetchPrState(pr, token);
@@ -652,6 +699,8 @@ function ensureBulkBar() {
       <option value="rebase">Rebase &amp; merge</option>
     </select>
     <button class="qm-btn qm-bulk-go">Merge selected</button>
+    <button class="qm-btn qm-bulk-close">Close selected</button>
+    <button class="qm-btn qm-bulk-label">Label selected</button>
     <button class="qm-btn qm-bulk-clear">Clear</button>
   `;
   document.body.appendChild(bar);
@@ -664,7 +713,105 @@ function ensureBulkBar() {
     renderBulkBar();
   });
   bar.querySelector(".qm-bulk-go").addEventListener("click", onBulkMerge);
+  bar.querySelector(".qm-bulk-close").addEventListener("click", onBulkClose);
+  bar.querySelector(".qm-bulk-label").addEventListener("click", onBulkLabel);
   return bar;
+}
+
+// QM-061 — flash a row green/red after a bulk action.
+function flashRow(container, ok, message) {
+  if (!container) return;
+  const cls = ok ? "qm-row-ok-flash" : "qm-row-err-flash";
+  container.classList.add(cls);
+  if (message) {
+    const pill = document.createElement("span");
+    pill.className = `qm-row-flash-pill ${ok ? "qm-row-flash-ok" : "qm-row-flash-err"}`;
+    pill.textContent = message;
+    pill.title = message;
+    container.appendChild(pill);
+    setTimeout(() => pill.remove(), 6000);
+  }
+  setTimeout(() => container.classList.remove(cls), 2000);
+}
+
+function _groupSelectedByRepo() {
+  const byRepo = new Map();
+  for (const [, sel] of state.selected) {
+    const key = `${sel.pr.owner}/${sel.pr.repo}`;
+    if (!byRepo.has(key)) byRepo.set(key, []);
+    byRepo.get(key).push(sel);
+  }
+  return byRepo;
+}
+
+// QM-059 — Close selected.
+async function onBulkClose() {
+  if (state.selected.size === 0) {
+    toast("No PRs selected", "warn");
+    return;
+  }
+  const total = state.selected.size;
+  const threshold = (BULK_OPS.DEFAULT_CONFIRM_THRESHOLD || 5);
+  const msg = total >= threshold
+    ? `You're about to close ${total} pull requests. This cannot be undone from the extension. Continue?`
+    : `Close ${total} pull request${total === 1 ? "" : "s"}?`;
+  if (!confirm(msg)) return;
+  const token = state.token;
+  if (!token) { toast("Set a token in options first", "warn"); return; }
+
+  const byRepo = _groupSelectedByRepo();
+  for (const [repoKey, items] of byRepo) {
+    if (!BULK_OPS.closePRs) { toast("bulk-ops lib missing", "error"); return; }
+    const numbers = items.map((s) => s.pr.num);
+    const results = await BULK_OPS.closePRs(repoKey, numbers, token, { api: API_HELPERS });
+    for (const r of results) {
+      const sel = items.find((s) => s.pr.num === r.number);
+      if (!sel) continue;
+      if (r.ok) {
+        flashRow(sel.container, true, "Closed");
+        sel.row.style.opacity = "0.5";
+      } else {
+        flashRow(sel.container, false, `Close failed: ${r.error || "unknown"}`);
+      }
+    }
+  }
+  // Clear selections that succeeded.
+  state.selected.clear();
+  document.querySelectorAll(".qm-select:checked").forEach((cb) => { cb.checked = false; });
+  renderBulkBar();
+}
+
+// QM-060 — Label selected.
+async function onBulkLabel() {
+  if (state.selected.size === 0) {
+    toast("No PRs selected", "warn");
+    return;
+  }
+  const raw = prompt("Apply which label(s)? Comma-separated:", "");
+  if (raw === null) return;
+  const labels = raw.split(",").map((s) => s.trim()).filter(Boolean);
+  if (labels.length === 0) {
+    toast("No labels entered", "warn");
+    return;
+  }
+  const token = state.token;
+  if (!token) { toast("Set a token in options first", "warn"); return; }
+
+  const byRepo = _groupSelectedByRepo();
+  for (const [repoKey, items] of byRepo) {
+    if (!BULK_OPS.labelPRs) { toast("bulk-ops lib missing", "error"); return; }
+    const numbers = items.map((s) => s.pr.num);
+    const results = await BULK_OPS.labelPRs(repoKey, numbers, labels, token, { api: API_HELPERS });
+    for (const r of results) {
+      const sel = items.find((s) => s.pr.num === r.number);
+      if (!sel) continue;
+      if (r.ok) {
+        flashRow(sel.container, true, `Labels: ${labels.join(", ")}`);
+      } else {
+        flashRow(sel.container, false, `Label failed: ${r.error || "unknown"}`);
+      }
+    }
+  }
 }
 
 function renderBulkBar() {

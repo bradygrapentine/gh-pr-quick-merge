@@ -335,3 +335,37 @@
   0%, 100% { opacity: 0.7; }
   50%      { opacity: 1; }
 }
+
+/* QM-061 — per-row bulk-action result feedback */
+.qm-row-ok-flash { transition: background 0.3s; background: rgba(31, 136, 61, 0.12) !important; }
+.qm-row-err-flash { transition: background 0.3s; background: rgba(207, 34, 46, 0.12) !important; }
+.qm-row-flash-pill {
+  display: inline-block;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+}
+.qm-row-flash-ok  { background: #dafbe1; color: #1a7f37; }
+.qm-row-flash-err { background: #ffebe9; color: #cf222e; }
+
+/* QM-066 — list-mode indicator on row */
+.qm-list-mode-note {
+  display: inline-block;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #57606a;
+  background: #eaeef2;
+  padding: 1px 5px;
+  border-radius: 8px;
+  margin-left: 4px;
+}
+
+/* QM-059/060 — extra bulk-bar buttons */
+.qm-bulk-bar .qm-bulk-close,
+.qm-bulk-bar .qm-bulk-label {
+  background: #6e7781;
+}
+.qm-bulk-bar .qm-bulk-close:hover:not(:disabled) { background: #cf222e; }
+.qm-bulk-bar .qm-bulk-label:hover:not(:disabled) { background: #0969da; }
