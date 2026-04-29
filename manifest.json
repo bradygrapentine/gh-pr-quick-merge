@@ -34,7 +34,13 @@
         "https://github.com/*/pulls*",
         "https://github.com/issues*"
       ],
-      "js": ["lib/pr-helpers.js", "content.js"],
+      "js": [
+        "lib/pr-helpers.js",
+        "lib/templates.js",
+        "lib/shortcuts.js",
+        "lib/stale-pr.js",
+        "content.js"
+      ],
       "css": ["styles.css"],
       "run_at": "document_idle"
     }
