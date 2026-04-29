@@ -384,6 +384,36 @@
   </div>
 
   <div class="section">
+    <h2>Update branch strategy</h2>
+    <div class="hint">
+      When you click <strong>Update</strong> on a PR row that's behind its base, the extension calls GitHub's
+      <code>POST /pulls/:n/update-branch</code> endpoint with this strategy.
+    </div>
+    <div class="qm-form-row">
+      <label for="updateBranchStrategy">Strategy</label>
+      <select id="updateBranchStrategy" aria-label="Update branch strategy">
+        <option value="merge">Merge (default)</option>
+        <option value="rebase">Rebase</option>
+      </select>
+    </div>
+    <div class="status" id="updateBranchStatus"></div>
+  </div>
+
+  <div class="section">
+    <h2>Auto-rebase before merge</h2>
+    <div class="hint">
+      When you click a merge button on a row that's behind its base by at least this many commits, the extension first
+      runs Update Branch, then merges. Set to <code>0</code> to disable.
+    </div>
+    <div class="qm-form-row">
+      <label for="autoRebaseThreshold">Rebase when behind by</label>
+      <input type="number" id="autoRebaseThreshold" min="0" max="999" value="0" />
+      <span style="font-size:12px;color:#57606a;">or more commits</span>
+    </div>
+    <div class="status" id="autoRebaseStatus"></div>
+  </div>
+
+  <div class="section">
     <h2>Stale PRs</h2>
     <div class="hint">
       Mark PRs that haven't been updated in this many days as stale on the GitHub PR list.

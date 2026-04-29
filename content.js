@@ -403,13 +403,49 @@ async function injectRow(row) {
 
     setButtonsDisabled(container, true);
     status.textContent = "⏳";
+
+    let rebaseSpinner = null;
+    const onRebaseStart = () => {
+      rebaseSpinner = document.createElement("span");
+      rebaseSpinner.className = "qm-rebasing";
+      rebaseSpinner.textContent = "Rebasing…";
+      container.insertBefore(rebaseSpinner, status.nextSibling);
+    };
+    const onRebaseEnd = () => {
+      if (rebaseSpinner && rebaseSpinner.parentNode) rebaseSpinner.parentNode.removeChild(rebaseSpinner);
+      rebaseSpinner = null;
+    };
+
     try {
-      await doMerge({ pr, kind, token, headSha: current.head_sha });
+      const sync = await chrome.storage.sync.get(["autoRebaseThreshold", "updateBranchStrategy"]);
+      const threshold = Number(sync && sync.autoRebaseThreshold);
+      const strategy = sync && sync.updateBranchStrategy === "rebase" ? "rebase" : "merge";
+      const behindBy = Number(current.behind_by) || 0;
+
+      if (window.QM_AUTO_REBASE && Number.isFinite(threshold) && threshold > 0) {
+        await window.QM_AUTO_REBASE.rebaseThenMerge({
+          owner: pr.owner,
+          repo: pr.repo,
+          pullNumber: pr.num,
+          expectedHeadSha: current.head_sha,
+          behindBy,
+          autoRebaseThreshold: threshold,
+          mergeStrategy: strategy,
+          token,
+          api: API_HELPERS,
+          mergeFn: () => doMerge({ pr, kind, token, headSha: current.head_sha }),
+          onRebaseStart,
+          onRebaseEnd,
+        });
+      } else {
+        await doMerge({ pr, kind, token, headSha: current.head_sha });
+      }
       status.textContent = "✓";
       status.dataset.kind = "merged";
       toast(`Merged ${prKey(pr)}`, "ok");
       row.style.opacity = "0.5";
     } catch (err) {
+      onRebaseEnd();
       status.textContent = "✕";
       status.dataset.kind = "error";
       toast(`Failed: ${err.message}`, "error");
@@ -431,10 +467,154 @@ async function injectRow(row) {
  * should not assume single-call exclusivity).
  */
 function injectRowActions(ctx) {
-  // Intentional no-op. v0.4 row-action stories (QM-052/056/057/070) populate
-  // this body. Keep this function present on main even when empty so those
-  // stories don't have to introduce the extension point alongside their work.
-  void ctx;
+  if (!ctx || !ctx.container || !ctx.pr) return;
+  const { container, pr, prData, token, row } = ctx;
+  const queueLib = window.QM_MERGE_QUEUE;
+  const updateLib = window.QM_UPDATE_BRANCH;
+  const queueKey = queueLib ? queueLib.makeKey({ owner: pr.owner, repo: pr.repo, pullNumber: pr.num }) : `${pr.owner}/${pr.repo}#${pr.num}`;
+
+  // QM-052 — Update button when the PR is behind base.
+  if (token && prData && Number(prData.behind_by) > 0 && updateLib) {
+    const updateBtn = document.createElement("button");
+    updateBtn.type = "button";
+    updateBtn.className = "qm-btn qm-update-btn";
+    updateBtn.dataset.qmKind = "update";
+    updateBtn.textContent = `Update (${prData.behind_by})`;
+    updateBtn.title = `Sync this branch with ${prData.base || "base"}`;
+    updateBtn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (updateBtn.disabled) return;
+      updateBtn.disabled = true;
+      const orig = updateBtn.textContent;
+      updateBtn.textContent = "Updating…";
+      try {
+        const sync = await chrome.storage.sync.get("updateBranchStrategy");
+        const strategy = sync && sync.updateBranchStrategy === "rebase" ? "rebase" : "merge";
+        await updateLib.updateBranch({
+          owner: pr.owner,
+          repo: pr.repo,
+          pullNumber: pr.num,
+          expectedHeadSha: prData.head_sha,
+          strategy,
+          token,
+          api: API_HELPERS,
+        });
+        toast(`Update queued for ${queueKey}`, "ok");
+        // GitHub processes asynchronously — refresh after ~3s.
+        setTimeout(async () => {
+          state.cache.delete(prKey(pr));
+          const refreshed = await fetchPrState(pr, token);
+          setRowState(container, refreshed);
+          if (refreshed && Number(refreshed.behind_by) === 0) {
+            updateBtn.remove();
+          } else {
+            updateBtn.disabled = false;
+            updateBtn.textContent = `Update (${(refreshed && refreshed.behind_by) || prData.behind_by})`;
+          }
+        }, 3000);
+      } catch (err) {
+        updateBtn.disabled = false;
+        updateBtn.textContent = orig;
+        toast(`Update failed: ${err.message || err}`, "error");
+      }
+    });
+    container.appendChild(updateBtn);
+  }
+
+  // QM-056 / QM-057 — merge-queue badge + Watch / Cancel button.
+  if (queueLib && token) {
+    const badge = document.createElement("span");
+    badge.className = "qm-queue-badge";
+    badge.dataset.qmKey = queueKey;
+
+    const watchBtn = document.createElement("button");
+    watchBtn.type = "button";
+    watchBtn.className = "qm-btn qm-watch-btn";
+    watchBtn.dataset.qmKey = queueKey;
+
+    const cancelBtn = document.createElement("button");
+    cancelBtn.type = "button";
+    cancelBtn.className = "qm-btn qm-cancel-watch-btn";
+    cancelBtn.textContent = "Cancel";
+    cancelBtn.dataset.qmKey = queueKey;
+
+    function renderQueueState(entry) {
+      // entry is the merge-queue record or null.
+      if (!entry) {
+        badge.textContent = "";
+        badge.dataset.kind = "";
+        watchBtn.textContent = "Watch";
+        watchBtn.title = "Auto-merge once all checks pass";
+        watchBtn.style.display = "";
+        cancelBtn.style.display = "none";
+        return;
+      }
+      if (entry.status === "watching") {
+        badge.textContent = "🟡 watching";
+        badge.dataset.kind = "watching";
+        watchBtn.style.display = "none";
+        cancelBtn.style.display = "";
+      } else if (entry.status === "merged") {
+        badge.textContent = "✅ merged";
+        badge.dataset.kind = "merged";
+        watchBtn.style.display = "none";
+        cancelBtn.style.display = "none";
+      } else {
+        badge.textContent = "❌ failed";
+        badge.dataset.kind = "failed";
+        watchBtn.textContent = "Retry watch";
+        watchBtn.style.display = "";
+        cancelBtn.style.display = "none";
+      }
+    }
+
+    watchBtn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        await queueLib.enqueue({ owner: pr.owner, repo: pr.repo, pullNumber: pr.num }, chrome.storage.local);
+        toast(`Watching ${queueKey} — will merge when green`, "ok");
+      } catch (err) {
+        toast(`Watch failed: ${err.message || err}`, "error");
+      }
+    });
+
+    cancelBtn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      await queueLib.dequeue(queueKey, chrome.storage.local);
+      toast(`Stopped watching ${queueKey}`, "ok");
+    });
+
+    container.appendChild(badge);
+    container.appendChild(watchBtn);
+    container.appendChild(cancelBtn);
+
+    // Initial render from current queue state.
+    queueLib.list(chrome.storage.local).then((entries) => {
+      const found = entries.find((e) => queueLib.makeKey(e) === queueKey);
+      renderQueueState(found || null);
+    }).catch(() => renderQueueState(null));
+
+    // Live updates from the background poller.
+    const onChanged = (changes, area) => {
+      if (area !== "local" || !changes[queueLib.KEY]) return;
+      const newMap = changes[queueLib.KEY].newValue || {};
+      renderQueueState(newMap[queueKey] || null);
+    };
+    chrome.storage.onChanged.addListener(onChanged);
+    // Detach when the row is removed from the DOM.
+    const obs = new MutationObserver(() => {
+      if (!document.body.contains(container)) {
+        chrome.storage.onChanged.removeListener(onChanged);
+        obs.disconnect();
+      }
+    });
+    obs.observe(document.body, { childList: true, subtree: true });
+  }
+
+  void row;
 }
 
 function scan(root = document) {
