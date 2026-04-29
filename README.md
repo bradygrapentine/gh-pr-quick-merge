@@ -110,9 +110,17 @@ Realistic ceiling for a niche extension like this: **$500-3k/mo MRR within year 
 
 ## Support the project
 
-PR Quick Merge is free and open-source. If it saves you time, consider sponsoring the project:
+PR Quick Merge is free and open source — no payment gate, no license server, no Pro tier. If the extension saves you time, sponsor the project on GitHub:
 
-- **GitHub Sponsors:** [github.com/sponsors/bradygrapentine](https://github.com/sponsors/bradygrapentine)
-- **Bug reports & feature requests:** [github.com/bradygrapentine/gh-pr-quick-merge/issues](https://github.com/bradygrapentine/gh-pr-quick-merge/issues)
+**[github.com/sponsors/bradygrapentine](https://github.com/sponsors/bradygrapentine)**
+
+| Tier | Amount | For |
+|---|---|---|
+| ☕ Coffee | $5/mo | Individual users — keeps the lights on |
+| 🛠 Daily user | $25/mo | Power users merging PRs all day |
+| 🏢 Team | $99/mo | Small teams — cheaper than half a Linear seat |
+| 🚀 Sponsor | $499/mo | Logo on the repo + first-dibs roadmap input |
+
+Bug reports & feature requests: [github.com/bradygrapentine/gh-pr-quick-merge/issues](https://github.com/bradygrapentine/gh-pr-quick-merge/issues)
 
 No analytics, no telemetry, no remote code — see [`docs/privacy-policy.md`](./docs/privacy-policy.md).
