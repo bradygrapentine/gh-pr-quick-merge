@@ -206,6 +206,43 @@ function parseRepoInput(raw) {
   return { owner: m[1], repo: m[2] };
 }
 
+// Repo-name autocomplete (QM-037). Populates a <datalist> from /user/repos
+// when the per-repo defaults input gets focus. One fetch per options-page session.
+
+let repoSuggestionsLoaded = false;
+
+function populateDatalist(datalistEl, repos) {
+  if (!datalistEl) return;
+  while (datalistEl.firstChild) datalistEl.removeChild(datalistEl.firstChild);
+  for (const r of repos) {
+    const opt = document.createElement("option");
+    opt.value = r;
+    datalistEl.appendChild(opt);
+  }
+}
+
+async function loadRepoSuggestions() {
+  if (repoSuggestionsLoaded) return;
+  repoSuggestionsLoaded = true;
+  const { token } = await chrome.storage.local.get("token");
+  if (!token) return;
+  try {
+    const res = await fetch("https://api.github.com/user/repos?per_page=100&sort=updated", {
+      headers: {
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const slugs = Array.isArray(data) ? data.map((r) => r && r.full_name).filter(Boolean) : [];
+    populateDatalist($("qm-repo-suggestions"), slugs);
+  } catch {
+    // Silent — datalist stays empty on network/auth failure.
+  }
+}
+
 async function addDefault() {
   const api = defaultsApi();
   if (!api) {
@@ -262,5 +299,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (signOutBtn) signOutBtn.addEventListener("click", signOut);
   const addBtn = $("addDefault");
   if (addBtn) addBtn.addEventListener("click", addDefault);
+  const repoInput = $("defaultRepo");
+  if (repoInput) repoInput.addEventListener("focus", loadRepoSuggestions);
   renderDefaults();
 });

@@ -205,7 +205,8 @@
     </div>
     <ul id="defaultsList" class="qm-defaults-list"></ul>
     <div class="qm-defaults-add">
-      <input type="text" id="defaultRepo" placeholder="owner/repo" autocomplete="off" />
+      <input type="text" id="defaultRepo" placeholder="owner/repo" autocomplete="off" list="qm-repo-suggestions" />
+      <datalist id="qm-repo-suggestions"></datalist>
       <select id="defaultMethod" aria-label="Default merge method">
         <option value="squash">Squash</option>
         <option value="merge">Merge</option>
