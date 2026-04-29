@@ -66,12 +66,9 @@ async function fetchRepoPrs(owner, repo, token) {
     throw new Error(`HTTP ${res.status}`);
   }
   const data = await res.json();
-  // /pulls list does NOT include `mergeable_state`; use a coarse proxy:
-  //   draft → "blocked" (not actually blocked, but never ready in our terms)
-  //   no draft + no requested reviewers + open → "clean" (best-effort optimistic)
-  //   otherwise → null (pending) so we show it in totals but not as ready.
-  // The full mergeability check happens in the content script when the user is on
-  // the PR list page; the popup is a quick summary.
+  // /pulls list endpoint does not return `mergeable_state`. Approximate:
+  // draft PRs are never ready; everything else stays "pending" until the
+  // content script computes full mergeability on the PR-list page.
   return {
     owner,
     repo,

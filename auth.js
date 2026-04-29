@@ -1,8 +1,8 @@
 /* GitHub OAuth Device Flow for MV3 extension options page.
  *
- * Saves the resulting access_token to chrome.storage.local.token —
- * tokens are kept out of chrome.storage.sync to avoid roaming credentials
- * across browser profiles (SECURITY F-01).
+ * Saves the resulting access_token to chrome.storage.local.token (kept out
+ * of chrome.storage.sync to prevent credentials roaming across browser
+ * profiles).
  */
 
 const DEVICE_CODE_URL = "https://github.com/login/device/code";
@@ -113,30 +113,19 @@ export async function startDeviceFlow(clientId, hooks = {}) {
     }
 
     if (tokenData.error) {
-      switch (tokenData.error) {
-        case "authorization_pending":
-          // Keep polling at current interval.
-          continue;
-        case "slow_down":
-          // Spec says add 5s to the interval.
-          pollInterval += 5;
-          status(`GitHub asked us to slow down. Polling every ${pollInterval}s.`);
-          continue;
-        case "expired_token":
-          stopTick();
-          return fail("Code expired before you authorized. Try again.");
-        case "access_denied":
-          stopTick();
-          return fail("Authorization was denied.");
-        case "unsupported_grant_type":
-        case "incorrect_client_credentials":
-        case "incorrect_device_code":
-          stopTick();
-          return fail(`OAuth error: ${tokenData.error_description || tokenData.error}`);
-        default:
-          stopTick();
-          return fail(`OAuth error: ${tokenData.error_description || tokenData.error}`);
+      if (tokenData.error === "authorization_pending") continue;
+      if (tokenData.error === "slow_down") {
+        pollInterval += 5;
+        status(`GitHub asked us to slow down. Polling every ${pollInterval}s.`);
+        continue;
       }
+      stopTick();
+      const TERMINAL_MESSAGES = {
+        expired_token: "Code expired before you authorized. Try again.",
+        access_denied: "Authorization was denied.",
+      };
+      const friendly = TERMINAL_MESSAGES[tokenData.error];
+      return fail(friendly || `OAuth error: ${tokenData.error_description || tokenData.error}`);
     }
 
     if (tokenData.access_token) {

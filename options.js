@@ -76,41 +76,42 @@ async function saveClientId() {
   setStatus("oauthStatus", "Client ID saved.", "ok");
 }
 
+// Module-scoped refs for the device-flow handoff. The copy-and-open button
+// listener is wired once at DOMContentLoaded; signIn just updates these.
+let pendingCode = null;
+let pendingUri = null;
+
+async function onCopyAndOpen() {
+  if (!pendingCode || !pendingUri) return;
+  try {
+    await navigator.clipboard.writeText(pendingCode);
+  } catch {
+    // clipboard may be unavailable in some contexts; user can still copy manually
+  }
+  window.open(pendingUri, "_blank", "noopener");
+}
+
 async function signIn() {
   const clientId = $("clientId").value.trim();
   if (!clientId) {
     setStatus("oauthStatus", "Enter your OAuth App Client ID first.", "err");
     return;
   }
-  // Persist the client ID so users don't lose it on refresh.
   await chrome.storage.sync.set({ clientId });
 
   const box = $("deviceBox");
   const codeEl = $("userCode");
   const linkEl = $("verificationLink");
   const countdownEl = $("countdown");
-  const copyBtn = $("copyAndOpen");
   const signinBtn = $("signin");
 
   box.classList.remove("shown");
   codeEl.textContent = "—";
   countdownEl.textContent = "";
   signinBtn.disabled = true;
+  pendingCode = null;
+  pendingUri = null;
   setStatus("oauthStatus", "Requesting device code…");
-
-  let pendingCode = null;
-  let pendingUri = null;
-
-  const onCopyAndOpen = async () => {
-    if (!pendingCode || !pendingUri) return;
-    try {
-      await navigator.clipboard.writeText(pendingCode);
-    } catch {
-      /* clipboard may be unavailable in some contexts; user can still copy manually */
-    }
-    window.open(pendingUri, "_blank", "noopener");
-  };
-  copyBtn.addEventListener("click", onCopyAndOpen);
 
   try {
     const result = await startDeviceFlow(clientId, {
@@ -135,12 +136,10 @@ async function signIn() {
       const who = result.login ? `Signed in as ${result.login}` : "Signed in.";
       setStatus("oauthStatus", who, "ok");
       showSignedIn();
-      // F-07: do NOT mirror the token into the visible PAT input.
     }
   } catch (e) {
     setStatus("oauthStatus", `Failed: ${e.message || e}`, "err");
   } finally {
-    copyBtn.removeEventListener("click", onCopyAndOpen);
     signinBtn.disabled = false;
   }
 }
@@ -258,6 +257,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("test").addEventListener("click", test);
   $("saveClientId").addEventListener("click", saveClientId);
   $("signin").addEventListener("click", signIn);
+  $("copyAndOpen").addEventListener("click", onCopyAndOpen);
   const signOutBtn = $("signOut");
   if (signOutBtn) signOutBtn.addEventListener("click", signOut);
   const addBtn = $("addDefault");
