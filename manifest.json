@@ -5,6 +5,8 @@
   "version": "0.2.0",
   "version_name": "0.2.0-rc.1 (dev)",
   "description": "Squash, merge, or rebase pull requests directly from the GitHub Pull Requests list — no need to open each PR.",
+  "author": "Brady Grapentine",
+  "homepage_url": "https://github.com/bradygrapentine/gh-pr-quick-merge",
   "permissions": ["storage", "management"],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'; base-uri 'none'"
@@ -14,7 +16,8 @@
     "https://api.github.com/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "scripts": ["background.js"]
   },
   "action": {
     "default_popup": "popup.html",
@@ -44,7 +47,10 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "gh-pr-quick-merge@grapentineb.dev",
-      "strict_min_version": "115.0"
+      "strict_min_version": "115.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
     }
   }
 }
