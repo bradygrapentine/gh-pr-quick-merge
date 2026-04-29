@@ -1,7 +1,8 @@
 /* GitHub OAuth Device Flow for MV3 extension options page.
  *
- * Saves the resulting access_token to chrome.storage.sync.token —
- * the same key the existing PAT flow uses, so content.js needs no changes.
+ * Saves the resulting access_token to chrome.storage.local.token —
+ * tokens are kept out of chrome.storage.sync to avoid roaming credentials
+ * across browser profiles (SECURITY F-01).
  */
 
 const DEVICE_CODE_URL = "https://github.com/login/device/code";
@@ -141,7 +142,7 @@ export async function startDeviceFlow(clientId, hooks = {}) {
     if (tokenData.access_token) {
       stopTick();
       const token = tokenData.access_token;
-      await chrome.storage.sync.set({ token });
+      await chrome.storage.local.set({ token });
       status("Token saved. Fetching account info…");
 
       // Best-effort: fetch the user's login for the success message.

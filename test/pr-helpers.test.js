@@ -31,6 +31,19 @@ describe("parsePrLink", () => {
     expect(parsePrLink(undefined)).toBeNull();
     expect(parsePrLink("")).toBeNull();
   });
+
+  // F-09: host validation
+  it("returns null for non-github.com hosts (protocol-relative)", () => {
+    expect(parsePrLink("//evil.com/owner/repo/pull/1")).toBeNull();
+  });
+
+  it("returns null for non-github.com hosts (absolute)", () => {
+    expect(parsePrLink("https://evil.com/owner/repo/pull/1")).toBeNull();
+  });
+
+  it("returns null for http (non-https) GitHub URLs", () => {
+    expect(parsePrLink("http://github.com/owner/repo/pull/1")).toBeNull();
+  });
 });
 
 describe("classifyMergeState", () => {

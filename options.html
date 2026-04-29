@@ -71,6 +71,20 @@
     }
     .countdown { font-size: 11px; color: #656d76; margin-top: 8px; }
     details { margin-top: 8px; }
+    .signed-in {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+      padding: 8px 10px;
+      background: #dafbe1;
+      border: 1px solid #1a7f37;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #1a7f37;
+    }
+    .signed-in.shown { display: flex; }
+    .signed-in button { margin-top: 0; padding: 4px 10px; font-size: 11px; }
     details > summary {
       cursor: pointer;
       font-size: 12px;
@@ -90,9 +104,14 @@
     <input type="text" id="clientId" placeholder="Iv1.xxxxxxxxxxxxxxxx" autocomplete="off" />
     <div class="hint">
       Register an OAuth App at
-      <a href="https://github.com/settings/applications/new" target="_blank">github.com/settings/applications/new</a>
+      <a href="https://github.com/settings/applications/new" target="_blank" rel="noopener noreferrer">github.com/settings/applications/new</a>
       with <strong>"Enable Device Flow"</strong> checked, then paste the Client ID here.
       The extension publisher (or you) only needs to do this once.
+    </div>
+    <div class="hint" style="background:#fff8c5;border:1px solid #d4a72c;border-radius:6px;padding:8px;margin-top:8px;">
+      <strong>⚠ Warning:</strong> the Client ID identifies the OAuth app that will receive permissions on your account.
+      Only paste a Client ID from <em>your own</em> OAuth app — a malicious Client ID will authorize an attacker's app
+      against your GitHub account. Verify the source before signing in.
     </div>
     <button id="saveClientId" class="neutral">Save Client ID</button>
     <button id="signin">Sign in with GitHub</button>
@@ -103,7 +122,7 @@
         <span class="user-code" id="userCode">—</span>
       </div>
       <div class="hint">
-        Open <a id="verificationLink" href="#" target="_blank">github.com/login/device</a>
+        Open <a id="verificationLink" href="#" target="_blank" rel="noopener noreferrer">github.com/login/device</a>
         and paste this code.
       </div>
       <button id="copyAndOpen" class="secondary">Copy code &amp; open GitHub</button>
@@ -111,6 +130,11 @@
     </div>
 
     <div class="status" id="oauthStatus"></div>
+
+    <div id="signedInBadge" class="signed-in">
+      <span>✓ A token is currently saved.</span>
+      <button id="signOut" class="neutral">Sign out / clear token</button>
+    </div>
   </div>
 
   <details>
@@ -121,7 +145,7 @@
       <div class="hint">
         Needs <code>repo</code> scope (classic) or <code>contents: write</code> + <code>pull_requests: write</code> (fine-grained).
         Create one at
-        <a href="https://github.com/settings/tokens?type=beta" target="_blank">github.com/settings/tokens</a>.
+        <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noopener noreferrer">github.com/settings/tokens</a>.
         Stored locally via <code>chrome.storage.sync</code>.
       </div>
       <button id="save">Save</button>

@@ -3,9 +3,32 @@ import { startDeviceFlow } from "./auth.js";
 const $ = (id) => document.getElementById(id);
 
 async function load() {
-  const { token, clientId } = await chrome.storage.sync.get(["token", "clientId"]);
-  if (token) $("token").value = token;
+  const [{ token }, { clientId }] = await Promise.all([
+    chrome.storage.local.get("token"),
+    chrome.storage.sync.get("clientId"),
+  ]);
   if (clientId) $("clientId").value = clientId;
+  if (token) {
+    showSignedIn();
+  }
+}
+
+function showSignedIn() {
+  const badge = $("signedInBadge");
+  if (badge) badge.classList.add("shown");
+}
+
+function showSignedOut() {
+  const badge = $("signedInBadge");
+  if (badge) badge.classList.remove("shown");
+}
+
+async function signOut() {
+  await chrome.storage.local.remove("token");
+  $("token").value = "";
+  showSignedOut();
+  setStatus("oauthStatus", "Signed out — token cleared.", "ok");
+  setStatus("status", "Signed out — token cleared.", "ok");
 }
 
 function setStatus(idOrEl, msg, kind = "") {
@@ -17,7 +40,8 @@ function setStatus(idOrEl, msg, kind = "") {
 
 async function save() {
   const token = $("token").value.trim();
-  await chrome.storage.sync.set({ token });
+  await chrome.storage.local.set({ token });
+  if (token) showSignedIn();
   setStatus("status", "Saved.", "ok");
 }
 
@@ -110,8 +134,8 @@ async function signIn() {
     if (result.ok) {
       const who = result.login ? `Signed in as ${result.login}` : "Signed in.";
       setStatus("oauthStatus", who, "ok");
-      // Mirror the token into the PAT field so the user can see it's set.
-      $("token").value = result.token;
+      showSignedIn();
+      // F-07: do NOT mirror the token into the visible PAT input.
     }
   } catch (e) {
     setStatus("oauthStatus", `Failed: ${e.message || e}`, "err");
@@ -127,4 +151,6 @@ document.addEventListener("DOMContentLoaded", () => {
   $("test").addEventListener("click", test);
   $("saveClientId").addEventListener("click", saveClientId);
   $("signin").addEventListener("click", signIn);
+  const signOutBtn = $("signOut");
+  if (signOutBtn) signOutBtn.addEventListener("click", signOut);
 });
