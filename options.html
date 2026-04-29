@@ -151,6 +151,111 @@
     }
     .qm-defaults-add input { flex: 1; min-width: 0; }
     .qm-defaults-add button { margin-top: 0; padding: 5px 12px; font-size: 12px; }
+
+    .qm-list {
+      list-style: none;
+      margin: 8px 0;
+      padding: 0;
+      font-size: 12px;
+    }
+    .qm-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 6px 8px;
+      background: #fff;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      margin-bottom: 6px;
+    }
+    .qm-list .qm-list-name {
+      font-weight: 600;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: #0969da;
+      min-width: 80px;
+    }
+    .qm-list .qm-list-body {
+      flex: 1;
+      color: #57606a;
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+      max-height: 60px;
+      overflow: hidden;
+    }
+    .qm-list .qm-list-remove {
+      background: #cf222e;
+      color: #fff;
+      border: 0;
+      border-radius: 5px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      margin: 0;
+    }
+    .qm-form-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-top: 6px;
+    }
+    .qm-form-row input[type="text"],
+    .qm-form-row input[type="number"],
+    .qm-form-row textarea {
+      flex: 1;
+      padding: 6px 8px;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      font-size: 12px;
+      box-sizing: border-box;
+      font-family: inherit;
+    }
+    .qm-form-row textarea {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      resize: vertical;
+    }
+    .qm-form-row label {
+      margin: 0;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+    .qm-form-row button { margin-top: 0; padding: 5px 12px; font-size: 12px; }
+    .qm-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    .qm-table th, .qm-table td {
+      padding: 6px 8px;
+      text-align: left;
+      border-bottom: 1px solid #d0d7de;
+    }
+    .qm-table th { font-size: 11px; color: #57606a; font-weight: 600; }
+    .qm-table .qm-shortcut-combo {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      background: #f6f8fa;
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid #d0d7de;
+      font-size: 11px;
+    }
+    .qm-table .qm-shortcut-combo.editing {
+      background: #fff8c5;
+      border-color: #d4a72c;
+    }
+    .qm-table .qm-shortcut-edit {
+      background: #0969da;
+      color: #fff;
+      border: 0;
+      border-radius: 4px;
+      padding: 2px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      margin: 0;
+    }
   </style>
 </head>
 <body>
@@ -228,11 +333,80 @@
         <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noopener noreferrer">github.com/settings/tokens</a>.
         Stored locally via <code>chrome.storage.sync</code>.
       </div>
+      <div id="tokenStaleHint" class="hint" hidden style="background:#fff8c5;border:1px solid #d4a72c;border-radius:6px;padding:8px;margin-top:8px;">
+        <strong>⚠ Token is 30+ days old.</strong> Consider rotating it. Paste a fresh token to reset the counter.
+      </div>
+      <div class="hint" style="margin-top:6px;">
+        <strong>Multi-account note:</strong> only one token is supported at a time.
+        To switch accounts, paste a token for the other account here.
+        Multiple simultaneous accounts are not supported.
+      </div>
       <button id="save">Save</button>
       <button id="test" class="secondary">Test</button>
       <div class="status" id="status"></div>
     </div>
   </details>
+
+  <div class="section">
+    <h2>Commit message templates</h2>
+    <div class="hint">
+      Saved templates can be referenced by <code>name</code> when merging.
+      Stored in <code>chrome.storage.sync</code>.
+    </div>
+    <ul id="templatesList" class="qm-list" aria-live="polite"></ul>
+    <div class="qm-form-row">
+      <input type="text" id="templateName" placeholder="template-name (e.g. release)" autocomplete="off" />
+    </div>
+    <div class="qm-form-row">
+      <textarea id="templateBody" placeholder="Subject line goes here&#10;&#10;Body goes here…" rows="5"></textarea>
+    </div>
+    <div class="qm-form-row">
+      <button id="templateSave" class="secondary">Save template</button>
+      <button id="templateClear" class="neutral" type="button">Clear</button>
+    </div>
+    <div class="status" id="templatesStatus"></div>
+  </div>
+
+  <div class="section">
+    <h2>Keyboard shortcuts</h2>
+    <div class="hint">
+      Press a key combination while focused on the GitHub PR list to trigger an action.
+      Click <strong>Edit</strong>, then press the desired combo. <strong>Esc</strong> cancels.
+    </div>
+    <table id="shortcutsTable" class="qm-table">
+      <thead>
+        <tr><th>Action</th><th>Shortcut</th><th></th></tr>
+      </thead>
+      <tbody id="shortcutsTbody"></tbody>
+    </table>
+    <button id="shortcutsReset" class="neutral" type="button">Reset to defaults</button>
+    <div class="status" id="shortcutsStatus"></div>
+  </div>
+
+  <div class="section">
+    <h2>Stale PRs</h2>
+    <div class="hint">
+      Mark PRs that haven't been updated in this many days as stale on the GitHub PR list.
+    </div>
+    <div class="qm-form-row">
+      <label for="staleDaysInput">Stale after</label>
+      <input type="number" id="staleDaysInput" min="1" max="365" value="14" />
+      <span style="font-size:12px;color:#57606a;">days</span>
+    </div>
+    <div class="status" id="staleStatus"></div>
+  </div>
+
+  <div class="section">
+    <h2>Import / export</h2>
+    <div class="hint">
+      Move templates, repo defaults, shortcut overrides, and stale-day preference between browsers.
+      Tokens are <strong>never</strong> exported.
+    </div>
+    <button id="exportBtn" class="neutral" type="button">Export settings…</button>
+    <button id="importBtn" class="neutral" type="button">Import settings…</button>
+    <input id="importFileInput" type="file" accept="application/json,.json" style="display:none" />
+    <div class="status" id="ioStatus"></div>
+  </div>
 
   <footer class="qm-options-footer" style="margin-top:24px;padding-top:12px;border-top:1px solid #d0d7de;font-size:12px;color:#57606a;">
     PR Quick Merge is free and open source.
@@ -243,5 +417,8 @@
   </footer>
 </body>
 <script src="lib/repo-defaults.js"></script>
+<script src="lib/templates.js"></script>
+<script src="lib/shortcuts.js"></script>
+<script src="lib/import-export.js"></script>
 <script type="module" src="options.js"></script>
 </html>
