@@ -59,6 +59,17 @@ Wave 1 of the v0.2 milestone landed:
 
 **Success metric:** 2k WAU; >=30% of active users have customized at least one default; D7 retention >=40%.
 
+### v0.3 / v0.4 product narrative — "Everything you wish the GitHub PR list did"
+
+The cluster to prioritize after the per-row merge buttons land:
+
+- **Per-row "Update branch"** — one-click rebase/merge of base into the PR's branch directly from the list (the green "Update branch" button GitHub buries inside each PR page).
+- **Merge-when-green** — schedule a merge to fire once all required checks pass; surface queue state in the list.
+- **Bulk close / bulk label** — checkbox-driven mass operations that mirror bulk merge, but for triage workflows.
+- **Stale-PR highlighting** — visual badge on rows whose PRs have been idle past a threshold (configurable per repo).
+
+These all share the same DOM-injection pattern as the merge buttons, the same auth surface, and the same target users — so the marginal eng cost per feature is small after Wave 2 lands. Together they form a tight v0.3 / v0.4 narrative: **"Everything you wish the GitHub PR list did."** That phrase is also the leading candidate for the Chrome Web Store / AMO listing tagline.
+
 ---
 
 ## v1.0 — Paid Pro tier + public launch
