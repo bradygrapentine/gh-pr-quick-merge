@@ -1,6 +1,6 @@
 # GitHub PR Quick Merge
 
-**Status:** v0.2-dev — Wave 1 shipped (OAuth device flow, real icons, bulk-merge UI behind Pro modal, vitest suite). See [ROADMAP.md](./ROADMAP.md).
+**Status:** v0.2.0-rc.1 — most of v0.2 shipped (OAuth device flow, real icons, bulk-merge UI behind Pro modal, toolbar popup, per-repo default merge method, 124 unit tests, GitHub Actions CI). Final `v0.2.0` tag waits on QM-019 (closing the last 7 SECURITY findings). See [ROADMAP.md](./ROADMAP.md), [CHANGELOG.md](./CHANGELOG.md).
 
 Squash, merge, or rebase pull requests directly from the GitHub Pull Requests list — no need to open each PR.
 
@@ -29,9 +29,9 @@ The extension supports the GitHub OAuth Device Flow so you don't have to manage 
 2. Click **Register application**, then copy the **Client ID** (looks like `Iv1.xxxxxxxxxxxxxxxx`).
 3. Open the extension's Options page, paste the Client ID, click **Save Client ID**, then click **Sign in with GitHub**.
 4. The page shows a one-time code. Click **Copy code & open GitHub**, paste the code on the page that opens, and authorize the app.
-5. Once authorized, the extension stores the resulting access token via `chrome.storage.sync.token` — same key the PAT flow uses, so the content script just works.
+5. Once authorized, the extension stores the resulting access token via `chrome.storage.local.token`. The content script picks it up automatically.
 
-The Client ID is not a secret; Device Flow is designed for public clients (no client secret involved).
+The Client ID is not a secret; Device Flow is designed for public clients (no client secret involved). To clear the saved token, click **Sign out / clear token** in the options page.
 
 ## PAT fallback
 
@@ -41,7 +41,7 @@ If you'd rather skip OAuth, expand **"Use a Personal Access Token instead"** in 
 - **Classic PAT**: `repo`
 - **Fine-grained PAT**: `Contents: Read & Write` + `Pull requests: Read & Write` on the repos you want to merge
 
-Token is stored via `chrome.storage.sync` (synced across your browser profile, not sent anywhere else).
+Token is stored via `chrome.storage.local` (per-browser-profile only — does NOT roam across other browsers signed into the same Google account; see SECURITY F-01).
 
 ## How it works
 - Content script runs on `github.com/pulls`, `github.com/<owner>/<repo>/pulls`, and `github.com/issues`
@@ -50,26 +50,36 @@ Token is stored via `chrome.storage.sync` (synced across your browser profile, n
 - A `MutationObserver` re-injects buttons when GitHub re-renders the list (filter, sort, pagination)
 
 ## Limitations
-- Bulk-merge UI ships in v0.2 but is gated behind a "Pro" placeholder modal — payment / license server not wired yet (planned for v1.0)
-- Rate limiting: at ~5000/hr authed, the per-row mergeability check is fine for normal use; very long lists may want a future opt-in to use the cheaper list endpoint
-- No toolbar popup yet — mergeable-PR summary across pinned repos is on the v0.2 backlog (QM-021)
-- No per-repo default merge method, merge-commit templates, or keyboard shortcuts yet — landing in v0.3
+- Bulk-merge UI is gated behind a "Pro" placeholder modal — payment / license server not wired yet (planned for v1.0). The "Enable Pro (dev)" bypass button only appears in unpacked dev installs.
+- Rate limiting: at ~5000/hr authed, the per-row mergeability check is fine for normal use; very long lists may want a future opt-in to use the cheaper list endpoint.
+- Popup uses a coarse mergeability proxy from the `/pulls` list endpoint (which doesn't return `mergeable_state`); full mergeability still computed in the content script on the PR-list page.
+- No merge-commit templates or keyboard shortcuts yet — engines exist (`lib/templates.js`, `lib/shortcuts.js`) and pass tests, but UI integration is queued for v0.3 (QM-016, QM-018).
+- 7 of 15 SECURITY findings remain open (tracked under QM-019); none are Critical or High.
 
-## Roadmap
+## Roadmap (v0.2)
 - [x] Real icons (16/48/128)
 - [x] OAuth device flow to replace PAT
 - [x] Multi-select + batch merge UI (gated behind Pro modal)
-- [ ] CI (lint + typecheck + test on PR)
-- [ ] Toolbar popup with summary of mergeable PRs across pinned repos
-- [ ] Per-repo default merge method
-- [ ] Merge-commit templates and keyboard shortcuts (v0.3)
+- [x] GitHub Actions CI (`npm test` on every PR)
+- [x] Toolbar popup with summary of mergeable PRs across pinned repos
+- [x] Per-repo default merge method
+- [ ] Merge-commit templates UI (QM-016)
+- [ ] Keyboard shortcuts UI (QM-018)
+- [ ] Remaining 7 SECURITY findings (QM-019)
+- [ ] Tag `v0.2.0` (gated on QM-019)
 - [ ] Paid Pro tier with license server (v1.0)
 
 ## Development
 
-- Plan and milestones: [ROADMAP.md](./ROADMAP.md)
-- Story-level work and IDs (QM-xxx): [BACKLOG.md](./BACKLOG.md)
-- Run the test suite: `npm test` (Vitest + jsdom; pure helpers live in `lib/pr-helpers.js`)
+- Setup walkthrough: [SETUP.md](./SETUP.md)
+- Milestones: [ROADMAP.md](./ROADMAP.md)
+- Backlog (QM-xxx): [BACKLOG.md](./BACKLOG.md)
+- Wave plan: [WAVE-2-PLAN.md](./WAVE-2-PLAN.md)
+- Per-feature plans: [`plans/`](./plans/)
+- Changelog: [CHANGELOG.md](./CHANGELOG.md)
+- Security review: [SECURITY.md](./SECURITY.md)
+- Run tests: `npm test` (Vitest; pure helpers live in `lib/`)
+- Build a zip for upload: `npm run package` (output lands in `web-ext-artifacts/`)
 
 ## Monetization
 
