@@ -14,7 +14,55 @@ const state = {
   cache: new Map(),
   // pr key -> { pr, row, container }
   selected: new Map(),
+  // "owner/repo" -> "squash" | "merge" | "rebase"
+  repoDefaults: {},
 };
+
+async function loadRepoDefaults() {
+  try {
+    const got = await chrome.storage.sync.get("repoDefaults");
+    const map = got && got.repoDefaults;
+    state.repoDefaults = map && typeof map === "object" ? map : {};
+  } catch {
+    state.repoDefaults = {};
+  }
+}
+
+function pickDefaultForBulkLocal(prs, map) {
+  if (!Array.isArray(prs) || prs.length === 0) return null;
+  if (!map || typeof map !== "object") return null;
+  let chosen = null;
+  for (const pr of prs) {
+    if (!pr || !pr.owner || !pr.repo) return null;
+    const v = map[`${pr.owner}/${pr.repo}`];
+    if (v == null) return null;
+    if (chosen === null) chosen = v;
+    else if (chosen !== v) return null;
+  }
+  return chosen;
+}
+
+function applyRepoDefaultClass(container, pr) {
+  if (!container || !pr) return;
+  const method = state.repoDefaults[`${pr.owner}/${pr.repo}`];
+  container.querySelectorAll(".qm-btn").forEach((b) => {
+    b.classList.remove("qm-btn-default");
+  });
+  if (!method) return;
+  const target = container.querySelector(`.qm-btn[data-qm-kind="${method}"]`);
+  if (target) target.classList.add("qm-btn-default");
+}
+
+function restyleAllRows() {
+  document.querySelectorAll(".qm-container").forEach((container) => {
+    const key = container.dataset.qmKey;
+    if (!key) return;
+    const m = key.match(/^([^/]+)\/([^#]+)#/);
+    if (!m) return;
+    applyRepoDefaultClass(container, { owner: m[1], repo: m[2] });
+  });
+  syncBulkBarFromDefaults();
+}
 
 async function loadProFlag() {
   const { pro } = await chrome.storage.local.get("pro");
@@ -212,6 +260,8 @@ async function injectRow(row) {
   container.appendChild(merge);
   container.appendChild(rebase);
 
+  applyRepoDefaultClass(container, pr);
+
   // Place container in a sensible spot inside the row
   const target =
     row.querySelector(".opened-by") ||
@@ -338,6 +388,17 @@ function renderBulkBar() {
   const n = state.selected.size;
   bar.querySelector(".qm-bulk-count").textContent = `${n} selected`;
   bar.classList.toggle("qm-bulk-bar-shown", n > 0);
+  syncBulkBarFromDefaults();
+}
+
+function syncBulkBarFromDefaults() {
+  const select = document.querySelector(".qm-bulk-method");
+  if (!select) return;
+  const prs = Array.from(state.selected.values()).map((s) => s.pr);
+  const shared = pickDefaultForBulkLocal(prs, state.repoDefaults);
+  if (shared && select.value !== shared) {
+    select.value = shared;
+  }
 }
 
 async function onBulkMerge() {
@@ -430,6 +491,7 @@ async function showProGate() {
 
 function start() {
   loadProFlag();
+  loadRepoDefaults().then(() => restyleAllRows());
   scan();
   observer.observe(document.body, { childList: true, subtree: true });
   renderBulkBar();
@@ -446,7 +508,15 @@ document.addEventListener("turbo:render", () => scan());
 document.addEventListener("pjax:end", () => scan());
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
-  // token + pro live in chrome.storage.local; ignore sync-area noise.
+  if (areaName === "sync") {
+    if (changes.repoDefaults) {
+      const next = changes.repoDefaults.newValue;
+      state.repoDefaults = next && typeof next === "object" ? next : {};
+      restyleAllRows();
+    }
+    return;
+  }
+  // token + pro live in chrome.storage.local; ignore other sync-area noise.
   if (areaName !== "local") return;
   if (changes.token) {
     state.token = changes.token.newValue || "";
