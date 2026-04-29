@@ -1,0 +1,15 @@
+{
+  "_comment": "Perf baseline — written by nightly e2e CI. Compared against on each run; alerts on >20% regression. Manually edit only when intentionally raising the budget.",
+  "updated": "2026-04-29T00:00:00Z",
+  "metrics": {
+    "button_injection_p95_ms": null,
+    "mutation_observer_callbacks_total": null,
+    "heap_delta_mb": null
+  },
+  "thresholds": {
+    "button_injection_p95_ms_max": 50,
+    "mutation_observer_callbacks_total_max": 200,
+    "heap_delta_mb_max": 15,
+    "regression_warn_pct": 20
+  }
+}

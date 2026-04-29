@@ -13,3 +13,6 @@ coverage/
 .claude/
 .memsearch/
 web-ext-artifacts/
+.playwright-user-data/
+playwright-report/
+test-results/
