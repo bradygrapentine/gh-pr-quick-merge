@@ -27,5 +27,14 @@ npx --yes web-ext@8 build \
     ".gitignore" \
     "dist/**"
 
+echo "→ stripping any *.map files from artifact (defensive — repo currently produces none)"
+for zip in dist/*.zip; do
+  [ -f "$zip" ] || continue
+  if zipinfo -1 "$zip" 2>/dev/null | grep -q '\.map$'; then
+    zip -d "$zip" '*.map' >/dev/null
+    echo "  removed source maps from $(basename "$zip")"
+  fi
+done
+
 echo "→ artifact:"
 ls -lh dist/*.zip 2>/dev/null || { echo "(no zip produced)"; exit 1; }
