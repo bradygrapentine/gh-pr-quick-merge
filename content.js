@@ -8,7 +8,7 @@ const INJECTED_ATTR = "data-qm-injected";
 const { parsePrLink: parsePrHref, classifyMergeState, mergeMethodFromKind } = window.QM_HELPERS;
 
 const state = {
-  token: null,
+  token: "",
   pro: false,
   // pr key "owner/repo#num" -> { mergeable, mergeable_state, head_sha }
   cache: new Map(),
@@ -18,14 +18,24 @@ const state = {
   repoDefaults: {},
 };
 
-async function loadRepoDefaults() {
-  try {
-    const got = await chrome.storage.sync.get("repoDefaults");
-    const map = got && got.repoDefaults;
-    state.repoDefaults = map && typeof map === "object" ? map : {};
-  } catch {
-    state.repoDefaults = {};
-  }
+const prKey = (pr) => `${pr.owner}/${pr.repo}#${pr.num}`;
+
+function setButtonsDisabled(container, disabled, title) {
+  container.querySelectorAll(".qm-btn").forEach((b) => {
+    b.disabled = disabled;
+    if (title !== undefined) b.title = title;
+  });
+}
+
+async function loadInitialState() {
+  const [localStore, syncStore] = await Promise.all([
+    chrome.storage.local.get(["token", "pro"]).catch(() => ({})),
+    chrome.storage.sync.get("repoDefaults").catch(() => ({})),
+  ]);
+  state.token = localStore.token || "";
+  state.pro = !!localStore.pro;
+  const map = syncStore.repoDefaults;
+  state.repoDefaults = map && typeof map === "object" ? map : {};
 }
 
 function pickDefaultForBulkLocal(prs, map) {
@@ -64,11 +74,6 @@ function restyleAllRows() {
   syncBulkBarFromDefaults();
 }
 
-async function loadProFlag() {
-  const { pro } = await chrome.storage.local.get("pro");
-  state.pro = !!pro;
-}
-
 async function isDevInstall() {
   try {
     const reply = await chrome.runtime.sendMessage({ type: "qm:get-install-type" });
@@ -78,12 +83,7 @@ async function isDevInstall() {
   }
 }
 
-async function getToken() {
-  if (state.token !== null) return state.token;
-  const { token } = await chrome.storage.local.get("token");
-  state.token = token || "";
-  return state.token;
-}
+const getToken = () => state.token;
 
 function ghHeaders(token) {
   return {
@@ -164,8 +164,9 @@ function setRowState(container, prState) {
   }
 }
 
-async function fetchPrState({ owner, repo, num }, token) {
-  const key = `${owner}/${repo}#${num}`;
+async function fetchPrState(pr, token) {
+  const { owner, repo, num } = pr;
+  const key = prKey(pr);
   if (state.cache.has(key)) return state.cache.get(key);
   try {
     const res = await fetch(`${API}/repos/${owner}/${repo}/pulls/${num}`, {
@@ -193,9 +194,9 @@ async function fetchPrState({ owner, repo, num }, token) {
   }
 }
 
-async function doMerge({ owner, repo, num }, kind, token, headSha) {
+async function doMerge({ pr, kind, token, headSha }) {
   const method = mergeMethodFromKind(kind);
-  const res = await fetch(`${API}/repos/${owner}/${repo}/pulls/${num}/merge`, {
+  const res = await fetch(`${API}/repos/${pr.owner}/${pr.repo}/pulls/${pr.num}/merge`, {
     method: "PUT",
     headers: { ...ghHeaders(token), "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -231,7 +232,7 @@ async function injectRow(row) {
 
   const container = document.createElement("span");
   container.className = "qm-container";
-  container.dataset.qmKey = `${pr.owner}/${pr.repo}#${pr.num}`;
+  container.dataset.qmKey = prKey(pr);
 
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
@@ -269,7 +270,7 @@ async function injectRow(row) {
     row;
   target.appendChild(container);
 
-  const token = await getToken();
+  const token = getToken();
   if (!token) {
     container.querySelectorAll(".qm-btn").forEach((b) => {
       b.title = "Set a GitHub token in the extension options";
@@ -292,7 +293,7 @@ async function injectRow(row) {
   // If null/pending, retry once after a short delay
   if (prState && prState.mergeable === null) {
     setTimeout(async () => {
-      state.cache.delete(`${pr.owner}/${pr.repo}#${pr.num}`);
+      state.cache.delete(prKey(pr));
       const refreshed = await fetchPrState(pr, token);
       setRowState(container, refreshed);
     }, 3000);
@@ -306,7 +307,7 @@ async function injectRow(row) {
     if (btn.disabled) return;
 
     const kind = btn.dataset.qmKind;
-    const current = state.cache.get(`${pr.owner}/${pr.repo}#${pr.num}`);
+    const current = state.cache.get(prKey(pr));
     if (!current?.head_sha) {
       toast("PR state not ready, try again", "warn");
       return;
@@ -315,20 +316,19 @@ async function injectRow(row) {
     const ok = confirm(`${kind.toUpperCase()} ${pr.owner}/${pr.repo} #${pr.num}?`);
     if (!ok) return;
 
-    container.querySelectorAll(".qm-btn").forEach((b) => (b.disabled = true));
+    setButtonsDisabled(container, true);
     status.textContent = "⏳";
     try {
-      await doMerge(pr, kind, token, current.head_sha);
+      await doMerge({ pr, kind, token, headSha: current.head_sha });
       status.textContent = "✓";
       status.dataset.kind = "merged";
-      toast(`Merged ${pr.owner}/${pr.repo}#${pr.num}`, "ok");
-      // Strike row visually
+      toast(`Merged ${prKey(pr)}`, "ok");
       row.style.opacity = "0.5";
     } catch (err) {
       status.textContent = "✕";
       status.dataset.kind = "error";
       toast(`Failed: ${err.message}`, "error");
-      container.querySelectorAll(".qm-btn").forEach((b) => (b.disabled = false));
+      setButtonsDisabled(container, false);
     }
   });
 }
@@ -411,7 +411,7 @@ async function onBulkMerge() {
   const method = document.querySelector(".qm-bulk-method").value;
   const ok = confirm(`${method.toUpperCase()} ${items.length} PR${items.length > 1 ? "s" : ""}?`);
   if (!ok) return;
-  const token = await getToken();
+  const token = getToken();
   if (!token) {
     toast("Set a GitHub token first", "warn");
     return;
@@ -421,13 +421,13 @@ async function onBulkMerge() {
   let success = 0;
   let failed = 0;
   for (const { pr, row, container } of items) {
-    const cached = state.cache.get(`${pr.owner}/${pr.repo}#${pr.num}`);
+    const cached = state.cache.get(prKey(pr));
     if (!cached?.head_sha) {
       failed++;
       continue;
     }
     try {
-      await doMerge(pr, method, token, cached.head_sha);
+      await doMerge({ pr, kind: method, token, headSha: cached.head_sha });
       success++;
       row.style.opacity = "0.5";
       const status = container.querySelector(".qm-status");
@@ -437,7 +437,7 @@ async function onBulkMerge() {
       }
     } catch (e) {
       failed++;
-      toast(`Failed ${pr.owner}/${pr.repo}#${pr.num}: ${e.message}`, "error");
+      toast(`Failed ${prKey(pr)}: ${e.message}`, "error");
     }
   }
   state.selected.clear();
@@ -489,9 +489,8 @@ async function showProGate() {
   }
 }
 
-function start() {
-  loadProFlag();
-  loadRepoDefaults().then(() => restyleAllRows());
+async function start() {
+  await loadInitialState();
   scan();
   observer.observe(document.body, { childList: true, subtree: true });
   renderBulkBar();
@@ -503,7 +502,6 @@ if (document.readyState === "loading") {
   start();
 }
 
-// Re-scan on GitHub's pjax-style navigation
 document.addEventListener("turbo:render", () => scan());
 document.addEventListener("pjax:end", () => scan());
 
