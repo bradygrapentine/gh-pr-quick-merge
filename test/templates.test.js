@@ -1,12 +1,32 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import templates from "../lib/templates.js";
 
 const {
   applyTemplate,
   validateTemplate,
+  saveTemplate,
+  loadTemplate,
+  listTemplates,
+  deleteTemplate,
   DEFAULT_SQUASH_TEMPLATE,
   DEFAULT_MERGE_TEMPLATE,
 } = templates;
+
+function makeStore(initial = {}) {
+  let db = { ...initial };
+  return {
+    get: vi.fn(async (key) => {
+      return Object.prototype.hasOwnProperty.call(db, key) ? { [key]: db[key] } : {};
+    }),
+    set: vi.fn(async (obj) => {
+      Object.assign(db, obj);
+    }),
+    remove: vi.fn(async (key) => {
+      delete db[key];
+    }),
+    _db: db,
+  };
+}
 
 describe("applyTemplate", () => {
   const fullCtx = {
@@ -132,6 +152,54 @@ describe("validateTemplate", () => {
     expect(r.valid).toBe(true);
     expect(r.unknown).toEqual([]);
     expect(r.errors).toEqual([]);
+  });
+});
+
+describe("storage helpers", () => {
+  it("saveTemplate + loadTemplate roundtrip", async () => {
+    const store = makeStore();
+    await saveTemplate("myTpl", "{{title}} (#{{number}})", store);
+    const body = await loadTemplate("myTpl", store);
+    expect(body).toBe("{{title}} (#{{number}})");
+  });
+
+  it("saveTemplate validates body and rejects invalid template", async () => {
+    const store = makeStore();
+    await expect(saveTemplate("bad", "{{unknownToken}}", store)).rejects.toThrow();
+    await expect(saveTemplate("bad2", "unclosed {{", store)).rejects.toThrow();
+  });
+
+  it("listTemplates returns {} for empty store", async () => {
+    const store = makeStore();
+    const map = await listTemplates(store);
+    expect(map).toEqual({});
+  });
+
+  it("listTemplates returns the full map when populated", async () => {
+    const store = makeStore({ qm_templates: { a: "{{title}}", b: "{{body}}" } });
+    const map = await listTemplates(store);
+    expect(map).toEqual({ a: "{{title}}", b: "{{body}}" });
+  });
+
+  it("deleteTemplate removes a single entry", async () => {
+    const store = makeStore({ qm_templates: { a: "{{title}}", b: "{{body}}" } });
+    await deleteTemplate("a", store);
+    const map = await listTemplates(store);
+    expect(map).toEqual({ b: "{{body}}" });
+    expect(store.remove).not.toHaveBeenCalled();
+  });
+
+  it("deleteTemplate of last entry removes the qm_templates key", async () => {
+    const store = makeStore({ qm_templates: { only: "{{title}}" } });
+    await deleteTemplate("only", store);
+    expect(store.remove).toHaveBeenCalledWith("qm_templates");
+  });
+
+  it("saveTemplate overwrites existing name", async () => {
+    const store = makeStore({ qm_templates: { myTpl: "{{title}}" } });
+    await saveTemplate("myTpl", "{{title}} by {{author}}", store);
+    const body = await loadTemplate("myTpl", store);
+    expect(body).toBe("{{title}} by {{author}}");
   });
 });
 
