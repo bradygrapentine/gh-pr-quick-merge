@@ -475,6 +475,96 @@ async function resetShortcuts() {
 }
 
 // ---------------------------------------------------------------------------
+// Per-repo stale thresholds (QM-063) + fast mode toggle (QM-067)
+// ---------------------------------------------------------------------------
+
+const REPO_STALE_KEY = "qm_repo_stale_thresholds";
+const SLUG_RE_OPT = /^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/;
+
+async function loadRepoStaleThresholds() {
+  const data = await chrome.storage.sync.get(REPO_STALE_KEY);
+  return (data && data[REPO_STALE_KEY] && typeof data[REPO_STALE_KEY] === "object") ? data[REPO_STALE_KEY] : {};
+}
+
+async function saveRepoStaleThresholds(map) {
+  await chrome.storage.sync.set({ [REPO_STALE_KEY]: map });
+}
+
+async function renderRepoStaleList() {
+  const list = $("repoStaleList");
+  if (!list) return;
+  const map = await loadRepoStaleThresholds();
+  list.innerHTML = "";
+  const slugs = Object.keys(map).sort();
+  if (slugs.length === 0) {
+    const li = document.createElement("li");
+    li.className = "qm-d-empty";
+    li.textContent = "No per-repo overrides yet.";
+    list.appendChild(li);
+    return;
+  }
+  for (const slug of slugs) {
+    const li = document.createElement("li");
+    const nameEl = document.createElement("span");
+    nameEl.className = "qm-list-name";
+    nameEl.textContent = slug;
+    const bodyEl = document.createElement("span");
+    bodyEl.className = "qm-list-body";
+    bodyEl.style.flex = "0 1 auto";
+    bodyEl.textContent = `${map[slug]} days`;
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "qm-list-remove";
+    removeBtn.textContent = "Remove";
+    removeBtn.addEventListener("click", async () => {
+      const next = await loadRepoStaleThresholds();
+      delete next[slug];
+      await saveRepoStaleThresholds(next);
+      setStatus("staleStatus", `Removed override for ${slug}.`, "ok");
+      renderRepoStaleList();
+    });
+    li.appendChild(nameEl);
+    li.appendChild(bodyEl);
+    li.appendChild(removeBtn);
+    list.appendChild(li);
+  }
+}
+
+async function addRepoStaleOverride() {
+  const slug = $("repoStaleRepo").value.trim();
+  const days = Number($("repoStaleDays").value);
+  if (!SLUG_RE_OPT.test(slug)) {
+    setStatus("staleStatus", "Repo: format owner/repo.", "err");
+    return;
+  }
+  if (!Number.isInteger(days) || days < 1 || days > 365) {
+    setStatus("staleStatus", "Days: integer 1–365.", "err");
+    return;
+  }
+  const map = await loadRepoStaleThresholds();
+  map[slug] = days;
+  await saveRepoStaleThresholds(map);
+  $("repoStaleRepo").value = "";
+  $("repoStaleDays").value = "";
+  setStatus("staleStatus", `Saved override for ${slug} (${days}d).`, "ok");
+  renderRepoStaleList();
+}
+
+async function loadListMode() {
+  const cb = $("listModeEnabled");
+  if (!cb) return;
+  const data = await chrome.storage.sync.get("listModeEnabled");
+  cb.checked = !!(data && data.listModeEnabled);
+}
+
+async function onListModeChange() {
+  const cb = $("listModeEnabled");
+  if (!cb) return;
+  await chrome.storage.sync.set({ listModeEnabled: !!cb.checked });
+  setStatus("listModeStatus", cb.checked ? "Fast mode ON. Reload the GitHub PR list." : "Fast mode OFF.", "ok");
+}
+
+// ---------------------------------------------------------------------------
 // Update-branch strategy (QM-053) + auto-rebase threshold (QM-069)
 // ---------------------------------------------------------------------------
 
@@ -614,6 +704,8 @@ document.addEventListener("DOMContentLoaded", () => {
   if ($("staleDaysInput")) $("staleDaysInput").addEventListener("change", onStaleDaysChange);
   if ($("updateBranchStrategy")) $("updateBranchStrategy").addEventListener("change", onUpdateBranchStrategyChange);
   if ($("autoRebaseThreshold")) $("autoRebaseThreshold").addEventListener("change", onAutoRebaseThresholdChange);
+  if ($("repoStaleAdd")) $("repoStaleAdd").addEventListener("click", addRepoStaleOverride);
+  if ($("listModeEnabled")) $("listModeEnabled").addEventListener("change", onListModeChange);
   if ($("exportBtn")) $("exportBtn").addEventListener("click", exportSettings);
   if ($("importBtn")) $("importBtn").addEventListener("click", triggerImport);
   if ($("importFileInput")) $("importFileInput").addEventListener("change", onImportFile);
@@ -624,4 +716,6 @@ document.addEventListener("DOMContentLoaded", () => {
   loadStaleThreshold();
   loadUpdateBranchStrategy();
   loadAutoRebaseThreshold();
+  renderRepoStaleList();
+  loadListMode();
 });

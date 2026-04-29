@@ -43,6 +43,8 @@
         "lib/update-branch.js",
         "lib/auto-rebase.js",
         "lib/merge-queue.js",
+        "lib/bulk-ops.js",
+        "lib/list-mode.js",
         "content.js"
       ],
       "css": ["styles.css"],
