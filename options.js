@@ -145,6 +145,113 @@ async function signIn() {
   }
 }
 
+/* Per-repo defaults UI. Backed by lib/repo-defaults.js (loaded as a classic
+ * script in options.html, so its API is on window.QM_REPO_DEFAULTS). The
+ * underlying store contract is the chrome.storage.sync shape: get(key) →
+ * Promise<{[key]: value}>, set(obj) → Promise, remove(key) → Promise.
+ */
+const syncStore = {
+  get: (k) => chrome.storage.sync.get(k),
+  set: (obj) => chrome.storage.sync.set(obj),
+  remove: (k) => chrome.storage.sync.remove(k),
+};
+
+function defaultsApi() {
+  return typeof window !== "undefined" ? window.QM_REPO_DEFAULTS : null;
+}
+
+async function renderDefaults() {
+  const api = defaultsApi();
+  const list = $("defaultsList");
+  if (!api || !list) return;
+  let entries;
+  try {
+    entries = await api.listDefaults(syncStore);
+  } catch (e) {
+    setStatus("defaultsStatus", `Failed to load: ${e.message}`, "err");
+    return;
+  }
+  list.innerHTML = "";
+  const keys = Object.keys(entries).sort();
+  if (keys.length === 0) {
+    const li = document.createElement("li");
+    li.className = "qm-d-empty";
+    li.textContent = "No per-repo defaults yet.";
+    list.appendChild(li);
+    return;
+  }
+  for (const k of keys) {
+    const li = document.createElement("li");
+    const repo = document.createElement("span");
+    repo.className = "qm-d-repo";
+    repo.textContent = k;
+    const method = document.createElement("span");
+    method.className = "qm-d-method";
+    method.textContent = entries[k];
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "qm-d-remove";
+    remove.textContent = "Remove";
+    remove.addEventListener("click", () => removeDefault(k));
+    li.appendChild(repo);
+    li.appendChild(method);
+    li.appendChild(remove);
+    list.appendChild(li);
+  }
+}
+
+function parseRepoInput(raw) {
+  const v = (raw || "").trim().replace(/^\/+|\/+$/g, "");
+  const m = v.match(/^([^\s/]+)\/([^\s/]+)$/);
+  if (!m) return null;
+  return { owner: m[1], repo: m[2] };
+}
+
+async function addDefault() {
+  const api = defaultsApi();
+  if (!api) {
+    setStatus("defaultsStatus", "Defaults module not loaded.", "err");
+    return;
+  }
+  const raw = $("defaultRepo").value;
+  const parsed = parseRepoInput(raw);
+  if (!parsed) {
+    setStatus("defaultsStatus", "Enter as owner/repo (e.g. octocat/hello-world).", "err");
+    return;
+  }
+  const method = $("defaultMethod").value;
+  const existing = await api.getDefault(parsed.owner, parsed.repo, syncStore);
+  if (existing && existing !== method) {
+    if (!confirm(`Overwrite existing default (${existing}) for ${parsed.owner}/${parsed.repo}?`)) {
+      return;
+    }
+  }
+  try {
+    await api.setDefault(parsed.owner, parsed.repo, method, syncStore);
+    $("defaultRepo").value = "";
+    setStatus("defaultsStatus", `Saved ${parsed.owner}/${parsed.repo} → ${method}.`, "ok");
+    await renderDefaults();
+  } catch (e) {
+    setStatus("defaultsStatus", `Failed: ${e.message}`, "err");
+  }
+}
+
+async function removeDefault(key) {
+  const api = defaultsApi();
+  if (!api) return;
+  const slash = key.indexOf("/");
+  if (slash < 0) return;
+  const owner = key.slice(0, slash);
+  const repo = key.slice(slash + 1);
+  try {
+    await api.clearDefault(owner, repo, syncStore);
+    setStatus("defaultsStatus", `Removed ${key}.`, "ok");
+    await renderDefaults();
+  } catch (e) {
+    setStatus("defaultsStatus", `Failed: ${e.message}`, "err");
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   load();
   $("save").addEventListener("click", save);
@@ -153,4 +260,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("signin").addEventListener("click", signIn);
   const signOutBtn = $("signOut");
   if (signOutBtn) signOutBtn.addEventListener("click", signOut);
+  const addBtn = $("addDefault");
+  if (addBtn) addBtn.addEventListener("click", addDefault);
+  renderDefaults();
 });

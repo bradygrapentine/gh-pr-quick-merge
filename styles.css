@@ -40,6 +40,27 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
+/* Per-repo default highlight: outline-style ring works on white + green button bg.
+ * Uses box-shadow inset + outline so it's legible in both GitHub light and dark themes.
+ */
+.qm-btn.qm-btn-default {
+  outline: 2px solid var(--fgColor-accent, #0969da);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+  font-weight: 700;
+  position: relative;
+}
+.qm-btn.qm-btn-default::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--fgColor-accent, #0969da);
+}
+
 .qm-btn-squash:not(:disabled) {
   background: var(--bgColor-success-emphasis, #1f883d);
   border-color: transparent;
