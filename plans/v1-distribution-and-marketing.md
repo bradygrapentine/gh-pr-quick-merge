@@ -1,9 +1,11 @@
-# Plan — v1 Distribution & Marketing (Epic 4, QM-101..120)
+# Plan — v1 Distribution & Marketing (Epic 4) — SLIMMED
 
-**Milestone:** v1.0 public launch
-**Estimate:** 3–5 weeks (human review timelines dominate)
-**Dependencies:** Epic 3 complete (Stripe live, Pro tier billing), domain registered, CWS + AMO developer accounts active, production OAuth client-id from CWS-published extension
-**Parallel-safe with:** nothing — this is the terminal epic
+> **Status as of 2026-04-29:** Epic 3 (license server / Pro paywall) is deferred. v1.0 ships donation-funded via GitHub Sponsors. **Retired stories:** QM-110 ToS, QM-111 refund policy, QM-112 marketing-site scaffold, QM-113 landing page, QM-114 pricing page, QM-115 docs site getting-started, QM-116 Pro-only docs, QM-117 docs troubleshooting (the README absorbs the practical bits of QM-115/117). **Retained:** CWS listing (QM-101..105), AMO listing (QM-106..108), privacy policy (QM-109), demo video + GIF + Show HN posts (QM-118..120). Full plan kept as scaffolding; ignore retired stories.
+
+**Milestone:** v1.0 public launch (slimmed)
+**Estimate:** 1–2 weeks active work + CWS/AMO review wait time
+**Dependencies:** domain registered, CWS + AMO developer accounts active, production OAuth client-id, Sponsors profile from `plans/v1-donations.md` (QM-161)
+**Parallel-safe with:** Epic 1, Epic 6 retained subset
 
 ## Goal
 

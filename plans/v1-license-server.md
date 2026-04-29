@@ -1,6 +1,8 @@
-# Plan — License Server (Epic 3: F3.1 + F3.2, QM-071..080)
+# Plan — License Server (Epic 3: F3.1 + F3.2, QM-071..080) — DEFERRED
 
-**Milestone:** v1.0
+> **Status: deferred indefinitely as of 2026-04-29.** v1.0 ships donation-funded (GitHub Sponsors) instead of paywalled. This plan is retained as scaffolding in case a paid Pro tier becomes warranted later (when there's actual demand signal, not speculation). See `plans/v1-donations.md` for the path actually being executed.
+
+**Milestone:** v1.0 (originally) — now deferred
 **Repo:** `gh-pr-quick-merge-license-server` (new, standalone)
 **Estimates:** QM-071 S · QM-072 M · QM-073 M · QM-074 S · QM-075 S · QM-076 M · QM-077 M · QM-078 M · QM-079 S · QM-080 S
 **Parallel-safe with:** Extension Epic 3 F3.3 (public key embed) after QM-077 keypair is generated

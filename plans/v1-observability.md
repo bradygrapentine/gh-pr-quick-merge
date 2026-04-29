@@ -1,6 +1,8 @@
-# Plan — Epic 5: Observability (QM-121..140)
+# Plan — Epic 5: Observability — MOSTLY DEFERRED
 
-**Milestone:** v1.0
+> **Status as of 2026-04-29:** v1.0 ships donation-funded (no license server, no conversion funnel, no paid-tier dashboards). The PostHog telemetry funnel + Cloudflare Worker logs + SLO alerting are all deferred. **The Sentry crash-reporting subset is retained** — QM-126 (SDK + sanitization), QM-127 (error capture), QM-128 (release tagging + source maps in CI). Those three stories remain in `BACKLOG.md` Epic 5; the rest are retired. The full plan below is kept as scaffolding if observability infra ever gets built.
+
+**Milestone:** v1.0 (originally — most stories now deferred)
 **Estimate:** L (20 stories across 4 phases)
 **Dependencies:** Epic 3 license server live (required for server-side funnel events QM-130, QM-133..137)
 **Parallel-safe with:** Epic 4 (UI polish), any non-server work

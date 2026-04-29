@@ -21,10 +21,13 @@ The path from v0.2 to v1.0 is broken into **6 Epics**. Each Epic decomposes into
 |---|---|---|---|---|
 | 1 | Power-user features | v0.3 | extension | QM-031..050 |
 | 2 | "Everything you wish the GitHub PR list did" | v0.4 | extension | QM-051..070 |
-| 3 | License & payment infrastructure | v1.0 | server + extension | QM-071..100 |
-| 4 | Distribution & marketing | v1.0 | store ops + web | QM-101..120 |
-| 5 | Observability | v1.0 | server + extension | QM-121..140 |
-| 6 | Quality & release ops | v1.0 | extension + ops | QM-141..160 |
+| ~~3~~ | ~~License & payment infrastructure~~ | _deferred_ | server + extension | ~~QM-071..100~~ |
+| 4 | Distribution (slimmed) | v1.0 | store ops | QM-101..120 |
+| 5 | Crash reporting (slimmed) | v1.0 | extension | QM-121..140 |
+| 6 | Quality & release ops (slimmed) | v1.0 | extension | QM-141..160 |
+| 7 | Donation infrastructure | v1.0 | extension + GH Sponsors | QM-161..170 |
+
+**Scope simplification (2026-04-29):** v1.0 ships **donation-funded** via GitHub Sponsors instead of a paid Pro tier. The license-server / Stripe / ed25519 / state-machine path (Epic 3) is deferred — plans remain on disk as scaffolding if a paid tier becomes warranted later. Epics 4/5/6 are slimmed to remove license-server-coupled stories. Epic 7 is new.
 
 ---
 
@@ -96,62 +99,73 @@ PAT auth, per-row Squash/Merge/Rebase buttons, mergeability check, MutationObser
 
 ---
 
-## v1.0 — Paid Pro tier + public launch
+## v1.0 — Public launch + donation funding
 
-Four parallel Epics carry v1.0. v0.3 and v0.4 must ship first to give Pro something to gate against.
+**Targets:** 5k WAU within 90 days of launch · CWS + AMO listings live · GitHub Sponsors profile receiving traffic
 
-**Targets:** 5k WAU within 90 days of launch · 1–3% free→Pro conversion ($3–5/mo) · $500–1k MRR by end of quarter
+**Theme:** Ship to both stores; ask for support; stay free forever. Ongoing operating cost is ~$1.25/mo (just the domain). Donations cover that floor with the first sponsor and anything above is upside that funds development time.
 
-### Epic 3 — License & payment infrastructure
+### Epic 4 — Distribution (slimmed)
 
-**Theme:** Turn the cosmetic Pro modal into a real paywall.
-
-**Features:**
-
-- **F3.1 Stripe integration** — checkout, customer portal, webhook handlers (subscription.created/updated/deleted).
-- **F3.2 Cloudflare Worker license API** — generate, validate, revoke license keys; idempotency; rate limiting; replay protection.
-- **F3.3 Ed25519 signing** — license keys are signed receipts the extension verifies offline; periodic online re-validation; offline grace period (7 days).
-- **F3.4 License entry & state in extension** — replace `chrome.storage.local.pro` boolean with a real license-state machine (none / trial / active / grace / revoked).
-- **F3.5 Subscription lifecycle UX** — restore-purchase flow, expiry warnings, dunning copy, cancellation feedback.
-- **F3.6 Pricing experiments** — feature-flag the Pro tier price; run a small A/B at launch.
-
-### Epic 4 — Distribution & marketing
-
-**Theme:** Get the extension and the Pro tier in front of buyers.
+**Theme:** Get the extension in front of users via CWS + AMO.
 
 **Features:**
 
 - **F4.1 Chrome Web Store listing** — copy, screenshots, promotional graphics, permissions justifications, submission, review-cycle handling.
 - **F4.2 Firefox AMO listing** — same, with AMO's stricter review constraints (source-code disclosure, no remote code).
-- **F4.3 Privacy policy & legal** — privacy policy, terms of service, refund policy, cookie disclosure.
-- **F4.4 Marketing site** — landing page (feature tour, demo GIF), pricing page, install CTAs to both stores.
-- **F4.5 Documentation site** — getting-started, OAuth setup walkthrough, Pro-only feature docs, troubleshooting.
-- **F4.6 Launch plan** — Show HN draft, r/programming launch post, dev-tools newsletter outreach, demo video.
+- **F4.3 Privacy policy** — required by both stores. Hosted as a static page (Cloudflare Pages or GitHub Pages).
+- **F4.6 Launch plan** — Show HN, r/programming, dev-tools newsletters, demo video, demo GIF.
 
-### Epic 5 — Observability
+_Removed from v1.0:_ marketing site, pricing page, docs site, ToS, refund policy. The README + GitHub Sponsors profile + store listing copy cover the surface area.
 
-**Theme:** Operate on data, not vibes.
+### Epic 5 — Crash reporting (slimmed)
+
+**Theme:** Know when the extension breaks. Nothing else.
 
 **Features:**
 
-- **F5.1 Telemetry SDK (extension)** — opt-in PostHog (or self-hosted equivalent) capturing feature usage, conversion funnel, retention.
-- **F5.2 Crash reporting (extension)** — Sentry; auto-redact tokens.
-- **F5.3 License-server logs & dashboards** — request volume, signing-key rotation health, webhook lag, refund rate.
-- **F5.4 Conversion funnel** — Pro modal → checkout → license-key entry → first Pro action; drop-off attribution.
-- **F5.5 Privacy-respecting analytics** — explicit opt-in, transparent disclosure, easy off-switch in options.
+- **F5.2 Sentry crash reporting** — opt-in, auto-redacts tokens via the F-15 sanitization pattern, source-maps uploaded in CI but not shipped to users.
 
-### Epic 6 — Quality & release ops
+_Removed from v1.0:_ PostHog telemetry, conversion funnel (no funnel exists without paid conversion), Cloudflare Worker logs (no Worker), license-server SLOs (no server).
+
+### Epic 6 — Quality & release ops (slimmed)
 
 **Theme:** Make releases boring.
 
 **Features:**
 
-- **F6.1 E2E browser tests (Playwright)** — load extension, sign in, run merge against a fixture repo on a test GitHub account; runs nightly.
-- **F6.2 Visual regression** — screenshot diff for the popup, options page, modals.
-- **F6.3 Performance baseline** — startup time, MutationObserver impact, memory profile; track in CI.
-- **F6.4 Release runbook** — pre-flight, ship, post-ship monitoring; per-channel publish (CWS dev → CWS public, AMO unlisted → public).
-- **F6.5 Rollback procedures** — staged rollouts via CWS percentages; "panic" license-server kill-switch; users-on-old-version metrics.
-- **F6.6 SLA / on-call** — license-server SLOs (99.9% available, p95 < 200ms), PagerDuty wiring (or solo equivalent).
+- **F6.1 E2E browser tests (Playwright)** — load extension, sign in, run merge against a fixture repo on a test GitHub account; nightly. Free flows only.
+- **F6.2 Visual regression** — screenshot diff for popup, options page, donation modal.
+- **F6.3 Performance baseline** — extension startup time, MutationObserver impact, memory.
+- **F6.4 Release runbook** — pre-flight, ship to CWS dev → public, AMO unlisted → public.
+- **F6.5 Rollback** — CWS staged rollouts (10% → 50% → 100%).
+
+_Removed:_ license API perf, kill-switch, old-version metrics endpoint, SLO dashboards, on-call wiring.
+
+### Epic 7 — Donation infrastructure
+
+**Theme:** Make it easy to support development without making it feel mandatory.
+
+**Features:**
+
+- **F7.1 GitHub Sponsors profile** with 4 tiers: Coffee ($5/mo), Daily user ($25/mo), Team ($99/mo), Sponsor ($499/mo with logo placement on the repo).
+- **F7.2 Donation modal** — replaces the bulk-merge "Pro" modal. Same trigger; copy changes from "Bulk merge is a Pro feature" to "Like this? Support development." No state, no paywall — just a link.
+- **F7.3 Donation link surfaces** — heart icon in popup footer, subtle "Support" link in options page footer, README `## Support` section, store-listing pitch paragraph.
+- **F7.4 Optional Buy Me a Coffee** as a secondary platform — only added if Sponsors signup friction is reported in early feedback.
+
+### Operating costs (real)
+
+| Item | Cost |
+|---|---|
+| Domain (.dev) | $15/year (~$1.25/mo) |
+| CWS developer registration | $5 lifetime |
+| AMO developer | $0 |
+| GitHub Sponsors | 0% platform fee |
+| Sentry free tier | $0 (5k events/mo) |
+| GitHub Actions (public repo) | $0 |
+| **Total** | **~$1.25/mo recurring** |
+
+First sponsor at any tier covers the floor. Everything else is funding development time.
 
 ---
 

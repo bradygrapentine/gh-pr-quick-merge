@@ -1,8 +1,10 @@
-# Plan — Epic 6: Quality Assurance & Release Operations (QM-141..160)
+# Plan — Epic 6: Quality Assurance & Release Operations — SLIMMED
 
-**Milestone:** v1.0
-**Estimates:** 11 M + 9 S stories across 6 features
-**Dependencies:** Epic 3 (license server), Epic 4 (store listings), Epic 5 (observability stack — Sentry + PostHog)
+> **Status as of 2026-04-29:** v1.0 ships donation-funded; Epic 3 license server is deferred. Stories that depended on the license server are retired (QM-144 Pro-gate E2E, QM-152 license API perf, QM-157 kill-switch, QM-158 old-version metrics, QM-159 SLO dashboards, QM-160 on-call). **Retained subset:** Playwright E2E for free flows (QM-141..143, QM-145), visual regression (QM-146..149), perf baseline (QM-150, QM-151, QM-153), release runbook (QM-154, QM-155), CWS staged-rollout SOP (QM-156). The full plan below is kept as scaffolding; ignore the deferred stories.
+
+**Milestone:** v1.0 (slimmed)
+**Estimates:** ~7 M + 6 S stories (down from 11M + 9S after deferrals)
+**Dependencies:** Epic 4 (store listings)
 **Parallel-safe with:** nothing outside this epic; internally phases 2 and 3 are parallel after the scaffold lands
 
 ## Goal
