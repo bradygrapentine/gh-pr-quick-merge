@@ -1,6 +1,6 @@
 # GitHub PR Quick Merge
 
-**Status:** v0.2.0-rc.1 — most of v0.2 shipped (OAuth device flow, real icons, bulk-merge UI behind Pro modal, toolbar popup, per-repo default merge method, 124 unit tests, GitHub Actions CI). Final `v0.2.0` tag waits on QM-019 (closing the last 7 SECURITY findings). See [ROADMAP.md](./ROADMAP.md), [CHANGELOG.md](./CHANGELOG.md).
+**Status:** v0.2.0 — first public release. OAuth device flow, real icons, bulk-merge UI (gated behind Pro modal), toolbar popup, per-repo default merge method, 149 unit tests, GitHub Actions CI with required `web-ext lint`, 12 of 15 SECURITY findings closed. See [ROADMAP.md](./ROADMAP.md), [CHANGELOG.md](./CHANGELOG.md).
 
 Squash, merge, or rebase pull requests directly from the GitHub Pull Requests list — no need to open each PR.
 
