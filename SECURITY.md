@@ -1,4 +1,10 @@
-# Security Review — gh-pr-quick-merge v0.1.0
+# Security Review — gh-pr-quick-merge
+
+**Original review:** v0.1.0 (2026-04-29).
+**Closed in PR #1 (Wave 2 partial):** F-01, F-02, F-04, F-07, F-08, F-09, F-11, F-12 (8 of 15).
+**Closed in PR for QM-019:** F-03, F-05, F-06, F-15 (4 more).
+**Remaining:** F-10 (deferred to v1.0 — needs license server, tracked as QM-030); F-13 + F-14 (informational, no action needed).
+
 
 ## Summary
 

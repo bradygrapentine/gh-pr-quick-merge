@@ -1,15 +1,15 @@
 # GitHub PR Quick Merge — Backlog
 
-_Last `/backlog-sync`: 2026-04-29_
+_Last `/backlog-sync`: 2026-04-29 (post-QM-019)_
 
 ## §0 Status board
 
-- Ready: 12
+- Ready: 11
 - In progress: 0
 - In review: 0
 - Blocked: 0
 - Done (lib modules + Wave 2 partial): 14
-- Shipped (merged to main, pending v0.2 release): 4
+- Shipped (merged to main, pending v0.2 release): 5
 
 ## §1 Ready
 
@@ -18,7 +18,6 @@ _Last `/backlog-sync`: 2026-04-29_
 | QM-010 | Integration tests for row-injection against fixture HTML | v0.2 | M | QM-009 | — |
 | QM-016 | Template editor UI in options page with live preview | v0.3 | M | QM-015 (lib done) | — |
 | QM-018 | Focus-ring styling + a11y announcements for shortcut activation | v0.3 | S | QM-017 (lib done) | — |
-| QM-019 | SECURITY.md follow-ups: F-03, F-05, F-06, F-10, F-15 (8/15 closed in PR #1) | v0.2 | S | — | — |
 | QM-022 | Wave 2 integration glue — wire `lib/templates`, `lib/shortcuts` into `content.js` (repo-defaults already wired in PR #5) | v0.3 | M | QM-016, QM-018 | — |
 | QM-024 | Per-row "Update branch" button (rebase/merge base into PR branch) | v0.3 | M | — | — |
 | QM-025 | Merge-when-green: schedule a merge to fire once required checks pass | v0.4 | L | QM-022 | — |
@@ -99,3 +98,4 @@ _Merged to main, awaiting v0.2 release tag._
 - QM-023 — Stale-PR detection pure module (`lib/stale-pr.js`, +22 tests) · PR [#4](https://github.com/bradygrapentine/gh-pr-quick-merge/pull/4) · plan `plans/stale-pr-module.md`
 - QM-013 — Per-repo default merge method UI in options page · PR [#5](https://github.com/bradygrapentine/gh-pr-quick-merge/pull/5) · plan `plans/repo-defaults-integration.md`
 - QM-014 — Apply per-repo default to row buttons (highlight default) · PR [#5](https://github.com/bradygrapentine/gh-pr-quick-merge/pull/5) · plan `plans/repo-defaults-integration.md`
+- QM-019 — Closed remaining SECURITY findings (F-03, F-05, F-06, F-15); F-10 deferred to v1.0 (QM-030) · plan `plans/qm-019-security-followups.md`
