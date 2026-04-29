@@ -29,4 +29,3 @@ jobs:
         run: node -e "JSON.parse(require('fs').readFileSync('manifest.json'))"
       - name: web-ext lint (Firefox AMO check)
         run: npx --yes web-ext@8 lint --self-hosted --warnings-as-errors=false
-        continue-on-error: true
