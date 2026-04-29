@@ -4,6 +4,8 @@
 
 Squash, merge, or rebase pull requests directly from the GitHub Pull Requests list — no need to open each PR.
 
+> Browser extension that adds **Squash / Merge / Rebase** buttons to every row of `github.com/pulls`. Click once and the PR closes — no tab switch, no page load. Works across all your repos. OAuth Device Flow keeps your token on-device only; nothing transits our servers.
+
 ## Install (developer mode)
 
 ### Chrome / Edge / Brave / Arc
@@ -105,3 +107,12 @@ Realistic monetization options for a GitHub PR merge extension, ranked by likely
 3. Pitch to teams once you have proof of individual value — team plans are where the actual revenue is (Refined GitHub stays free; Octotree, CodeStream, GitLens all monetized via team/enterprise).
 
 Realistic ceiling for a niche extension like this: **$500-3k/mo MRR within year 1** if you push it; **$10k+/mo** only if you expand scope (merge queue, review automation, etc.) into a broader workflow tool.
+
+## Support the project
+
+PR Quick Merge is free and open-source. If it saves you time, consider sponsoring the project:
+
+- **GitHub Sponsors:** [github.com/sponsors/bradygrapentine](https://github.com/sponsors/bradygrapentine)
+- **Bug reports & feature requests:** [github.com/bradygrapentine/gh-pr-quick-merge/issues](https://github.com/bradygrapentine/gh-pr-quick-merge/issues)
+
+No analytics, no telemetry, no remote code — see [`docs/privacy-policy.md`](./docs/privacy-policy.md).
