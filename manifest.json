@@ -15,6 +15,10 @@
   "background": {
     "service_worker": "background.js"
   },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "PR Quick Merge"
+  },
   "options_ui": {
     "page": "options.html",
     "open_in_tab": false
