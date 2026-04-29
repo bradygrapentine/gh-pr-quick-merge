@@ -1,6 +1,8 @@
-# Plan — Extension-side license enforcement (Epic 3, QM-081..090)
+# Plan — Extension-side license enforcement (Epic 3, QM-081..090) — DEFERRED
 
-**Milestone:** v1.0
+> **Status: deferred indefinitely as of 2026-04-29.** Pairs with `plans/v1-license-server.md` (also deferred). v1.0 ships donation-funded via GitHub Sponsors instead. See `plans/v1-donations.md`.
+
+**Milestone:** v1.0 (originally) — now deferred
 **Estimates:** QM-081 M · QM-082 M · QM-083 M · QM-084 S · QM-085 M · QM-086 M · QM-087 S · QM-088 S · QM-089 S · QM-090 S
 **Security closes:** SECURITY F-10 (cosmetic Pro flag)
 **Hard prereq:** `v1-license-server.md` merged (exposes `/validate`, `/checkout`, webhook for state transitions). Stories QM-081, QM-083, QM-084 are server-independent and can land before the server is live.
