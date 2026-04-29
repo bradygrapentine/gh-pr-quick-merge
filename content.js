@@ -5,6 +5,7 @@
 const API = "https://api.github.com";
 const ROW_SELECTOR = ".js-issue-row, [data-testid='issue-pr-title-link']";
 const INJECTED_ATTR = "data-qm-injected";
+const SPONSORS_URL = "https://github.com/sponsors/bradygrapentine";
 const { parsePrLink: parsePrHref, classifyMergeState, mergeMethodFromKind } = window.QM_HELPERS;
 const TEMPLATES = window.QM_TEMPLATES || {};
 const SHORTCUTS = window.QM_SHORTCUTS || {};
@@ -618,17 +619,17 @@ async function showProGate() {
     : "";
   modal.innerHTML = `
     <div class="qm-pro-card">
-      <h2>Bulk merge is a Pro feature</h2>
-      <p>Merge multiple PRs in one click — plus per-repo defaults, custom commit templates, and keyboard shortcuts.</p>
+      <h2>Like this? Support development.</h2>
+      <p>PR Quick Merge is free and open source. If it saves you time, a small monthly sponsorship keeps it maintained.</p>
       <ul>
-        <li>Bulk-merge multiple PRs at once</li>
-        <li>Custom merge-commit templates</li>
-        <li>Per-repo default merge method</li>
-        <li>Keyboard shortcuts</li>
+        <li>☕ $5/mo — keeps the lights on</li>
+        <li>🛠 $25/mo — for daily users</li>
+        <li>🏢 $99/mo — small teams</li>
+        <li>🚀 $499/mo — logo on the repo + roadmap input</li>
       </ul>
-      <p class="qm-pro-price"><strong>$4/mo</strong> — coming soon.</p>
       <div class="qm-pro-actions">
         <button class="qm-btn qm-pro-close">Maybe later</button>
+        <a class="qm-btn qm-pro-sponsor" href="${SPONSORS_URL}" target="_blank" rel="noopener noreferrer">Sponsor on GitHub</a>
         ${devButtonHtml}
       </div>
     </div>
@@ -636,6 +637,7 @@ async function showProGate() {
   document.body.appendChild(modal);
   modal.addEventListener("click", (e) => {
     if (e.target === modal || e.target.classList.contains("qm-pro-close")) modal.remove();
+    if (e.target.classList && e.target.classList.contains("qm-pro-sponsor")) modal.remove();
   });
   const devBtn = modal.querySelector(".qm-pro-dev");
   if (devBtn) {
