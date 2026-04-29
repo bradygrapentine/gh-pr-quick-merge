@@ -4,11 +4,17 @@
   "short_name": "PR Quick Merge",
   "version": "0.1.0",
   "description": "Squash, merge, or rebase pull requests directly from the GitHub Pull Requests list — no need to open each PR.",
-  "permissions": ["storage"],
+  "permissions": ["storage", "management"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; base-uri 'none'"
+  },
   "host_permissions": [
     "https://github.com/*",
     "https://api.github.com/*"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "options_ui": {
     "page": "options.html",
     "open_in_tab": false

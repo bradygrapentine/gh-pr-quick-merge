@@ -17,13 +17,22 @@ const state = {
 };
 
 async function loadProFlag() {
-  const { pro } = await chrome.storage.sync.get("pro");
+  const { pro } = await chrome.storage.local.get("pro");
   state.pro = !!pro;
+}
+
+async function isDevInstall() {
+  try {
+    const reply = await chrome.runtime.sendMessage({ type: "qm:get-install-type" });
+    return reply && reply.installType === "development";
+  } catch {
+    return false;
+  }
 }
 
 async function getToken() {
   if (state.token !== null) return state.token;
-  const { token } = await chrome.storage.sync.get("token");
+  const { token } = await chrome.storage.local.get("token");
   state.token = token || "";
   return state.token;
 }
@@ -377,12 +386,16 @@ async function onBulkMerge() {
   toast(`Bulk merge: ${success} ok, ${failed} failed`, failed ? "warn" : "ok");
 }
 
-function showProGate() {
+async function showProGate() {
   const existing = document.getElementById("qm-pro-modal");
   if (existing) existing.remove();
+  const isDev = await isDevInstall();
   const modal = document.createElement("div");
   modal.id = "qm-pro-modal";
   modal.className = "qm-pro-modal";
+  const devButtonHtml = isDev
+    ? '<button class="qm-btn qm-pro-dev">Enable Pro (dev)</button>'
+    : "";
   modal.innerHTML = `
     <div class="qm-pro-card">
       <h2>Bulk merge is a Pro feature</h2>
@@ -396,7 +409,7 @@ function showProGate() {
       <p class="qm-pro-price"><strong>$4/mo</strong> — coming soon.</p>
       <div class="qm-pro-actions">
         <button class="qm-btn qm-pro-close">Maybe later</button>
-        <button class="qm-btn qm-pro-dev">Enable Pro (dev)</button>
+        ${devButtonHtml}
       </div>
     </div>
   `;
@@ -404,12 +417,15 @@ function showProGate() {
   modal.addEventListener("click", (e) => {
     if (e.target === modal || e.target.classList.contains("qm-pro-close")) modal.remove();
   });
-  modal.querySelector(".qm-pro-dev").addEventListener("click", async () => {
-    await chrome.storage.sync.set({ pro: true });
-    state.pro = true;
-    modal.remove();
-    toast("Pro mode enabled (dev). Re-click Merge selected.", "ok");
-  });
+  const devBtn = modal.querySelector(".qm-pro-dev");
+  if (devBtn) {
+    devBtn.addEventListener("click", async () => {
+      await chrome.storage.local.set({ pro: true });
+      state.pro = true;
+      modal.remove();
+      toast("Pro mode enabled (dev). Re-click Merge selected.", "ok");
+    });
+  }
 }
 
 function start() {
@@ -429,7 +445,9 @@ if (document.readyState === "loading") {
 document.addEventListener("turbo:render", () => scan());
 document.addEventListener("pjax:end", () => scan());
 
-chrome.storage.onChanged.addListener((changes) => {
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  // token + pro live in chrome.storage.local; ignore sync-area noise.
+  if (areaName !== "local") return;
   if (changes.token) {
     state.token = changes.token.newValue || "";
     state.cache.clear();

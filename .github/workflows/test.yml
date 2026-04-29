@@ -1,0 +1,32 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - run: npm test
+
+  manifest-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Validate manifest.json
+        run: node -e "JSON.parse(require('fs').readFileSync('manifest.json'))"
+      - name: web-ext lint (Firefox AMO check)
+        run: npx --yes web-ext@8 lint --self-hosted --warnings-as-errors=false
+        continue-on-error: true
