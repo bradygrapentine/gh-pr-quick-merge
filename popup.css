@@ -125,3 +125,99 @@ body {
 .qm-popup-sponsor-text {
   font-weight: 500;
 }
+
+.qm-popup-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.qm-popup-btn-icon {
+  background: transparent;
+  border: 1px solid #d0d7de;
+  color: #57606a;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+.qm-popup-btn-icon:hover {
+  background: #f6f8fa;
+  color: #1f2328;
+}
+.qm-popup-btn-link[aria-pressed="true"] {
+  color: #0969da;
+  font-weight: 600;
+}
+.qm-popup-stale-banner {
+  background: #fff8c5;
+  border-bottom: 1px solid #d4a72c;
+  color: #4a3c03;
+  font-size: 12px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.qm-popup-stale-banner button {
+  font-size: 11px;
+  white-space: nowrap;
+}
+.qm-popup-manage {
+  border-top: 1px solid #d0d7de;
+  background: #f6f8fa;
+  padding: 10px 12px;
+}
+.qm-popup-manage-label {
+  display: block;
+  font-size: 11px;
+  color: #57606a;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+.qm-popup-manage-row {
+  display: flex;
+  gap: 6px;
+}
+.qm-popup-manage-row input {
+  flex: 1;
+  font-size: 12px;
+  padding: 4px 8px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+}
+.qm-popup-manage-status {
+  font-size: 11px;
+  color: #57606a;
+  margin-top: 6px;
+  min-height: 1em;
+}
+.qm-popup-manage-status.ok { color: #1a7f37; }
+.qm-popup-manage-status.err { color: #cf222e; }
+.qm-popup-row-remove {
+  background: transparent;
+  border: 1px solid #cf222e;
+  color: #cf222e;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 10px;
+  cursor: pointer;
+  margin-left: 6px;
+}
+.qm-popup-row-remove:hover {
+  background: #cf222e;
+  color: #fff;
+}
+.qm-popup-row-error {
+  display: inline-block;
+  background: #ffebe9;
+  color: #cf222e;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+}
+.qm-popup-row-failed {
+  opacity: 0.7;
+}

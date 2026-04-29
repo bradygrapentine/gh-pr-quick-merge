@@ -3,14 +3,17 @@ import { startDeviceFlow } from "./auth.js";
 const $ = (id) => document.getElementById(id);
 
 async function load() {
-  const [{ token }, { clientId }] = await Promise.all([
+  const [{ token }, { clientId }, { tokenStale }] = await Promise.all([
     chrome.storage.local.get("token"),
     chrome.storage.sync.get("clientId"),
+    chrome.storage.local.get("tokenStale"),
   ]);
   if (clientId) $("clientId").value = clientId;
   if (token) {
     showSignedIn();
   }
+  const staleHint = $("tokenStaleHint");
+  if (staleHint) staleHint.hidden = !tokenStale;
 }
 
 function showSignedIn() {
@@ -288,6 +291,267 @@ async function removeDefault(key) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Templates editor (QM-033)
+// ---------------------------------------------------------------------------
+
+const syncStorageStore = chrome.storage.sync;
+
+async function renderTemplates() {
+  const list = $("templatesList");
+  if (!list || !window.QM_TEMPLATES) return;
+  const map = await window.QM_TEMPLATES.listTemplates(syncStorageStore);
+  list.innerHTML = "";
+  const names = Object.keys(map).sort();
+  if (names.length === 0) {
+    const li = document.createElement("li");
+    li.className = "qm-d-empty";
+    li.textContent = "No templates saved yet.";
+    list.appendChild(li);
+    return;
+  }
+  for (const name of names) {
+    const li = document.createElement("li");
+    const nameEl = document.createElement("span");
+    nameEl.className = "qm-list-name";
+    nameEl.textContent = name;
+    const bodyEl = document.createElement("pre");
+    bodyEl.className = "qm-list-body";
+    bodyEl.textContent = map[name];
+    const removeBtn = document.createElement("button");
+    removeBtn.className = "qm-list-remove";
+    removeBtn.textContent = "Remove";
+    removeBtn.type = "button";
+    removeBtn.addEventListener("click", async () => {
+      await window.QM_TEMPLATES.deleteTemplate(name, syncStorageStore);
+      setStatus("templatesStatus", `Removed "${name}".`, "ok");
+      renderTemplates();
+    });
+    li.appendChild(nameEl);
+    li.appendChild(bodyEl);
+    li.appendChild(removeBtn);
+    list.appendChild(li);
+  }
+}
+
+async function saveTemplate() {
+  if (!window.QM_TEMPLATES) return;
+  const name = $("templateName").value.trim();
+  const body = $("templateBody").value;
+  if (!name) {
+    setStatus("templatesStatus", "Template name is required.", "err");
+    return;
+  }
+  if (!/^[A-Za-z0-9_-]+$/.test(name)) {
+    setStatus("templatesStatus", "Template name: letters, digits, dash, underscore only.", "err");
+    return;
+  }
+  try {
+    await window.QM_TEMPLATES.saveTemplate(name, body, syncStorageStore);
+    setStatus("templatesStatus", `Saved "${name}".`, "ok");
+    $("templateName").value = "";
+    $("templateBody").value = "";
+    renderTemplates();
+  } catch (e) {
+    setStatus("templatesStatus", `Failed: ${e.message || e}`, "err");
+  }
+}
+
+function clearTemplateForm() {
+  $("templateName").value = "";
+  $("templateBody").value = "";
+  setStatus("templatesStatus", "");
+}
+
+// ---------------------------------------------------------------------------
+// Shortcuts editor (QM-036)
+// ---------------------------------------------------------------------------
+
+async function getShortcutBindings() {
+  const SHORTCUTS = window.QM_SHORTCUTS;
+  if (!SHORTCUTS) return [];
+  const data = await chrome.storage.sync.get("qm_shortcuts");
+  const stored = Array.isArray(data && data.qm_shortcuts) ? data.qm_shortcuts : null;
+  if (!stored || stored.length === 0) {
+    return SHORTCUTS.DEFAULT_BINDINGS.map((b) => ({ ...b }));
+  }
+  // Merge stored overrides with the default action set so newly-added defaults
+  // still appear if the user updates the extension after customising shortcuts.
+  const byId = new Map(stored.map((b) => [b.id, b]));
+  return SHORTCUTS.DEFAULT_BINDINGS.map((d) => {
+    const override = byId.get(d.id);
+    return override ? { ...d, shortcut: override.shortcut } : { ...d };
+  });
+}
+
+async function saveShortcutBindings(bindings) {
+  await chrome.storage.sync.set({ qm_shortcuts: bindings.map((b) => ({ id: b.id, shortcut: b.shortcut })) });
+}
+
+let editingShortcutId = null;
+
+function comboFromKeyEvent(e) {
+  if (e.key === "Escape") return "Escape";
+  const parts = [];
+  if (e.ctrlKey) parts.push("Ctrl");
+  if (e.shiftKey) parts.push("Shift");
+  if (e.altKey) parts.push("Alt");
+  if (e.metaKey) parts.push("Meta");
+  let key = e.key;
+  if (key === " ") key = "Space";
+  // Skip if only a modifier key was pressed (e.g. user just pressed Shift).
+  if (key === "Control" || key === "Shift" || key === "Alt" || key === "Meta") return null;
+  parts.push(key.length === 1 ? key.toUpperCase() : key);
+  return parts.join("+");
+}
+
+async function renderShortcuts() {
+  const tbody = $("shortcutsTbody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+  const bindings = await getShortcutBindings();
+  for (const b of bindings) {
+    const tr = document.createElement("tr");
+
+    const tdAction = document.createElement("td");
+    tdAction.textContent = b.description || b.id;
+    tr.appendChild(tdAction);
+
+    const tdCombo = document.createElement("td");
+    const combo = document.createElement("span");
+    combo.className = "qm-shortcut-combo" + (editingShortcutId === b.id ? " editing" : "");
+    combo.textContent = editingShortcutId === b.id ? "Press a key…" : b.shortcut;
+    if (editingShortcutId === b.id) {
+      combo.tabIndex = 0;
+      combo.addEventListener("keydown", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const next = comboFromKeyEvent(e);
+        if (next === null) return; // ignore raw modifier presses
+        if (next === "Escape") {
+          editingShortcutId = null;
+          renderShortcuts();
+          return;
+        }
+        try {
+          window.QM_SHORTCUTS.parseShortcut(next);
+        } catch (err) {
+          setStatus("shortcutsStatus", `Invalid combo: ${err.message}`, "err");
+          return;
+        }
+        const updated = (await getShortcutBindings()).map((bb) => bb.id === b.id ? { ...bb, shortcut: next } : bb);
+        await saveShortcutBindings(updated);
+        editingShortcutId = null;
+        setStatus("shortcutsStatus", `Updated "${b.id}" → ${next}.`, "ok");
+        renderShortcuts();
+      });
+      setTimeout(() => combo.focus(), 0);
+    }
+    tdCombo.appendChild(combo);
+    tr.appendChild(tdCombo);
+
+    const tdEdit = document.createElement("td");
+    const editBtn = document.createElement("button");
+    editBtn.className = "qm-shortcut-edit";
+    editBtn.textContent = editingShortcutId === b.id ? "Cancel" : "Edit";
+    editBtn.type = "button";
+    editBtn.addEventListener("click", () => {
+      editingShortcutId = editingShortcutId === b.id ? null : b.id;
+      renderShortcuts();
+    });
+    tdEdit.appendChild(editBtn);
+    tr.appendChild(tdEdit);
+
+    tbody.appendChild(tr);
+  }
+}
+
+async function resetShortcuts() {
+  if (!confirm("Reset all keyboard shortcuts to their defaults?")) return;
+  await chrome.storage.sync.remove("qm_shortcuts");
+  setStatus("shortcutsStatus", "Reset to defaults.", "ok");
+  editingShortcutId = null;
+  renderShortcuts();
+}
+
+// ---------------------------------------------------------------------------
+// Stale threshold (QM-040)
+// ---------------------------------------------------------------------------
+
+async function loadStaleThreshold() {
+  const data = await chrome.storage.sync.get("qm_stale_days");
+  const v = Number(data && data.qm_stale_days);
+  $("staleDaysInput").value = Number.isFinite(v) && v >= 1 && v <= 365 ? v : 14;
+}
+
+async function onStaleDaysChange() {
+  const raw = $("staleDaysInput").value;
+  const v = Number(raw);
+  if (!Number.isInteger(v) || v < 1 || v > 365) {
+    setStatus("staleStatus", "Enter a whole number between 1 and 365.", "err");
+    return;
+  }
+  await chrome.storage.sync.set({ qm_stale_days: v });
+  setStatus("staleStatus", `Saved (${v} days).`, "ok");
+}
+
+// ---------------------------------------------------------------------------
+// Import / export (QM-038)
+// ---------------------------------------------------------------------------
+
+async function exportSettings() {
+  if (!window.QM_IMPORT_EXPORT) return;
+  try {
+    const blob = await window.QM_IMPORT_EXPORT.exportAll(syncStorageStore);
+    const json = JSON.stringify(blob, null, 2);
+    const url = URL.createObjectURL(new Blob([json], { type: "application/json" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `pr-quick-merge-settings-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1_000);
+    setStatus("ioStatus", "Exported.", "ok");
+  } catch (e) {
+    setStatus("ioStatus", `Export failed: ${e.message || e}`, "err");
+  }
+}
+
+function triggerImport() {
+  $("importFileInput").click();
+}
+
+async function onImportFile(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const blob = window.QM_IMPORT_EXPORT.parseBlob(text);
+    const yes = confirm(
+      "Import will OVERWRITE these settings:\n" +
+        Object.keys(blob).filter((k) => k !== "_schema" && k !== "exportedAt").join(", ") +
+        "\n\nContinue?",
+    );
+    if (!yes) {
+      setStatus("ioStatus", "Import cancelled.", "");
+      return;
+    }
+    await window.QM_IMPORT_EXPORT.importAll(blob, syncStorageStore);
+    setStatus("ioStatus", "Imported.", "ok");
+    // Re-render anything that's settings-driven on this page.
+    await Promise.all([renderDefaults(), renderTemplates(), renderShortcuts(), loadStaleThreshold()]);
+  } catch (err) {
+    setStatus("ioStatus", `Import failed: ${err.message || err}`, "err");
+  } finally {
+    e.target.value = "";
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Wiring
+// ---------------------------------------------------------------------------
+
 document.addEventListener("DOMContentLoaded", () => {
   load();
   $("save").addEventListener("click", save);
@@ -301,5 +565,19 @@ document.addEventListener("DOMContentLoaded", () => {
   if (addBtn) addBtn.addEventListener("click", addDefault);
   const repoInput = $("defaultRepo");
   if (repoInput) repoInput.addEventListener("focus", loadRepoSuggestions);
+
+  if ($("templateSave")) {
+    $("templateSave").addEventListener("click", saveTemplate);
+    $("templateClear").addEventListener("click", clearTemplateForm);
+  }
+  if ($("shortcutsReset")) $("shortcutsReset").addEventListener("click", resetShortcuts);
+  if ($("staleDaysInput")) $("staleDaysInput").addEventListener("change", onStaleDaysChange);
+  if ($("exportBtn")) $("exportBtn").addEventListener("click", exportSettings);
+  if ($("importBtn")) $("importBtn").addEventListener("click", triggerImport);
+  if ($("importFileInput")) $("importFileInput").addEventListener("change", onImportFile);
+
   renderDefaults();
+  renderTemplates();
+  renderShortcuts();
+  loadStaleThreshold();
 });

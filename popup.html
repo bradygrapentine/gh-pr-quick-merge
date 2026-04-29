@@ -8,12 +8,30 @@
 <body>
   <header class="qm-popup-header">
     <h1>Pinned repos</h1>
-    <button id="openOptions" class="qm-popup-btn-link" type="button">Manage</button>
+    <div class="qm-popup-header-actions">
+      <button id="refreshBtn" class="qm-popup-btn-icon" type="button" title="Refresh" aria-label="Refresh">↻</button>
+      <button id="manageBtn" class="qm-popup-btn-link" type="button" aria-pressed="false">Manage</button>
+      <button id="openOptions" class="qm-popup-btn-link" type="button">Options</button>
+    </div>
   </header>
+
+  <div id="staleBanner" class="qm-popup-stale-banner" hidden>
+    <span>Your token is 30+ days old — consider rotating it.</span>
+    <button id="staleOpenOptions" class="qm-popup-btn-link" type="button">Open Options</button>
+  </div>
 
   <div id="status" class="qm-popup-status" aria-live="polite"></div>
 
   <ul id="repoList" class="qm-popup-list"></ul>
+
+  <div id="manageBox" class="qm-popup-manage" hidden>
+    <label for="manageRepoInput" class="qm-popup-manage-label">Add repo</label>
+    <div class="qm-popup-manage-row">
+      <input id="manageRepoInput" type="text" placeholder="owner/repo" autocomplete="off" />
+      <button id="manageAddBtn" class="qm-popup-btn-primary" type="button">Add</button>
+    </div>
+    <div id="manageStatus" class="qm-popup-manage-status" aria-live="polite"></div>
+  </div>
 
   <div id="emptyState" class="qm-popup-empty" hidden>
     <p id="emptyHint"></p>
