@@ -115,7 +115,11 @@ export async function startDeviceFlow(clientId, hooks = {}) {
     if (tokenData.error) {
       if (tokenData.error === "authorization_pending") continue;
       if (tokenData.error === "slow_down") {
-        pollInterval += 5;
+        const serverInterval = Number(tokenData.interval);
+        const next = Number.isFinite(serverInterval) && serverInterval > pollInterval
+          ? serverInterval
+          : pollInterval + 5;
+        pollInterval = Math.min(60, next);
         status(`GitHub asked us to slow down. Polling every ${pollInterval}s.`);
         continue;
       }

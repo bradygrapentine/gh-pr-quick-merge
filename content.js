@@ -190,7 +190,7 @@ async function fetchPrState(pr, token) {
     state.cache.set(key, out);
     return out;
   } catch (e) {
-    return { error: String(e) };
+    return { error: `${e.name || "Error"}: ${(e.message || "").slice(0, 200)}` };
   }
 }
 
@@ -401,6 +401,81 @@ function syncBulkBarFromDefaults() {
   }
 }
 
+function confirmBulkMergeTyped(items, method) {
+  return new Promise((resolve) => {
+    const expected = `MERGE ${items.length}`;
+    const modal = document.createElement("div");
+    modal.className = "qm-typed-modal";
+
+    const card = document.createElement("div");
+    card.className = "qm-typed-card";
+
+    const heading = document.createElement("h2");
+    heading.textContent = `Confirm bulk ${method}`;
+
+    const lede = document.createElement("p");
+    lede.textContent = `You are about to ${method} ${items.length} pull requests:`;
+
+    const list = document.createElement("ul");
+    list.className = "qm-typed-list";
+    for (const { pr } of items) {
+      const li = document.createElement("li");
+      li.textContent = prKey(pr);
+      list.appendChild(li);
+    }
+
+    const prompt = document.createElement("p");
+    prompt.innerHTML = `Type <code>${expected}</code> to confirm:`;
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "qm-typed-input";
+    input.autocomplete = "off";
+    input.spellcheck = false;
+
+    const actions = document.createElement("div");
+    actions.className = "qm-typed-actions";
+
+    const cancelBtn = document.createElement("button");
+    cancelBtn.className = "qm-btn";
+    cancelBtn.textContent = "Cancel";
+
+    const confirmBtn = document.createElement("button");
+    confirmBtn.className = "qm-btn qm-typed-go";
+    confirmBtn.textContent = `${method.toUpperCase()} ${items.length}`;
+    confirmBtn.disabled = true;
+
+    actions.appendChild(cancelBtn);
+    actions.appendChild(confirmBtn);
+    card.appendChild(heading);
+    card.appendChild(lede);
+    card.appendChild(list);
+    card.appendChild(prompt);
+    card.appendChild(input);
+    card.appendChild(actions);
+    modal.appendChild(card);
+    document.body.appendChild(modal);
+
+    const close = (result) => {
+      modal.remove();
+      resolve(result);
+    };
+
+    input.addEventListener("input", () => {
+      confirmBtn.disabled = input.value !== expected;
+    });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !confirmBtn.disabled) close(true);
+      if (e.key === "Escape") close(false);
+    });
+    cancelBtn.addEventListener("click", () => close(false));
+    confirmBtn.addEventListener("click", () => close(true));
+    modal.addEventListener("click", (e) => { if (e.target === modal) close(false); });
+
+    setTimeout(() => input.focus(), 0);
+  });
+}
+
 async function onBulkMerge() {
   if (!state.pro) {
     showProGate();
@@ -409,7 +484,9 @@ async function onBulkMerge() {
   const items = Array.from(state.selected.values());
   if (!items.length) return;
   const method = document.querySelector(".qm-bulk-method").value;
-  const ok = confirm(`${method.toUpperCase()} ${items.length} PR${items.length > 1 ? "s" : ""}?`);
+  const ok = items.length >= 3
+    ? await confirmBulkMergeTyped(items, method)
+    : confirm(`${method.toUpperCase()} ${items.length} PR${items.length > 1 ? "s" : ""}?`);
   if (!ok) return;
   const token = getToken();
   if (!token) {

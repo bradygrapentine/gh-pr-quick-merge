@@ -106,6 +106,44 @@ describe("startDeviceFlow — happy path & polling errors", () => {
     expect(onStatus.some((m) => /every 6s/.test(m))).toBe(true);
   });
 
+  it("repeated slow_down caps the poll interval at 60s", async () => {
+    const onStatus = [];
+    // 12 slow_down responses then success. Without a cap, pollInterval would
+    // climb to 1 + 12*5 = 61. With the 60s cap, it must clamp.
+    const script = [{ match: "/login/device/code", body: DEVICE_OK }];
+    for (let i = 0; i < 12; i++) {
+      script.push({ match: "access_token", body: { error: "slow_down" } });
+    }
+    script.push({ match: "access_token", body: { access_token: "ghp_capped" } });
+    script.push({ match: "api.github.com/user", body: { login: "u" } });
+    globalThis.fetch = makeMockFetch(script);
+
+    const result = await runFlow("client-1", {
+      onStatus: (m) => onStatus.push(m),
+    });
+    expect(result.ok).toBe(true);
+    const intervals = onStatus
+      .map((m) => Number((m.match(/every (\d+)s/) || [])[1]))
+      .filter(Number.isFinite);
+    expect(intervals.length).toBeGreaterThan(0);
+    expect(Math.max(...intervals)).toBeLessThanOrEqual(60);
+  });
+
+  it("slow_down honors a server-supplied interval if larger than current", async () => {
+    const onStatus = [];
+    globalThis.fetch = makeMockFetch([
+      { match: "/login/device/code", body: DEVICE_OK },
+      { match: "access_token", body: { error: "slow_down", interval: 10 } },
+      { match: "access_token", body: { access_token: "ghp_x" } },
+      { match: "api.github.com/user", body: { login: "u" } },
+    ]);
+    const result = await runFlow("client-1", {
+      onStatus: (m) => onStatus.push(m),
+    });
+    expect(result.ok).toBe(true);
+    expect(onStatus.some((m) => /every 10s/.test(m))).toBe(true);
+  });
+
   it("expired_token returns failure with helpful message", async () => {
     globalThis.fetch = makeMockFetch([
       { match: "/login/device/code", body: DEVICE_OK },

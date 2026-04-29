@@ -12,8 +12,9 @@
     "extension_pages": "script-src 'self'; object-src 'self'; base-uri 'none'"
   },
   "host_permissions": [
-    "https://github.com/*",
-    "https://api.github.com/*"
+    "https://api.github.com/*",
+    "https://github.com/login/device/code",
+    "https://github.com/login/oauth/access_token"
   ],
   "background": {
     "service_worker": "background.js",
