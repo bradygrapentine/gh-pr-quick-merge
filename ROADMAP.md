@@ -21,26 +21,34 @@ A browser extension that lets devs squash / merge / rebase PRs directly from the
 
 ---
 
-## Shipped in v0.2 (current) — 2026-04-29
+## Shipped in v0.2 (cumulative) — 2026-04-29
 
-Wave 1 of the v0.2 milestone landed:
+**Stamped `0.2.0-rc.1` as of housekeeping Wave 1.** Tag `v0.2.0` waits on QM-019.
 
 - OAuth device flow replacing raw PAT entry (PAT remains as fallback) — QM-003 / QM-004
-- Real PNG icons (16 / 48 / 128) replacing Chrome's default placeholder — QM-001 / QM-002
-- Bulk-merge multi-select scaffold gated behind a "Pro" placeholder upsell (no payment yet — captures intent) — QM-006 / QM-007 / QM-008
-- Vitest + jsdom test harness with 17 passing unit tests — QM-009
-- Pure helpers extracted to `lib/pr-helpers.js` and consumed by `content.js` — QM-005
+- Real PNG icons (16 / 48 / 128) — QM-001 / QM-002
+- Bulk-merge multi-select scaffold gated behind a "Pro" placeholder upsell — QM-006 / QM-007 / QM-008
+- Vitest test harness + 17 unit tests — QM-009
+- Pure helpers extracted to `lib/pr-helpers.js` — QM-005
+- Pure modules: `lib/repo-defaults.js` (15 tests), `lib/templates.js` (21), `lib/shortcuts.js` (21), `lib/stale-pr.js` (22), `lib/popup-data.js` (14) — QM-012 / QM-015 / QM-017 / QM-023 / popup-data
+- GitHub Actions CI workflow (`npm test` + `web-ext lint`) — QM-011 / QM-020
+- 8 of 15 SECURITY findings closed (token storage, dev-only Pro gate, host validation, CSP, etc.) — partial QM-019
+- Toolbar popup (`popup.html`) with mergeable-PR summary across pinned repos — QM-021
+- Per-repo default merge method (UI + row highlight + bulk-bar auto-select) — QM-013 / QM-014
+- 124 unit tests passing across 7 test files
 
-## v0.2 — Polish + soft Pro teaser (remaining)
+## v0.2 — Remaining before final tag
 
-**Goal:** Close out the v0.2 milestone — finish the test/CI story and ship the popup. Wave 2 carries the remaining stories.
+**Goal:** Close out the v0.2 milestone and ship `v0.2.0`.
 
 **Still pending:**
 - Integration tests for row injection against fixture DOM (QM-010)
-- GitHub Actions CI: lint + typecheck + test on PR (QM-011)
-- web-ext lint integration for Firefox AMO pre-flight (QM-020)
-- Toolbar popup with summary of mergeable PRs across pinned repos (QM-021)
-- SECURITY.md follow-ups (QM-019 — security agent owns the concrete items)
+- Templates integration into `content.js` + options UI (QM-016)
+- Shortcuts integration into `content.js` + options UI (QM-018)
+- Pinned-repo management UI in options page (QM-028)
+- Remaining 7 SECURITY findings — F-03, F-05, F-06, F-10, F-15 + two infos (QM-019)
+- Housekeeping Wave 2 — `web-ext lint` cleanup, simplify pass, test gaps fill-in
+- Tag `v0.2.0`, release zip, attach to GitHub release (QM-019-gated)
 
 **Success metric:** 500 WAU; >=10% of WAU click the "Pro" teaser (conversion-intent proxy); test suite green on every PR.
 

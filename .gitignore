@@ -12,3 +12,4 @@ dist/
 coverage/
 .claude/
 .memsearch/
+web-ext-artifacts/
