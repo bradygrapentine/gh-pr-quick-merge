@@ -282,3 +282,56 @@
   outline: 2px solid var(--fgColor-accent, #0969da);
   outline-offset: 2px;
 }
+
+/* QM-052 — Update branch button */
+.qm-update-btn {
+  background: #ddf4ff;
+  color: #0969da;
+  border: 1px solid #0969da;
+  font-size: 11px;
+}
+.qm-update-btn:hover { background: #0969da; color: #fff; }
+.qm-update-btn:disabled { opacity: 0.5; cursor: progress; }
+
+/* QM-056 — Merge-queue badge */
+.qm-queue-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  background: #f6f8fa;
+  color: #57606a;
+  margin-left: 4px;
+}
+.qm-queue-badge[data-kind="watching"] { background: #fff8c5; color: #4a3c03; }
+.qm-queue-badge[data-kind="merged"]   { background: #dafbe1; color: #1a7f37; }
+.qm-queue-badge[data-kind="failed"]   { background: #ffebe9; color: #cf222e; }
+
+/* QM-056 / QM-057 — Watch / Cancel buttons */
+.qm-watch-btn,
+.qm-cancel-watch-btn {
+  font-size: 11px;
+  padding: 1px 6px;
+}
+.qm-cancel-watch-btn {
+  background: transparent;
+  border: 1px solid #cf222e;
+  color: #cf222e;
+}
+.qm-cancel-watch-btn:hover { background: #cf222e; color: #fff; }
+
+/* QM-070 — Rebasing spinner */
+.qm-rebasing {
+  display: inline-block;
+  font-size: 11px;
+  color: #4a3c03;
+  background: #fff8c5;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin: 0 4px;
+  animation: qm-pulse 1.4s ease-in-out infinite;
+}
+@keyframes qm-pulse {
+  0%, 100% { opacity: 0.7; }
+  50%      { opacity: 1; }
+}

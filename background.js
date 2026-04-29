@@ -24,24 +24,107 @@ try {
   console.warn("[QM] Sentry bootstrap skipped:", (e && e.message) || e);
 }
 
+// QM-055 — merge-queue poller. Loaded as a classic worker script so it
+// attaches to `self` (the SW global). The merge-queue lib + api lib also
+// expose dual CJS / global, so importScripts is enough — no module setup.
+try {
+  importScripts("lib/api.js", "lib/merge-queue.js");
+} catch (e) {
+  console.warn("[QM] merge-queue lib bootstrap skipped:", (e && e.message) || e);
+}
+
 const TOKEN_STALE_MS = 30 * 86400 * 1000; // 30 days
 const TOKEN_CHECK_ALARM = "qm-token-check";
+const MERGE_QUEUE_ALARM = "qm-merge-queue-poller";
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.alarms.create(TOKEN_CHECK_ALARM, { periodInMinutes: 60 * 24 });
+  chrome.alarms.create(MERGE_QUEUE_ALARM, { periodInMinutes: 1 });
 });
 
+if (chrome.runtime.onStartup && chrome.runtime.onStartup.addListener) {
+  chrome.runtime.onStartup.addListener(() => {
+    chrome.alarms.create(MERGE_QUEUE_ALARM, { periodInMinutes: 1 });
+  });
+}
+
 chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name !== TOKEN_CHECK_ALARM) return;
-  const data = await chrome.storage.local.get("tokenSavedAt");
-  const savedAt = data && data.tokenSavedAt;
-  if (!savedAt) {
-    await chrome.storage.local.set({ tokenStale: false });
+  if (alarm.name === TOKEN_CHECK_ALARM) {
+    const data = await chrome.storage.local.get("tokenSavedAt");
+    const savedAt = data && data.tokenSavedAt;
+    if (!savedAt) {
+      await chrome.storage.local.set({ tokenStale: false });
+      return;
+    }
+    const stale = Date.now() - savedAt > TOKEN_STALE_MS;
+    await chrome.storage.local.set({ tokenStale: stale });
     return;
   }
-  const stale = Date.now() - savedAt > TOKEN_STALE_MS;
-  await chrome.storage.local.set({ tokenStale: stale });
+
+  if (alarm.name === MERGE_QUEUE_ALARM) {
+    await pollMergeQueue();
+    return;
+  }
 });
+
+async function pollMergeQueue() {
+  const queue = self.QM_MERGE_QUEUE;
+  const api = self.QM_API;
+  if (!queue || !api) return;
+
+  const { token } = await chrome.storage.local.get("token");
+  if (!token) return; // No auth → nothing to do; user will be prompted on next merge.
+
+  const entries = (await queue.list(chrome.storage.local)).filter((e) => e.status === "watching");
+  for (const entry of entries) {
+    const key = queue.makeKey(entry);
+    try {
+      const pr = await api.apiGet(
+        `/repos/${entry.owner}/${entry.repo}/pulls/${entry.pullNumber}`,
+        { token },
+      );
+      if (!pr) continue;
+      if (pr.state === "closed") {
+        // Either someone else merged it or it got closed — stop watching.
+        await queue.dequeue(key, chrome.storage.local);
+        continue;
+      }
+      if (pr.mergeable !== true || pr.mergeable_state !== "clean") continue;
+
+      const checks = await api.apiGet(
+        `/repos/${entry.owner}/${entry.repo}/commits/${pr.head.sha}/check-runs`,
+        { token },
+      );
+      const runs = (checks && Array.isArray(checks.check_runs)) ? checks.check_runs : [];
+      if (runs.length > 0) {
+        const allDone = runs.every((r) => r.status === "completed");
+        const allGreen = runs.every((r) => r.conclusion === "success" || r.conclusion === "neutral" || r.conclusion === "skipped");
+        if (!allDone || !allGreen) continue;
+      }
+
+      const sync = await chrome.storage.sync.get(["repoDefaults"]);
+      const defaults = (sync && sync.repoDefaults && typeof sync.repoDefaults === "object") ? sync.repoDefaults : {};
+      const method = defaults[`${entry.owner}/${entry.repo}`] || "squash";
+
+      try {
+        await api.apiPut(
+          `/repos/${entry.owner}/${entry.repo}/pulls/${entry.pullNumber}/merge`,
+          { merge_method: method, sha: pr.head.sha },
+          { token },
+        );
+        await queue.updateStatus(key, "merged", chrome.storage.local);
+      } catch (err) {
+        // Most fail modes (status checks failed, conflict reintroduced) are
+        // transient. Mark failed so the user can re-queue or take over.
+        await queue.updateStatus(key, "failed", chrome.storage.local);
+        console.warn(`[QM] merge-queue: ${key} merge failed: ${(err && err.message) || err}`);
+      }
+    } catch (err) {
+      // Don't take the whole tick down for one bad entry.
+      console.warn(`[QM] merge-queue: ${key} poll failed: ${(err && err.message) || err}`);
+    }
+  }
+}
 
 chrome.storage.onChanged.addListener(async (changes, area) => {
   if (area === "local" && changes.token && changes.token.newValue) {

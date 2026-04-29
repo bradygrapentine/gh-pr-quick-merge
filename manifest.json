@@ -2,11 +2,11 @@
   "manifest_version": 3,
   "name": "GitHub PR Quick Merge — Merge from List",
   "short_name": "PR Quick Merge",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "description": "Squash, merge, or rebase pull requests directly from the GitHub Pull Requests list — no need to open each PR.",
   "author": "Brady Grapentine",
   "homepage_url": "https://github.com/bradygrapentine/gh-pr-quick-merge",
-  "permissions": ["storage", "management"],
+  "permissions": ["storage", "management", "alarms"],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'; base-uri 'none'"
   },
@@ -40,6 +40,9 @@
         "lib/shortcuts.js",
         "lib/stale-pr.js",
         "lib/api.js",
+        "lib/update-branch.js",
+        "lib/auto-rebase.js",
+        "lib/merge-queue.js",
         "content.js"
       ],
       "css": ["styles.css"],

@@ -475,6 +475,46 @@ async function resetShortcuts() {
 }
 
 // ---------------------------------------------------------------------------
+// Update-branch strategy (QM-053) + auto-rebase threshold (QM-069)
+// ---------------------------------------------------------------------------
+
+async function loadUpdateBranchStrategy() {
+  const sel = $("updateBranchStrategy");
+  if (!sel) return;
+  const data = await chrome.storage.sync.get("updateBranchStrategy");
+  const v = data && data.updateBranchStrategy;
+  sel.value = v === "rebase" ? "rebase" : "merge";
+}
+
+async function onUpdateBranchStrategyChange() {
+  const sel = $("updateBranchStrategy");
+  if (!sel) return;
+  const v = sel.value === "rebase" ? "rebase" : "merge";
+  await chrome.storage.sync.set({ updateBranchStrategy: v });
+  setStatus("updateBranchStatus", `Saved (${v}).`, "ok");
+}
+
+async function loadAutoRebaseThreshold() {
+  const inp = $("autoRebaseThreshold");
+  if (!inp) return;
+  const data = await chrome.storage.sync.get("autoRebaseThreshold");
+  const v = Number(data && data.autoRebaseThreshold);
+  inp.value = Number.isFinite(v) && v >= 0 ? v : 0;
+}
+
+async function onAutoRebaseThresholdChange() {
+  const inp = $("autoRebaseThreshold");
+  if (!inp) return;
+  const v = Number(inp.value);
+  if (!Number.isInteger(v) || v < 0 || v > 999) {
+    setStatus("autoRebaseStatus", "Enter a whole number between 0 and 999.", "err");
+    return;
+  }
+  await chrome.storage.sync.set({ autoRebaseThreshold: v });
+  setStatus("autoRebaseStatus", v === 0 ? "Saved (disabled)." : `Saved (rebase when ≥ ${v} behind).`, "ok");
+}
+
+// ---------------------------------------------------------------------------
 // Stale threshold (QM-040)
 // ---------------------------------------------------------------------------
 
@@ -572,6 +612,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   if ($("shortcutsReset")) $("shortcutsReset").addEventListener("click", resetShortcuts);
   if ($("staleDaysInput")) $("staleDaysInput").addEventListener("change", onStaleDaysChange);
+  if ($("updateBranchStrategy")) $("updateBranchStrategy").addEventListener("change", onUpdateBranchStrategyChange);
+  if ($("autoRebaseThreshold")) $("autoRebaseThreshold").addEventListener("change", onAutoRebaseThresholdChange);
   if ($("exportBtn")) $("exportBtn").addEventListener("click", exportSettings);
   if ($("importBtn")) $("importBtn").addEventListener("click", triggerImport);
   if ($("importFileInput")) $("importFileInput").addEventListener("change", onImportFile);
@@ -580,4 +622,6 @@ document.addEventListener("DOMContentLoaded", () => {
   renderTemplates();
   renderShortcuts();
   loadStaleThreshold();
+  loadUpdateBranchStrategy();
+  loadAutoRebaseThreshold();
 });
