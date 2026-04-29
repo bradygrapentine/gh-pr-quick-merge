@@ -6,16 +6,21 @@ const API = "https://api.github.com";
 const ROW_SELECTOR = ".js-issue-row, [data-testid='issue-pr-title-link']";
 const INJECTED_ATTR = "data-qm-injected";
 const { parsePrLink: parsePrHref, classifyMergeState, mergeMethodFromKind } = window.QM_HELPERS;
+const TEMPLATES = window.QM_TEMPLATES || {};
+const SHORTCUTS = window.QM_SHORTCUTS || {};
+const STALE = window.QM_STALE_PR || {};
 
 const state = {
   token: "",
   pro: false,
-  // pr key "owner/repo#num" -> { mergeable, mergeable_state, head_sha }
   cache: new Map(),
-  // pr key -> { pr, row, container }
   selected: new Map(),
-  // "owner/repo" -> "squash" | "merge" | "rebase"
   repoDefaults: {},
+  // owner/repo -> template body string; "*" = global default
+  templates: {},
+  // array of { id, shortcut, description } overrides
+  shortcuts: [],
+  staleDays: 14,
 };
 
 const prKey = (pr) => `${pr.owner}/${pr.repo}#${pr.num}`;
@@ -30,12 +35,20 @@ function setButtonsDisabled(container, disabled, title) {
 async function loadInitialState() {
   const [localStore, syncStore] = await Promise.all([
     chrome.storage.local.get(["token", "pro"]).catch(() => ({})),
-    chrome.storage.sync.get("repoDefaults").catch(() => ({})),
+    chrome.storage.sync
+      .get(["repoDefaults", "qm_templates", "qm_shortcuts", "qm_stale_days"])
+      .catch(() => ({})),
   ]);
   state.token = localStore.token || "";
   state.pro = !!localStore.pro;
   const map = syncStore.repoDefaults;
   state.repoDefaults = map && typeof map === "object" ? map : {};
+  const tpl = syncStore.qm_templates;
+  state.templates = tpl && typeof tpl === "object" ? tpl : {};
+  const cs = syncStore.qm_shortcuts;
+  state.shortcuts = Array.isArray(cs) ? cs : (SHORTCUTS.DEFAULT_BINDINGS || []);
+  const sd = Number(syncStore.qm_stale_days);
+  state.staleDays = Number.isFinite(sd) && sd > 0 ? sd : 14;
 }
 
 function pickDefaultForBulkLocal(prs, map) {
@@ -50,6 +63,34 @@ function pickDefaultForBulkLocal(prs, map) {
     else if (chosen !== v) return null;
   }
   return chosen;
+}
+
+function applyStaleBadge(container, prState) {
+  if (!container) return;
+  // Remove any prior badge so re-renders stay accurate.
+  const existing = container.querySelector(".qm-stale-badge");
+  if (existing) existing.remove();
+  if (!prState || !prState.updated_at || !STALE.classifyStaleness) return;
+  const updatedAt = new Date(prState.updated_at);
+  if (Number.isNaN(updatedAt.getTime())) return;
+  const klass = STALE.classifyStaleness(
+    {
+      updatedAt,
+      draft: prState.draft,
+      hasReviewerRequested: prState.has_reviewer_requested,
+    },
+    { warmingDays: 7, staleDays: state.staleDays, abandonedDays: state.staleDays * 2 },
+    new Date(),
+  );
+  if (klass !== "stale" && klass !== "abandoned") return;
+  const label = STALE.formatStaleLabel ? STALE.formatStaleLabel(klass) : { label: klass };
+  const badge = document.createElement("span");
+  badge.className = `qm-stale-badge qm-stale-${klass}`;
+  badge.textContent = (label && label.label) || klass;
+  badge.setAttribute("role", "status");
+  badge.setAttribute("aria-label", `Pull request is ${klass}`);
+  // Place badge after the merge buttons.
+  container.appendChild(badge);
 }
 
 function applyRepoDefaultClass(container, pr) {
@@ -182,6 +223,16 @@ async function fetchPrState(pr, token) {
       mergeable: data.mergeable,
       mergeable_state: data.mergeable_state,
       head_sha: data.head?.sha,
+      title: data.title || "",
+      body: data.body || "",
+      author: data.user?.login || "",
+      branch: data.head?.ref || "",
+      base: data.base?.ref || "",
+      updated_at: data.updated_at || null,
+      draft: !!data.draft,
+      has_reviewer_requested: Array.isArray(data.requested_reviewers)
+        ? data.requested_reviewers.length > 0
+        : false,
     };
     // mergeable can be null while GitHub computes it — don't cache nulls long
     if (data.mergeable === null) {
@@ -194,15 +245,45 @@ async function fetchPrState(pr, token) {
   }
 }
 
+function buildMergeBody(method, pr, prData) {
+  const body = { merge_method: method, sha: prData.head_sha };
+  // Templates only meaningful for squash + merge; rebase ignores them.
+  if (method === "rebase") return body;
+  const repoKey = `${pr.owner}/${pr.repo}`;
+  const tpl =
+    state.templates[repoKey] ||
+    state.templates["*"] ||
+    (method === "squash" ? TEMPLATES.DEFAULT_SQUASH_TEMPLATE : TEMPLATES.DEFAULT_MERGE_TEMPLATE);
+  if (!tpl || !TEMPLATES.applyTemplate) return body;
+  try {
+    const result = TEMPLATES.applyTemplate(tpl, {
+      title: prData.title,
+      number: pr.num,
+      author: prData.author,
+      body: prData.body,
+      branch: prData.branch,
+      base: prData.base,
+      repo: repoKey,
+    });
+    const text = (result && result.text) || "";
+    if (text) {
+      const newlineIdx = text.indexOf("\n");
+      body.commit_title = newlineIdx >= 0 ? text.slice(0, newlineIdx) : text;
+      body.commit_message = newlineIdx >= 0 ? text.slice(newlineIdx + 1) : "";
+    }
+  } catch {
+    // Fall back to GitHub's default commit message on template failure.
+  }
+  return body;
+}
+
 async function doMerge({ pr, kind, token, headSha }) {
   const method = mergeMethodFromKind(kind);
+  const cached = state.cache.get(prKey(pr)) || { head_sha: headSha };
   const res = await fetch(`${API}/repos/${pr.owner}/${pr.repo}/pulls/${pr.num}/merge`, {
     method: "PUT",
     headers: { ...ghHeaders(token), "Content-Type": "application/json" },
-    body: JSON.stringify({
-      merge_method: method,
-      sha: headSha,
-    }),
+    body: JSON.stringify(buildMergeBody(method, pr, { ...cached, head_sha: headSha })),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -289,6 +370,7 @@ async function injectRow(row) {
 
   const prState = await fetchPrState(pr, token);
   setRowState(container, prState);
+  applyStaleBadge(container, prState);
 
   // If null/pending, retry once after a short delay
   if (prState && prState.mergeable === null) {
@@ -566,8 +648,118 @@ async function showProGate() {
   }
 }
 
+function ensureLiveRegion() {
+  let live = document.getElementById("qm-live-region");
+  if (live) return live;
+  live = document.createElement("div");
+  live.id = "qm-live-region";
+  live.setAttribute("aria-live", "polite");
+  live.setAttribute("role", "status");
+  live.style.cssText =
+    "position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;";
+  document.body.appendChild(live);
+  return live;
+}
+
+function announce(msg) {
+  const live = ensureLiveRegion();
+  live.textContent = "";
+  // Force reflow so screen readers re-read the same message.
+  void live.offsetHeight;
+  live.textContent = msg;
+}
+
+function flashShortcutActive(buttons) {
+  if (!buttons || buttons.length === 0) return;
+  buttons.forEach((b) => {
+    b.classList.add("qm-shortcut-active");
+    b.setAttribute("aria-pressed", "true");
+  });
+  setTimeout(() => {
+    buttons.forEach((b) => {
+      b.classList.remove("qm-shortcut-active");
+      b.removeAttribute("aria-pressed");
+    });
+  }, 200);
+}
+
+function shortcutHandlers() {
+  return {
+    selectAll: () => {
+      const cbs = document.querySelectorAll(".qm-select:not(:disabled)");
+      cbs.forEach((cb) => {
+        if (!cb.checked) {
+          cb.checked = true;
+          cb.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      });
+      announce(`Selected ${cbs.length} pull requests.`);
+    },
+    clearSelection: () => {
+      document.querySelectorAll(".qm-select:checked").forEach((cb) => {
+        cb.checked = false;
+        cb.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      announce("Selection cleared.");
+    },
+    mergeSelected: () => {
+      const goBtn = document.querySelector(".qm-bulk-go");
+      if (goBtn && !goBtn.disabled) {
+        const select = document.querySelector(".qm-bulk-method");
+        if (select) select.value = "merge";
+        flashShortcutActive([goBtn]);
+        goBtn.click();
+        announce("Bulk merge triggered.");
+      }
+    },
+    squashSelected: () => {
+      const goBtn = document.querySelector(".qm-bulk-go");
+      if (goBtn && !goBtn.disabled) {
+        const select = document.querySelector(".qm-bulk-method");
+        if (select) select.value = "squash";
+        flashShortcutActive([goBtn]);
+        goBtn.click();
+        announce("Bulk squash triggered.");
+      }
+    },
+    rebaseSelected: () => {
+      const goBtn = document.querySelector(".qm-bulk-go");
+      if (goBtn && !goBtn.disabled) {
+        const select = document.querySelector(".qm-bulk-method");
+        if (select) select.value = "rebase";
+        flashShortcutActive([goBtn]);
+        goBtn.click();
+        announce("Bulk rebase triggered.");
+      }
+    },
+  };
+}
+
+function isTextInputFocused(event) {
+  const t = event.target;
+  if (!t) return false;
+  const tag = (t.tagName || "").toUpperCase();
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+  if (t.isContentEditable) return true;
+  return false;
+}
+
+function onShortcutKeydown(event) {
+  if (isTextInputFocused(event)) return;
+  if (!SHORTCUTS.findBinding) return;
+  const binding = SHORTCUTS.findBinding(event, state.shortcuts);
+  if (!binding) return;
+  const handlers = shortcutHandlers();
+  const handler = handlers[binding];
+  if (!handler) return;
+  event.preventDefault();
+  handler();
+}
+
 async function start() {
   await loadInitialState();
+  ensureLiveRegion();
+  document.addEventListener("keydown", onShortcutKeydown);
   scan();
   observer.observe(document.body, { childList: true, subtree: true });
   renderBulkBar();
@@ -588,6 +780,18 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
       const next = changes.repoDefaults.newValue;
       state.repoDefaults = next && typeof next === "object" ? next : {};
       restyleAllRows();
+    }
+    if (changes.qm_templates) {
+      const next = changes.qm_templates.newValue;
+      state.templates = next && typeof next === "object" ? next : {};
+    }
+    if (changes.qm_shortcuts) {
+      const next = changes.qm_shortcuts.newValue;
+      state.shortcuts = Array.isArray(next) ? next : (SHORTCUTS.DEFAULT_BINDINGS || []);
+    }
+    if (changes.qm_stale_days) {
+      const next = Number(changes.qm_stale_days.newValue);
+      state.staleDays = Number.isFinite(next) && next > 0 ? next : 14;
     }
     return;
   }
