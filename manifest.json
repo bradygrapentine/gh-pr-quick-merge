@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "GitHub PR Quick Merge — Merge from List",
+  "short_name": "PR Quick Merge",
+  "version": "0.1.0",
+  "description": "Squash, merge, or rebase pull requests directly from the GitHub Pull Requests list — no need to open each PR.",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://github.com/*",
+    "https://api.github.com/*"
+  ],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": false
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://github.com/pulls*",
+        "https://github.com/*/pulls*",
+        "https://github.com/issues*"
+      ],
+      "js": ["lib/pr-helpers.js", "content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "gh-pr-quick-merge@grapentineb.dev",
+      "strict_min_version": "115.0"
+    }
+  }
+}

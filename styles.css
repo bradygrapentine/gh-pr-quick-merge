@@ -1,0 +1,168 @@
+.qm-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  vertical-align: middle;
+  font-size: 11px;
+}
+
+.qm-status {
+  display: inline-block;
+  min-width: 14px;
+  text-align: center;
+  font-weight: 600;
+  color: var(--fgColor-muted, #656d76);
+}
+.qm-status[data-kind="ok"] { color: var(--fgColor-success, #1a7f37); }
+.qm-status[data-kind="blocked"] { color: var(--fgColor-danger, #cf222e); }
+.qm-status[data-kind="error"] { color: var(--fgColor-danger, #cf222e); }
+.qm-status[data-kind="merged"] { color: var(--fgColor-done, #8250df); }
+.qm-status[data-kind="noauth"] { color: var(--fgColor-attention, #9a6700); }
+
+.qm-btn {
+  appearance: none;
+  border: 1px solid var(--borderColor-default, #d0d7de);
+  background: var(--bgColor-default, #f6f8fa);
+  color: var(--fgColor-default, #1f2328);
+  border-radius: 5px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  cursor: pointer;
+  transition: background 120ms;
+}
+.qm-btn:hover:not(:disabled) {
+  background: var(--bgColor-muted, #eaeef2);
+}
+.qm-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.qm-btn-squash:not(:disabled) {
+  background: var(--bgColor-success-emphasis, #1f883d);
+  border-color: transparent;
+  color: #fff;
+}
+.qm-btn-squash:not(:disabled):hover {
+  background: #1a7f37;
+}
+
+.qm-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #24292f;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 200ms, transform 200ms;
+  z-index: 99999;
+}
+.qm-toast-show { opacity: 1; transform: translateY(0); }
+.qm-toast-ok { background: #1a7f37; }
+.qm-toast-warn { background: #9a6700; }
+.qm-toast-error { background: #cf222e; }
+
+.qm-select {
+  margin-right: 4px;
+  cursor: pointer;
+}
+.qm-select:disabled { cursor: not-allowed; opacity: 0.4; }
+
+.qm-bulk-bar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: #24292f;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  z-index: 99998;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms, transform 200ms;
+}
+.qm-bulk-bar-shown {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+.qm-bulk-count { font-weight: 600; }
+.qm-bulk-pro {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  background: linear-gradient(135deg, #f7b500, #ff7a18);
+  color: #1f2328;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.qm-bulk-method {
+  background: #fff;
+  color: #1f2328;
+  border: 0;
+  border-radius: 5px;
+  padding: 4px 6px;
+  font-size: 12px;
+}
+.qm-bulk-bar .qm-btn {
+  background: #1f883d;
+  border-color: transparent;
+  color: #fff;
+}
+.qm-bulk-bar .qm-btn:hover:not(:disabled) { background: #1a7f37; }
+.qm-bulk-bar .qm-bulk-clear {
+  background: transparent;
+  color: #fff;
+  border-color: rgba(255,255,255,0.3);
+}
+
+.qm-pro-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+}
+.qm-pro-card {
+  background: #fff;
+  color: #1f2328;
+  border-radius: 10px;
+  padding: 24px;
+  max-width: 400px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.3);
+}
+.qm-pro-card h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+.qm-pro-card p { font-size: 13px; line-height: 1.5; margin: 8px 0; }
+.qm-pro-card ul { font-size: 13px; padding-left: 18px; margin: 10px 0; }
+.qm-pro-card li { margin: 4px 0; }
+.qm-pro-price { font-size: 14px; }
+.qm-pro-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+.qm-pro-actions .qm-btn { padding: 6px 14px; font-size: 13px; }
+.qm-pro-dev {
+  background: #1f883d !important;
+  color: #fff !important;
+  border-color: transparent !important;
+}

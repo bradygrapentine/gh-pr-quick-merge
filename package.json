@@ -1,0 +1,12 @@
+{
+  "name": "gh-pr-quick-merge",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "vitest": "latest"
+  }
+}
