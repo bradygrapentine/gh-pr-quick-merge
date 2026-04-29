@@ -10,6 +10,7 @@ const { parsePrLink: parsePrHref, classifyMergeState, mergeMethodFromKind } = wi
 const TEMPLATES = window.QM_TEMPLATES || {};
 const SHORTCUTS = window.QM_SHORTCUTS || {};
 const STALE = window.QM_STALE_PR || {};
+const API_HELPERS = window.QM_API || {};
 
 const state = {
   token: "",
@@ -234,6 +235,7 @@ async function fetchPrState(pr, token) {
       has_reviewer_requested: Array.isArray(data.requested_reviewers)
         ? data.requested_reviewers.length > 0
         : false,
+      behind_by: typeof data.behind_by === "number" ? data.behind_by : 0,
     };
     // mergeable can be null while GitHub computes it — don't cache nulls long
     if (data.mergeable === null) {
@@ -414,6 +416,25 @@ async function injectRow(row) {
       setButtonsDisabled(container, false);
     }
   });
+
+  injectRowActions({ row, container, pr, prData: prState, token, status });
+}
+
+/* QM-045 / v0.4 extension point. Called once per row after the standard merge
+ * buttons + click handler are wired. Subsequent waves (v0.4 row-actions) add
+ * Update / Cancel-watch / queue-status / rebasing-spinner UI here.
+ *
+ * Contract: container is mounted in the row, prData reflects the just-fetched
+ * PR state (may be null on auth-less or errored rows — guard accordingly).
+ * The function MUST be idempotent at the row level (re-entry is unlikely
+ * because `INJECTED_ATTR` already gates injectRow, but the implementation
+ * should not assume single-call exclusivity).
+ */
+function injectRowActions(ctx) {
+  // Intentional no-op. v0.4 row-action stories (QM-052/056/057/070) populate
+  // this body. Keep this function present on main even when empty so those
+  // stories don't have to introduce the extension point alongside their work.
+  void ctx;
 }
 
 function scan(root = document) {

@@ -39,6 +39,7 @@
         "lib/templates.js",
         "lib/shortcuts.js",
         "lib/stale-pr.js",
+        "lib/api.js",
         "content.js"
       ],
       "css": ["styles.css"],
