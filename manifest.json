@@ -32,7 +32,8 @@
       "matches": [
         "https://github.com/pulls*",
         "https://github.com/*/pulls*",
-        "https://github.com/issues*"
+        "https://github.com/issues*",
+        "https://github.com/*/*/pull/*"
       ],
       "js": [
         "lib/pr-helpers.js",
