@@ -21,9 +21,10 @@ describe("buildBar", () => {
     const chips = bar.querySelectorAll("[data-qm-filter]");
     expect(chips.length).toBe(CHIPS.length);
     // Primary chips first (Mine / Ready / Hide bots), secondary inside
-    // the "More" disclosure (Stale / Small / Hide drafts).
+    // the "More" disclosure (Stale / Small). "Hide drafts" removed in
+    // UI pass 6.
     expect(Array.from(chips).map((c) => c.textContent))
-      .toEqual(["Mine", "Ready", "Hide bots", "Stale", "Small", "Hide drafts"]);
+      .toEqual(["Mine", "Ready", "Hide bots", "Stale", "Small"]);
   });
   it("marks chips active when filters object says so", () => {
     const bar = buildBar({ mine: true, ready: false });
@@ -118,14 +119,12 @@ describe("storage helpers", () => {
 describe("Track C — exclusion chips", () => {
   beforeEach(() => { document.body.innerHTML = '<div class="repository-content"></div>'; });
 
-  it("renders Hide bots and Hide drafts as exclude-kind chips", () => {
+  it("renders Hide bots as an exclude-kind chip", () => {
     ensureFilterBar({ filters: {}, onChange: () => {} });
     const dep = document.querySelector('[data-qm-filter="hideDependabot"]');
-    const drafts = document.querySelector('[data-qm-filter="hideDrafts"]');
     expect(dep).toBeTruthy();
     expect(dep.dataset.qmFilterKind).toBe("exclude");
     expect(dep.classList.contains("qm-filter-chip-exclude")).toBe(true);
-    expect(drafts.dataset.qmFilterKind).toBe("exclude");
   });
 
   it("toggling Hide bots fires onChange with the new flag", () => {
@@ -136,8 +135,8 @@ describe("Track C — exclusion chips", () => {
   });
 
   it("include + exclude chips can be active simultaneously", () => {
-    ensureFilterBar({ filters: { mine: true, hideDrafts: true }, onChange: () => {} });
+    ensureFilterBar({ filters: { mine: true, hideDependabot: true }, onChange: () => {} });
     expect(document.querySelector('[data-qm-filter="mine"]').classList.contains("qm-filter-chip-active")).toBe(true);
-    expect(document.querySelector('[data-qm-filter="hideDrafts"]').classList.contains("qm-filter-chip-active")).toBe(true);
+    expect(document.querySelector('[data-qm-filter="hideDependabot"]').classList.contains("qm-filter-chip-active")).toBe(true);
   });
 });

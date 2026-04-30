@@ -459,24 +459,14 @@ async function injectRow(row) {
   container.className = "qm-container";
   container.dataset.qmKey = prKey(pr);
 
-  const checkbox = document.createElement("input");
-  checkbox.type = "checkbox";
-  checkbox.className = "qm-select";
-  checkbox.title = "Select for bulk merge (Pro)";
-  checkbox.disabled = true;
-  checkbox.addEventListener("click", (e) => e.stopPropagation());
-  checkbox.addEventListener("change", () => {
-    const key = container.dataset.qmKey;
-    if (checkbox.checked) {
-      state.selected.set(key, { pr, row, container });
-    } else {
-      state.selected.delete(key);
-    }
-    renderBulkBar();
-  });
+  // Per-row bulk-select checkbox removed (UI pass 6). Bulk operations
+  // remain available; we'll surface a different selection affordance
+  // if/when the user wants bulk back. Code below preserves
+  // state.selected hooks so the bulk bar code path doesn't blow up,
+  // but no DOM element is mounted.
+  const checkbox = { checked: false, disabled: true, addEventListener: () => {} };
 
   const status = makeStatus();
-  container.appendChild(checkbox);
   container.appendChild(status);
 
   // QM-206..210 — single compact pill widget replaces the 3-button stack.
@@ -490,7 +480,7 @@ async function injectRow(row) {
     rowWidget = widgetApi.makeRowWidget({
       pr,
       prState: null,
-      getDefaultMethod: () => state.repoDefaults[`${pr.owner}/${pr.repo}`] || "squash",
+      getDefaultMethod: () => state.repoDefaults[`${pr.owner}/${pr.repo}`] || state.repoDefaults["*"] || "merge",
       getShortcutHint: () => state.shortcutMode === "active" ? "▶ S to squash" : null,
       onMethodChange: () => { /* no-op; cached for the next click */ },
       onMerge: async (method) => {
@@ -571,23 +561,16 @@ async function injectRow(row) {
 
   applyRepoDefaultClass(container, pr);
 
-  // Place container next to the title so the action bay shows up
-  // inline with the PR title rather than at the bottom of GitHub's
-  // column-stacked row layout. Falls back to the legacy mount points
-  // when the React PR list isn't in use.
-  const titleAnchor =
-    row.querySelector("a[data-hovercard-type='pull_request']") ||
-    row.querySelector("a[id^='issue_'][href*='/pull/']") ||
-    row.querySelector("a[href*='/pull/']");
-  if (titleAnchor && titleAnchor.parentNode) {
-    titleAnchor.parentNode.insertBefore(container, titleAnchor.nextSibling);
-  } else {
-    const target =
-      row.querySelector(".opened-by") ||
-      row.querySelector(".col-9") ||
-      row;
-    target.appendChild(container);
+  // Mount as the row's last child + pin top-right via CSS. Avoids
+  // jamming buttons next to the title (awkward) and avoids the
+  // bottom-of-column position (harder to scan). Reads as an action
+  // group on the right side of each row, vertically centered with
+  // the title.
+  container.classList.add("qm-container-pinned");
+  if (getComputedStyle(row).position === "static") {
+    row.style.position = "relative";
   }
+  row.appendChild(container);
 
   const token = getToken();
   if (!token) {
@@ -771,8 +754,8 @@ function injectRowActions(ctx) {
       if (!entry) {
         badge.textContent = "";
         badge.dataset.kind = "";
-        watchBtn.textContent = "Watch";
-        watchBtn.title = "Auto-merge once all checks pass";
+        watchBtn.textContent = "Auto-merge when green";
+        watchBtn.title = "Once CI is green, automatically merge this PR";
         watchBtn.style.display = "";
         cancelBtn.style.display = "none";
         return;

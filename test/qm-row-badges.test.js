@@ -73,13 +73,13 @@ describe("applyRowBadges (QM-500..503)", () => {
   beforeEach(() => { document.body.innerHTML = ""; });
   const pr = { owner: "octo", repo: "world", num: 5 };
 
-  it("mounts size + comments badges from state", () => {
+  it("mounts size badge from state (comments badge removed in pass 6)", () => {
     const { container } = makeRow();
     applyRowBadges(container, { additions: 30, deletions: 19, comments: 2, mergeable_state: "blocked", behind_by: 1 }, pr);
     const strip = container.querySelector('[data-qm-badge="strip"]');
     expect(strip).toBeTruthy();
     expect(strip.querySelector('[data-qm-badge="size"]').textContent).toBe("S");
-    expect(strip.querySelector('[data-qm-badge="comments"]').textContent).toBe("💬 2");
+    expect(strip.querySelector('[data-qm-badge="comments"]')).toBeNull();
     expect(strip.querySelector('[data-qm-badge="ci"]')).toBeNull(); // ciState not provided
   });
 
@@ -90,7 +90,6 @@ describe("applyRowBadges (QM-500..503)", () => {
     const strips = container.querySelectorAll('[data-qm-badge="strip"]');
     expect(strips.length).toBe(1);
     expect(strips[0].querySelector('[data-qm-badge="size"]').textContent).toBe("M");
-    expect(strips[0].querySelector('[data-qm-badge="comments"]').textContent).toBe("💬 4");
   });
 
   it("sets data-qm-ready on the row when state is clean + caught up", () => {
