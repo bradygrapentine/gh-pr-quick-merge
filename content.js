@@ -333,7 +333,19 @@ async function doMerge({ pr, kind, token, headSha }) {
   return data;
 }
 
+// Compat shim — legacy toast(message, kind) delegates to the new
+// QM_TOAST stack manager (lib/qm-toast.js). Kind remap: "error" → "err".
+const _TOAST_KIND_MAP = { info: "info", ok: "ok", warn: "warn", error: "err", err: "err" };
 function toast(message, kind = "info") {
+  const t = window.QM_TOAST;
+  if (t && t.show) {
+    try {
+      t.show({ kind: _TOAST_KIND_MAP[kind] || "info", title: String(message) });
+      return;
+    } catch (_) { /* fall through to legacy fallback below */ }
+  }
+  // Fallback for environments where qm-toast isn't loaded — preserves the
+  // pre-v1.1 behaviour so a misconfigured build doesn't lose feedback.
   const el = document.createElement("div");
   el.className = `qm-toast qm-toast-${kind}`;
   el.textContent = message;
@@ -959,43 +971,104 @@ async function showProGate() {
   const existing = document.getElementById("qm-pro-modal");
   if (existing) existing.remove();
   const isDev = await isDevInstall();
-  const modal = document.createElement("div");
-  modal.id = "qm-pro-modal";
-  modal.className = "qm-pro-modal";
-  const devButtonHtml = isDev
-    ? '<button class="qm-btn qm-pro-dev">Enable Pro (dev)</button>'
-    : "";
-  modal.innerHTML = `
-    <div class="qm-pro-card">
-      <h2>Like this? Support development.</h2>
-      <p>PR Quick Merge is free and open source. If it saves you time, a small monthly sponsorship keeps it maintained.</p>
-      <ul>
-        <li>☕ $5/mo — keeps the lights on</li>
-        <li>🛠 $25/mo — for daily users</li>
-        <li>🏢 $99/mo — small teams</li>
-        <li>🚀 $499/mo — logo on the repo + roadmap input</li>
-      </ul>
-      <div class="qm-pro-actions">
-        <button class="qm-btn qm-pro-close">Maybe later</button>
-        <a class="qm-btn qm-pro-sponsor" href="${SPONSORS_URL}" target="_blank" rel="noopener noreferrer">Sponsor on GitHub</a>
-        ${devButtonHtml}
-      </div>
-    </div>
-  `;
-  document.body.appendChild(modal);
-  modal.addEventListener("click", (e) => {
-    if (e.target === modal || e.target.classList.contains("qm-pro-close")) modal.remove();
-    if (e.target.classList && e.target.classList.contains("qm-pro-sponsor")) modal.remove();
+
+  const overlay = document.createElement("div");
+  overlay.id = "qm-pro-modal";
+  overlay.className = "qm-sponsor-overlay";
+  overlay.setAttribute("role", "dialog");
+  overlay.setAttribute("aria-modal", "true");
+  overlay.setAttribute("aria-labelledby", "qm-sponsor-title");
+
+  const card = document.createElement("div");
+  card.className = "qm-sponsor-card";
+
+  const content = document.createElement("div");
+  content.className = "qm-sponsor-content";
+
+  // Pro badge with mark
+  const badge = document.createElement("span");
+  badge.className = "qm-badge qm-badge-pro";
+  badge.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1l2.4 7.2H22l-6 4.4 2.3 7.2L12 15.4 5.7 19.8 8 12.6 2 8.2h7.6z"/></svg>';
+  badge.appendChild(document.createTextNode(" Sponsor"));
+  content.appendChild(badge);
+
+  const title = document.createElement("h2");
+  title.id = "qm-sponsor-title";
+  title.className = "qm-sponsor-title";
+  title.textContent = "Like this? Support development.";
+  content.appendChild(title);
+
+  const lede = document.createElement("p");
+  lede.className = "qm-sponsor-lede";
+  lede.textContent = "PR Quick Merge is free and open source. A small monthly sponsorship keeps it maintained — and unlocks an early say in the roadmap.";
+  content.appendChild(lede);
+
+  const tiers = document.createElement("ul");
+  tiers.className = "qm-sponsor-list";
+  for (const t of [
+    "☕ $5/mo — keeps the lights on",
+    "🛠 $25/mo — for daily users",
+    "🏢 $99/mo — small teams",
+    "🚀 $499/mo — logo on the repo + roadmap input",
+  ]) {
+    const li = document.createElement("li");
+    const check = document.createElement("span");
+    check.className = "qm-sponsor-check";
+    check.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    li.appendChild(check);
+    li.appendChild(document.createTextNode(" " + t));
+    tiers.appendChild(li);
+  }
+  content.appendChild(tiers);
+
+  const actions = document.createElement("div");
+  actions.className = "qm-sponsor-actions";
+
+  const sponsor = document.createElement("a");
+  sponsor.className = "qm-button qm-button-accent qm-button-lg qm-pro-sponsor";
+  sponsor.style.flex = "1";
+  sponsor.style.justifyContent = "center";
+  sponsor.href = SPONSORS_URL;
+  sponsor.target = "_blank";
+  sponsor.rel = "noopener noreferrer";
+  sponsor.textContent = "Sponsor on GitHub";
+
+  const close = document.createElement("button");
+  close.type = "button";
+  close.className = "qm-button qm-button-lg qm-pro-close";
+  close.textContent = "Maybe later";
+
+  actions.appendChild(sponsor);
+  actions.appendChild(close);
+  if (isDev) {
+    const dev = document.createElement("button");
+    dev.type = "button";
+    dev.className = "qm-button qm-button-lg qm-pro-dev";
+    dev.textContent = "Enable Pro (dev)";
+    actions.appendChild(dev);
+  }
+  content.appendChild(actions);
+
+  card.appendChild(content);
+  overlay.appendChild(card);
+
+  const dismiss = () => overlay.remove();
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) dismiss();
+    if (e.target.classList && e.target.classList.contains("qm-pro-close")) dismiss();
+    if (e.target.classList && e.target.classList.contains("qm-pro-sponsor")) dismiss();
   });
-  const devBtn = modal.querySelector(".qm-pro-dev");
+  const devBtn = overlay.querySelector(".qm-pro-dev");
   if (devBtn) {
     devBtn.addEventListener("click", async () => {
       await chrome.storage.local.set({ pro: true });
       state.pro = true;
-      modal.remove();
+      dismiss();
       toast("Pro mode enabled (dev). Re-click Merge selected.", "ok");
     });
   }
+
+  document.body.appendChild(overlay);
 }
 
 function ensureLiveRegion() {
