@@ -55,6 +55,29 @@ body {
   --qm-accent-medium: color-mix(in oklch, var(--qm-accent, #1f6feb) 14%, transparent);
   --qm-accent-strong: color-mix(in oklch, var(--qm-accent, #1f6feb) 28%, transparent);
   --qm-accent-fg: #fff;
+
+  /* Motion: ease-out-quart / quint per the design laws (no bounce, no
+   * elastic). Three durations only — anything longer hurts perceived
+   * snappiness in a tool that opens 5-15x/day. */
+  --qm-pop-mo-fast: 140ms cubic-bezier(0.25, 1, 0.5, 1);
+  --qm-pop-mo-med: 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  --qm-pop-mo-slow: 360ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* On open, slide the popup body up a hair while it fades in. Triggered
+ * once at DOM construction; re-renders inside don't replay it. */
+@keyframes qm-pop-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+body { animation: qm-pop-enter var(--qm-pop-mo-med) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  body { animation: none; }
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }
 [data-qm-density="compact"] body,
 body[data-qm-density="compact"] {
@@ -133,6 +156,13 @@ body[data-qm-density="compact"] {
   color: var(--qm-accent-fg, #fff);
   border-color: var(--qm-accent, #1f6feb);
 }
+/* Spin the refresh glyph while popup.js drives loadAndRender. JS toggles
+ * the .qm-spinning class; CSS owns the animation. */
+@keyframes qm-pop-spin { to { transform: rotate(360deg); } }
+#refreshBtn.qm-spinning {
+  animation: qm-pop-spin 700ms linear infinite;
+  color: var(--qm-accent, #1f6feb);
+}
 
 /* ─── 2 · Vitals band ──────────────────────────────────────────────── */
 .qm-popup-summary {
@@ -198,8 +228,14 @@ body[data-qm-density="compact"] {
   text-decoration: none;
   color: inherit;
 }
+.qm-popup-row-link {
+  transition: background-color var(--qm-pop-mo-fast);
+}
 .qm-popup-row-link:hover {
   background: var(--qm-accent-soft);
+}
+.qm-popup-row-link:hover .qm-popup-row-tile {
+  transform: scale(1.06);
 }
 .qm-popup-row-tile {
   display: inline-flex;
@@ -213,6 +249,7 @@ body[data-qm-density="compact"] {
   font-weight: 700;
   font-size: 13px;
   flex: 0 0 auto;
+  transition: transform var(--qm-pop-mo-med);
 }
 .qm-popup-row-body {
   flex: 1;
@@ -257,6 +294,13 @@ body[data-qm-density="compact"] {
   letter-spacing: -0.05px;
   padding: 5px 11px;
   box-shadow: 0 4px 10px -6px var(--qm-accent, #1f6feb);
+  transition:
+    box-shadow var(--qm-pop-mo-med),
+    transform var(--qm-pop-mo-fast);
+}
+.qm-popup-row-link:hover .qm-popup-row-cta {
+  box-shadow: 0 8px 18px -8px var(--qm-accent, #1f6feb);
+  transform: translateY(-1px);
 }
 
 /* ─── Empty state ───────────────────────────────────────────────────── */
@@ -323,10 +367,15 @@ body[data-qm-density="compact"] {
 }
 
 /* ─── 4 · Action band (manage box) ──────────────────────────────────── */
+@keyframes qm-pop-slide-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 .qm-popup-manage {
   border-top: 1px solid var(--qm-border, #d0d7de);
   background: var(--qm-surface-1, #f6f8fa);
   padding: var(--qm-pop-pad-comfy) var(--qm-pop-pad-x);
+  animation: qm-pop-slide-in var(--qm-pop-mo-med) both;
 }
 .qm-popup-manage-label {
   display: block;
@@ -388,6 +437,8 @@ body[data-qm-density="compact"] {
   padding: var(--qm-pop-pad-comfy) var(--qm-pop-pad-comfy) var(--qm-pop-pad-tight);
   position: relative;
   background: linear-gradient(180deg, var(--qm-surface-1, #f6f8fa), var(--qm-surface, #fff));
+  animation: qm-pop-slide-in var(--qm-pop-mo-slow) both;
+  animation-delay: 80ms;
 }
 .qm-onboarding-dismiss {
   position: absolute;

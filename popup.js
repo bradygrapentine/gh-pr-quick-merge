@@ -270,7 +270,17 @@ async function loadAndRender() {
   hideEmptyState();
   setStatus("Loading…");
   state.rowErrors.clear();
+  // Spin the refresh glyph while the fetch is in flight (refine pass 6).
+  const refreshBtn = $("refreshBtn");
+  if (refreshBtn) refreshBtn.classList.add("qm-spinning");
+  try {
+    return await _loadAndRenderInner();
+  } finally {
+    if (refreshBtn) refreshBtn.classList.remove("qm-spinning");
+  }
+}
 
+async function _loadAndRenderInner() {
   const [{ pinnedRepos }, { token }, localData] = await Promise.all([
     chrome.storage.sync.get("pinnedRepos"),
     chrome.storage.local.get("token"),
