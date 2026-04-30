@@ -571,12 +571,23 @@ async function injectRow(row) {
 
   applyRepoDefaultClass(container, pr);
 
-  // Place container in a sensible spot inside the row
-  const target =
-    row.querySelector(".opened-by") ||
-    row.querySelector(".col-9") ||
-    row;
-  target.appendChild(container);
+  // Place container next to the title so the action bay shows up
+  // inline with the PR title rather than at the bottom of GitHub's
+  // column-stacked row layout. Falls back to the legacy mount points
+  // when the React PR list isn't in use.
+  const titleAnchor =
+    row.querySelector("a[data-hovercard-type='pull_request']") ||
+    row.querySelector("a[id^='issue_'][href*='/pull/']") ||
+    row.querySelector("a[href*='/pull/']");
+  if (titleAnchor && titleAnchor.parentNode) {
+    titleAnchor.parentNode.insertBefore(container, titleAnchor.nextSibling);
+  } else {
+    const target =
+      row.querySelector(".opened-by") ||
+      row.querySelector(".col-9") ||
+      row;
+    target.appendChild(container);
+  }
 
   const token = getToken();
   if (!token) {
