@@ -6,7 +6,7 @@ import filters from "../lib/qm-filters.js";
 import sizer from "../lib/qm-size-classify.js";
 import staleHelpers from "../lib/stale-pr.js";
 
-const { isMine, isReady, isStale, isSmall, composeFilter, applyFiltersToRows } = filters;
+const { isMine, isReady, isStale, isSmall, isNoiseAuthor, isDraft, composeFilter, applyFiltersToRows, DEFAULT_NOISE_AUTHORS } = filters;
 
 const PR = (overrides = {}) => ({ owner: "octo", repo: "x", num: 1, author: "alice", ...overrides });
 const STATE = (overrides = {}) => ({
@@ -161,5 +161,77 @@ describe("applyFiltersToRows", () => {
     const rows = document.querySelectorAll(".js-issue-row");
     const result = applyFiltersToRows(() => false, rows, () => null);
     expect(result).toEqual({ kept: 0, hidden: 0 });
+  });
+});
+
+describe("isNoiseAuthor (QM-509)", () => {
+  it("matches default bot list", () => {
+    expect(isNoiseAuthor(null, PR({ author: "dependabot[bot]" }), {})).toBe(true);
+    expect(isNoiseAuthor(null, PR({ author: "renovate[bot]" }), {})).toBe(true);
+    expect(isNoiseAuthor(null, PR({ author: "github-actions[bot]" }), {})).toBe(true);
+  });
+  it("ignores non-bot authors", () => {
+    expect(isNoiseAuthor(null, PR({ author: "alice" }), {})).toBe(false);
+  });
+  it("respects ctx.noiseAuthors override", () => {
+    expect(isNoiseAuthor(null, PR({ author: "alice" }), { noiseAuthors: ["alice"] })).toBe(true);
+    expect(isNoiseAuthor(null, PR({ author: "dependabot[bot]" }), { noiseAuthors: ["alice"] })).toBe(false);
+  });
+  it("falls back to defaults on empty override array", () => {
+    expect(isNoiseAuthor(null, PR({ author: "dependabot[bot]" }), { noiseAuthors: [] })).toBe(true);
+  });
+  it("DEFAULT_NOISE_AUTHORS is frozen", () => {
+    expect(Object.isFrozen(DEFAULT_NOISE_AUTHORS)).toBe(true);
+  });
+});
+
+describe("isDraft (QM-510)", () => {
+  it("true when state.draft === true", () => {
+    expect(isDraft({ draft: true })).toBe(true);
+  });
+  it("false otherwise", () => {
+    expect(isDraft({ draft: false })).toBe(false);
+    expect(isDraft({})).toBe(false);
+    expect(isDraft(null)).toBe(false);
+  });
+});
+
+describe("composeFilter — Track C exclusion semantics", () => {
+  const baseCtx = {
+    viewerLogin: "alice",
+    staleHelpers,
+    staleThresholds: staleHelpers.DEFAULT_THRESHOLDS,
+    sizer,
+    now: new Date("2026-04-30T00:00:00Z"),
+  };
+
+  it("hideDependabot drops bot PRs while keeping the rest", () => {
+    const fn = composeFilter({ hideDependabot: true }, baseCtx);
+    expect(fn(STATE(), PR({ author: "alice" }))).toBe(true);
+    expect(fn(STATE(), PR({ author: "dependabot[bot]" }))).toBe(false);
+  });
+
+  it("hideDrafts drops drafts only", () => {
+    const fn = composeFilter({ hideDrafts: true }, baseCtx);
+    expect(fn(STATE({ draft: false }), PR())).toBe(true);
+    expect(fn(STATE({ draft: true }), PR())).toBe(false);
+  });
+
+  it("exclusion runs after inclusion (Mine + hideDependabot — bots authored by viewer still drop)", () => {
+    const fn = composeFilter({ mine: true, hideDependabot: true }, { ...baseCtx, viewerLogin: "dependabot[bot]" });
+    // Mine matches (viewer == author == bot), but exclude wins.
+    expect(fn(STATE(), PR({ author: "dependabot[bot]" }))).toBe(false);
+  });
+
+  it("two excludes compose as AND-NOT (drafts AND bots both drop)", () => {
+    const fn = composeFilter({ hideDependabot: true, hideDrafts: true }, baseCtx);
+    expect(fn(STATE({ draft: false }), PR({ author: "alice" }))).toBe(true);
+    expect(fn(STATE({ draft: false }), PR({ author: "dependabot[bot]" }))).toBe(false);
+    expect(fn(STATE({ draft: true }), PR({ author: "alice" }))).toBe(false);
+  });
+
+  it("only excludes active = pure no-op gate (everything passes)", () => {
+    const fn = composeFilter({ hideDrafts: false, hideDependabot: false }, baseCtx);
+    expect(fn(STATE({ draft: true }), PR({ author: "dependabot[bot]" }))).toBe(true);
   });
 });
