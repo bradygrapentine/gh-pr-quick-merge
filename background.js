@@ -10,6 +10,12 @@
  */
 
 try {
+  // Optional DSN shim — written by scripts/package.sh when SENTRY_DSN is set
+  // in the build env. Absent in dev builds, in which case sentry-init.js
+  // sees no DSN and stays disabled.
+  try {
+    importScripts("lib/sentry-dsn.js");
+  } catch (_) { /* dev build, no DSN */ }
   importScripts("lib/sentry-sanitize.js", "lib/sentry-init.js");
   try {
     importScripts("lib/vendor/sentry.min.js");

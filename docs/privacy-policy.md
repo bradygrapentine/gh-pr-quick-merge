@@ -1,3 +1,9 @@
+---
+layout: default
+title: Privacy Policy
+permalink: /privacy-policy.html
+---
+
 # PR Quick Merge — Privacy Policy
 
 **Effective date:** 2026-04-29
