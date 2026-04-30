@@ -268,6 +268,23 @@ function fetchPrState(pr, token) {
   return self.QM_GITHUB_PR_STATE.fetchPrState(pr, token, { cache: state.cache });
 }
 
+// Epic 11 Track A — render row badges + kick off async CI fetch. Idempotent
+// on its own; safe to call from injectRow on every soft-nav.
+function applyRowBadgesAndCi(container, prState, pr, token) {
+  const ROW_BADGES = self.QM_ROW_BADGES;
+  const PR_STATE = self.QM_GITHUB_PR_STATE;
+  if (!ROW_BADGES || !prState || prState.error || prState.listMode) return;
+  ROW_BADGES.applyRowBadges(container, prState, pr);
+  if (!prState.head_sha || !PR_STATE || typeof PR_STATE.fetchCiState !== "function") return;
+  PR_STATE.fetchCiState(prState.head_sha, token, {
+    cache: state.cache,
+    path: `/repos/${pr.owner}/${pr.repo}/commits/${prState.head_sha}/status`,
+  }).then((ci) => {
+    if (!container.isConnected) return;
+    ROW_BADGES.applyCiState(container, ci);
+  }).catch(() => { /* network blip — leave badge unrendered */ });
+}
+
 function buildMergeBody(method, pr, prData) {
   const body = { merge_method: method, sha: prData.head_sha };
   // Templates only meaningful for squash + merge; rebase ignores them.
@@ -492,6 +509,7 @@ async function injectRow(row) {
   setRowState(container, prState);
   if (rowWidget) rowWidget.setState(prState);
   applyStaleBadge(container, prState, pr);
+  applyRowBadgesAndCi(container, prState, pr, token);
   if (state.listMode) {
     const note = document.createElement("span");
     note.className = "qm-list-mode-note";

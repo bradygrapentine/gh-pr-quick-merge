@@ -4,7 +4,7 @@
 import { describe, it, expect, vi } from "vitest";
 import prState from "../lib/hosts/github/pr-state.js";
 
-const { fetchPrState, prKey, API_BASE } = prState;
+const { fetchPrState, fetchCiState, prKey, API_BASE } = prState;
 
 function fakeFetch(response) {
   return vi.fn(async () => response);
@@ -149,5 +149,76 @@ describe("pr-state — fetchPrState", () => {
 describe("pr-state — prKey", () => {
   it("formats as owner/repo#num", () => {
     expect(prKey({ owner: "a", repo: "b", num: 7 })).toBe("a/b#7");
+  });
+});
+
+describe("pr-state — fetchCiState (QM-500)", () => {
+  it("returns the combined-status state on success", async () => {
+    const fetchImpl = fakeFetch(jsonRes({ state: "success", statuses: [] }));
+    const out = await fetchCiState("abc123", "tok", {
+      fetchImpl,
+      cache: new Map(),
+      path: "/repos/o/r/commits/abc123/status",
+    });
+    expect(out).toEqual({ state: "success", failingContexts: [] });
+  });
+
+  it("collects failing contexts from the statuses array", async () => {
+    const fetchImpl = fakeFetch(
+      jsonRes({
+        state: "failure",
+        statuses: [
+          { state: "success", context: "lint" },
+          { state: "failure", context: "unit" },
+          { state: "failure", context: "e2e" },
+        ],
+      })
+    );
+    const out = await fetchCiState("abc", "tok", {
+      fetchImpl,
+      cache: new Map(),
+      path: "/repos/o/r/commits/abc/status",
+    });
+    expect(out).toEqual({ state: "failure", failingContexts: ["unit", "e2e"] });
+  });
+
+  it("collapses unknown states to null", async () => {
+    const fetchImpl = fakeFetch(jsonRes({ state: "weird", statuses: [] }));
+    const out = await fetchCiState("abc", "tok", {
+      fetchImpl,
+      cache: new Map(),
+      path: "/repos/o/r/commits/abc/status",
+    });
+    expect(out.state).toBeNull();
+  });
+
+  it("returns null state on HTTP error and caches it", async () => {
+    const fetchImpl = fakeFetch(jsonRes({}, { ok: false, status: 404 }));
+    const cache = new Map();
+    const out = await fetchCiState("abc", "tok", {
+      fetchImpl,
+      cache,
+      path: "/repos/o/r/commits/abc/status",
+    });
+    expect(out.state).toBeNull();
+    expect(cache.has("ci:abc")).toBe(true);
+  });
+
+  it("hits the cache on the second call (keyed by SHA)", async () => {
+    const fetchImpl = fakeFetch(jsonRes({ state: "success", statuses: [] }));
+    const cache = new Map();
+    await fetchCiState("dup", "tok", { fetchImpl, cache, path: "/x" });
+    await fetchCiState("dup", "tok", { fetchImpl, cache, path: "/x" });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns null state when no SHA passed", async () => {
+    const out = await fetchCiState(null, "tok", { path: "/x" });
+    expect(out.state).toBeNull();
+  });
+
+  it("returns null state when no path supplied", async () => {
+    const out = await fetchCiState("abc", "tok", { cache: new Map() });
+    expect(out.state).toBeNull();
   });
 });
