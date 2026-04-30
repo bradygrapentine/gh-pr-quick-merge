@@ -265,16 +265,39 @@ function setRowState(container, prState) {
 function fetchPrState(pr, token) {
   // Delegates to lib/hosts/github/pr-state.js so the PR page (Epic 10) can
   // reuse the exact same shape + caching contract as the /pulls list.
-  return self.QM_GITHUB_PR_STATE.fetchPrState(pr, token, { cache: state.cache });
+  // Prefers the GraphQL piggy-back (one round-trip vs. two) when
+  // available; falls back to REST automatically inside the helper.
+  const PR_STATE = self.QM_GITHUB_PR_STATE;
+  if (PR_STATE && typeof PR_STATE.fetchPrStateAndCi === "function") {
+    return PR_STATE.fetchPrStateAndCi(pr, token, { cache: state.cache });
+  }
+  return PR_STATE.fetchPrState(pr, token, { cache: state.cache });
 }
 
-// Epic 11 Track A — render row badges + kick off async CI fetch. Idempotent
-// on its own; safe to call from injectRow on every soft-nav.
+// Epic 11 Track A — render row badges + render CI state.
+//
+// If `prState` came from the GraphQL piggy-back (`fetchPrStateAndCi`),
+// `ci_state` is already attached and we render synchronously. Otherwise
+// we fall back to the REST roll-up (`fetchCiState`) and apply the CI
+// dot when the second fetch returns. Idempotent on its own; safe to
+// call from injectRow on every soft-nav.
 function applyRowBadgesAndCi(container, prState, pr, token) {
   const ROW_BADGES = self.QM_ROW_BADGES;
   const PR_STATE = self.QM_GITHUB_PR_STATE;
   if (!ROW_BADGES || !prState || prState.error || prState.listMode) return;
   ROW_BADGES.applyRowBadges(container, prState, pr);
+
+  // GraphQL combined-fetch path — single round-trip already covered
+  // both row state and CI rollup, no second call needed.
+  if (prState.ci_state !== undefined) {
+    ROW_BADGES.applyCiState(container, {
+      state: prState.ci_state,
+      failingContexts: prState.failing_contexts || [],
+    });
+    return;
+  }
+
+  // REST fallback — kick off the second round-trip.
   if (!prState.head_sha || !PR_STATE || typeof PR_STATE.fetchCiState !== "function") return;
   PR_STATE.fetchCiState(prState.head_sha, token, {
     cache: state.cache,

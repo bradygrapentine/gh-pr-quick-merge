@@ -4,7 +4,7 @@
 import { describe, it, expect, vi } from "vitest";
 import prState from "../lib/hosts/github/pr-state.js";
 
-const { fetchPrState, fetchCiState, prKey, API_BASE } = prState;
+const { fetchPrState, fetchCiState, fetchPrStateAndCi, prKey, API_BASE } = prState;
 
 function fakeFetch(response) {
   return vi.fn(async () => response);
@@ -220,5 +220,128 @@ describe("pr-state — fetchCiState (QM-500)", () => {
   it("returns null state when no path supplied", async () => {
     const out = await fetchCiState("abc", "tok", { cache: new Map() });
     expect(out.state).toBeNull();
+  });
+});
+
+describe("pr-state — fetchPrStateAndCi (GraphQL piggy-back)", () => {
+  function gqlRes(prFields, rollup) {
+    return jsonRes({
+      data: {
+        repository: {
+          pullRequest: {
+            mergeable: "MERGEABLE",
+            mergeStateStatus: "CLEAN",
+            headRefOid: "abc123",
+            headRefName: "feat/x",
+            baseRefName: "main",
+            title: "T",
+            body: "B",
+            isDraft: false,
+            additions: 30,
+            deletions: 10,
+            author: { login: "alice" },
+            updatedAt: "2026-04-30T00:00:00Z",
+            reviewRequests: { totalCount: 1 },
+            comments: { totalCount: 4 },
+            autoMergeRequest: null,
+            commits: {
+              nodes: [{ commit: { statusCheckRollup: rollup } }],
+            },
+            ...prFields,
+          },
+        },
+      },
+    });
+  }
+
+  it("normalises a clean+success response into the combined shape", async () => {
+    const fetchImpl = fakeFetch(gqlRes({}, {
+      state: "SUCCESS",
+      contexts: { nodes: [{ __typename: "CheckRun", name: "unit", conclusion: "SUCCESS" }] },
+    }));
+    const out = await fetchPrStateAndCi(PR, "tok", { fetchImpl, cache: new Map() });
+    expect(out).toMatchObject({
+      mergeable: true,
+      mergeable_state: "clean",
+      head_sha: "abc123",
+      author: "alice",
+      additions: 30,
+      deletions: 10,
+      comments: 4,
+      behind_by: 0,
+      ci_state: "success",
+      failing_contexts: [],
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(fetchImpl.mock.calls[0][0]).toBe(`${API_BASE}/graphql`);
+    expect(fetchImpl.mock.calls[0][1].method).toBe("POST");
+  });
+
+  it("maps mergeStateStatus=BEHIND to behind_by=1", async () => {
+    const fetchImpl = fakeFetch(gqlRes({ mergeStateStatus: "BEHIND" }, null));
+    const out = await fetchPrStateAndCi(PR, "tok", { fetchImpl });
+    expect(out.mergeable_state).toBe("behind");
+    expect(out.behind_by).toBe(1);
+    expect(out.ci_state).toBeNull();
+  });
+
+  it("collects failing CheckRun + StatusContext names", async () => {
+    const fetchImpl = fakeFetch(gqlRes({}, {
+      state: "FAILURE",
+      contexts: {
+        nodes: [
+          { __typename: "CheckRun", name: "unit", conclusion: "FAILURE" },
+          { __typename: "CheckRun", name: "lint", conclusion: "SUCCESS" },
+          { __typename: "StatusContext", context: "ci/build", state: "FAILURE" },
+        ],
+      },
+    }));
+    const out = await fetchPrStateAndCi(PR, "tok", { fetchImpl });
+    expect(out.ci_state).toBe("failure");
+    expect(out.failing_contexts).toEqual(["unit", "ci/build"]);
+  });
+
+  it("falls back to REST when GraphQL returns non-2xx", async () => {
+    const fetchImpl = vi.fn(async (url) => {
+      if (url.endsWith("/graphql")) return jsonRes({}, { ok: false, status: 502 });
+      // REST pulls/:n
+      return jsonRes({
+        mergeable: true, mergeable_state: "clean", head: { sha: "rest-sha" },
+        base: {}, additions: 5, deletions: 3, comments: 1,
+      });
+    });
+    const out = await fetchPrStateAndCi(PR, "tok", { fetchImpl, cache: new Map() });
+    expect(out.head_sha).toBe("rest-sha");
+    expect(out.mergeable_state).toBe("clean");
+    // CI from the REST status follow-up — fakeFetch above returns the
+    // same body for it, no `state` field, so ci_state is null.
+    expect(out.ci_state).toBeNull();
+  });
+
+  it("falls back to REST when GraphQL response shape is wrong", async () => {
+    const fetchImpl = vi.fn(async (url) => {
+      if (url.endsWith("/graphql")) return jsonRes({ data: { repository: null } });
+      return jsonRes({ mergeable: true, mergeable_state: "clean", head: { sha: "x" }, base: {} });
+    });
+    const out = await fetchPrStateAndCi(PR, "tok", { fetchImpl, cache: new Map() });
+    expect(out.head_sha).toBe("x");
+  });
+
+  it("hits the cache on the second call", async () => {
+    const fetchImpl = fakeFetch(gqlRes({}, { state: "SUCCESS", contexts: { nodes: [] } }));
+    const cache = new Map();
+    await fetchPrStateAndCi(PR, "tok", { fetchImpl, cache });
+    await fetchPrStateAndCi(PR, "tok", { fetchImpl, cache });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("draft + autoMergeRequest fields propagate through", async () => {
+    const fetchImpl = fakeFetch(gqlRes({
+      isDraft: true,
+      autoMergeRequest: { mergeMethod: "SQUASH", enabledBy: { login: "bob" } },
+    }, null));
+    const out = await fetchPrStateAndCi(PR, "tok", { fetchImpl });
+    expect(out.draft).toBe(true);
+    expect(out.auto_merge).toEqual({ merge_method: "SQUASH", enabled_by: "bob" });
   });
 });
