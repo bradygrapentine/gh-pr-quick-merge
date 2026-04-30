@@ -176,7 +176,10 @@
     }
     .qm-options-pane[hidden] { display: none; }
     .qm-options-pane:not([hidden]) {
-      animation: qm-options-pane-in 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      /* `forwards` (not `both`) — Playwright's animation-disabled visual
+       * snapshots pause at frame 0; with `both` the pane persists
+       * opacity:0, breaking CI screenshots. Same fix as popup body. */
+      animation: qm-options-pane-in 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     .qm-options-pane h1 {
       font-size: 22px;
