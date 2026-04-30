@@ -262,45 +262,10 @@ function setRowState(container, prState) {
   }
 }
 
-async function fetchPrState(pr, token) {
-  const { owner, repo, num } = pr;
-  const key = prKey(pr);
-  if (state.cache.has(key)) return state.cache.get(key);
-  try {
-    const res = await fetch(`${API}/repos/${owner}/${repo}/pulls/${num}`, {
-      headers: ghHeaders(token),
-    });
-    if (!res.ok) {
-      const err = { error: `HTTP ${res.status}` };
-      state.cache.set(key, err);
-      return err;
-    }
-    const data = await res.json();
-    const out = {
-      mergeable: data.mergeable,
-      mergeable_state: data.mergeable_state,
-      head_sha: data.head?.sha,
-      title: data.title || "",
-      body: data.body || "",
-      author: data.user?.login || "",
-      branch: data.head?.ref || "",
-      base: data.base?.ref || "",
-      updated_at: data.updated_at || null,
-      draft: !!data.draft,
-      has_reviewer_requested: Array.isArray(data.requested_reviewers)
-        ? data.requested_reviewers.length > 0
-        : false,
-      behind_by: typeof data.behind_by === "number" ? data.behind_by : 0,
-    };
-    // mergeable can be null while GitHub computes it — don't cache nulls long
-    if (data.mergeable === null) {
-      setTimeout(() => state.cache.delete(key), 4000);
-    }
-    state.cache.set(key, out);
-    return out;
-  } catch (e) {
-    return { error: `${e.name || "Error"}: ${(e.message || "").slice(0, 200)}` };
-  }
+function fetchPrState(pr, token) {
+  // Delegates to lib/hosts/github/pr-state.js so the PR page (Epic 10) can
+  // reuse the exact same shape + caching contract as the /pulls list.
+  return self.QM_GITHUB_PR_STATE.fetchPrState(pr, token, { cache: state.cache });
 }
 
 function buildMergeBody(method, pr, prData) {
