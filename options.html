@@ -5,25 +5,30 @@
   <title>GitHub PR Quick Merge — Options</title>
   <link rel="stylesheet" href="theme.css" />
   <style>
+    :root { color-scheme: light dark; }
     body {
-      font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
-      padding: 20px;
-      width: 420px;
-      color: #1f2328;
+      font-family: var(--qm-font-family, -apple-system, "Segoe UI", system-ui, sans-serif);
+      margin: 0;
+      width: 720px;
+      min-height: 720px;
+      color: var(--qm-fg, #1f2328);
+      background: var(--qm-surface, #fff);
     }
     h1 { font-size: 16px; margin: 0 0 12px; }
-    h2 { font-size: 13px; margin: 18px 0 8px; }
+    h2 { font-size: 13px; margin: 0 0 8px; }
     label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
-    input[type="password"], input[type="text"] {
+    input[type="password"], input[type="text"], input[type="number"] {
       width: 100%;
       padding: 6px 8px;
-      border: 1px solid #d0d7de;
+      border: 1px solid var(--qm-border, #d0d7de);
+      background: var(--qm-surface, #fff);
+      color: var(--qm-fg, #1f2328);
       border-radius: 6px;
       font-size: 13px;
       box-sizing: border-box;
     }
-    button {
-      background: #1f883d;
+    button:not(.qm-button):not(.qm-options-nav-item) {
+      background: var(--qm-success, #1f883d);
       color: #fff;
       border: 0;
       border-radius: 6px;
@@ -33,448 +38,491 @@
       cursor: pointer;
       margin-top: 10px;
     }
-    button:hover { background: #1a7f37; }
-    button.secondary { background: #0969da; }
-    button.secondary:hover { background: #0860c4; }
-    button.neutral { background: #6e7781; }
-    button.neutral:hover { background: #57606a; }
-    .hint { font-size: 11px; color: #656d76; margin-top: 6px; line-height: 1.4; }
+    button.secondary { background: var(--qm-accent, #0969da); }
+    button.neutral { background: var(--qm-fg-subtle, #6e7781); }
+    .hint { font-size: 11px; color: var(--qm-fg-subtle, #656d76); margin-top: 6px; line-height: 1.4; }
     .status { font-size: 12px; margin-top: 10px; min-height: 16px; }
-    .status.ok { color: #1a7f37; }
-    .status.err { color: #cf222e; }
-    a { color: #0969da; }
+    .status.ok { color: var(--qm-success, #1a7f37); }
+    .status.err { color: var(--qm-danger, #cf222e); }
+    a { color: var(--qm-accent, #0969da); }
     .section {
-      border: 1px solid #d0d7de;
-      border-radius: 6px;
-      padding: 12px;
+      border: 1px solid var(--qm-border, #d0d7de);
+      border-radius: 8px;
+      padding: 14px;
       margin-bottom: 14px;
-      background: #f6f8fa;
+      background: var(--qm-surface-1, #f6f8fa);
     }
-    .device-box {
-      display: none;
-      margin-top: 10px;
-      padding: 10px;
-      background: #fff;
-      border: 1px solid #d0d7de;
-      border-radius: 6px;
-    }
+    .device-box { display: none; margin-top: 10px; padding: 10px; background: var(--qm-surface, #fff); border: 1px solid var(--qm-border, #d0d7de); border-radius: 6px; }
     .device-box.shown { display: block; }
-    .user-code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 18px;
-      font-weight: 700;
-      letter-spacing: 2px;
-      background: #eef1f4;
-      padding: 6px 10px;
-      border-radius: 6px;
-      display: inline-block;
-      user-select: all;
-    }
-    .countdown { font-size: 11px; color: #656d76; margin-top: 8px; }
+    .user-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 18px; font-weight: 700; letter-spacing: 2px; background: var(--qm-surface-2, #eef1f4); padding: 6px 10px; border-radius: 6px; display: inline-block; user-select: all; }
+    .countdown { font-size: 11px; color: var(--qm-fg-subtle, #656d76); margin-top: 8px; }
     details { margin-top: 8px; }
-    .signed-in {
-      display: none;
-      align-items: center;
-      gap: 10px;
-      margin-top: 12px;
-      padding: 8px 10px;
-      background: #dafbe1;
-      border: 1px solid #1a7f37;
-      border-radius: 6px;
-      font-size: 12px;
-      color: #1a7f37;
-    }
+    .signed-in { display: none; align-items: center; gap: 10px; margin-top: 12px; padding: 8px 10px; background: var(--qm-success-bg, #dafbe1); border: 1px solid var(--qm-success, #1a7f37); border-radius: 6px; font-size: 12px; color: var(--qm-success, #1a7f37); }
     .signed-in.shown { display: flex; }
     .signed-in button { margin-top: 0; padding: 4px 10px; font-size: 11px; }
-    details > summary {
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 600;
-      color: #0969da;
-      padding: 6px 0;
-    }
-    .qm-defaults-list {
-      margin: 8px 0 10px;
-      padding: 0;
-      list-style: none;
-      font-size: 12px;
-    }
-    .qm-defaults-list li {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 8px;
-      background: #fff;
-      border: 1px solid #d0d7de;
-      border-radius: 6px;
-      margin-bottom: 6px;
-    }
-    .qm-defaults-list .qm-d-repo {
-      flex: 1;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    }
-    .qm-defaults-list .qm-d-method {
-      font-weight: 600;
-      color: #0969da;
-      text-transform: capitalize;
-    }
-    .qm-defaults-list .qm-d-remove {
-      background: #cf222e;
-      color: #fff;
-      border: 0;
-      border-radius: 5px;
-      padding: 3px 10px;
-      font-size: 11px;
-      font-weight: 600;
-      cursor: pointer;
-      margin: 0;
-    }
-    .qm-defaults-list .qm-d-empty {
-      color: #656d76;
-      font-style: italic;
-      background: transparent;
-      border: 0;
-      padding: 6px 0;
-    }
-    .qm-defaults-add {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-      margin-top: 6px;
-    }
-    .qm-defaults-add input,
-    .qm-defaults-add select {
-      padding: 5px 7px;
-      border: 1px solid #d0d7de;
-      border-radius: 5px;
-      font-size: 12px;
-      box-sizing: border-box;
-    }
+    details > summary { cursor: pointer; font-size: 12px; font-weight: 600; color: var(--qm-accent, #0969da); padding: 6px 0; }
+
+    .qm-defaults-list, .qm-list { list-style: none; padding: 0; margin: 8px 0; font-size: 12px; }
+    .qm-defaults-list li, .qm-list li { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--qm-surface, #fff); border: 1px solid var(--qm-border, #d0d7de); border-radius: 6px; margin-bottom: 6px; }
+    .qm-list li { align-items: flex-start; }
+    .qm-defaults-list .qm-d-repo { flex: 1; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .qm-defaults-list .qm-d-method { font-weight: 600; color: var(--qm-accent, #0969da); text-transform: capitalize; }
+    .qm-defaults-list .qm-d-remove, .qm-list .qm-list-remove { background: var(--qm-danger, #cf222e); color: #fff; border: 0; border-radius: 5px; padding: 3px 10px; font-size: 11px; font-weight: 600; cursor: pointer; margin: 0; }
+    .qm-defaults-list .qm-d-empty { color: var(--qm-fg-subtle, #656d76); font-style: italic; background: transparent; border: 0; padding: 6px 0; }
+    .qm-defaults-add { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
+    .qm-defaults-add input, .qm-defaults-add select { padding: 5px 7px; border: 1px solid var(--qm-border, #d0d7de); border-radius: 5px; font-size: 12px; box-sizing: border-box; background: var(--qm-surface, #fff); color: var(--qm-fg, #1f2328); }
     .qm-defaults-add input { flex: 1; min-width: 0; }
     .qm-defaults-add button { margin-top: 0; padding: 5px 12px; font-size: 12px; }
 
-    .qm-list {
-      list-style: none;
-      margin: 8px 0;
-      padding: 0;
-      font-size: 12px;
+    .qm-list .qm-list-name { font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--qm-accent, #0969da); min-width: 80px; }
+    .qm-list .qm-list-body { flex: 1; color: var(--qm-fg-subtle, #57606a); white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; max-height: 60px; overflow: hidden; }
+    .qm-form-row { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
+    .qm-form-row input[type="text"], .qm-form-row input[type="number"], .qm-form-row textarea { flex: 1; padding: 6px 8px; border: 1px solid var(--qm-border, #d0d7de); background: var(--qm-surface, #fff); color: var(--qm-fg, #1f2328); border-radius: 6px; font-size: 12px; box-sizing: border-box; font-family: inherit; }
+    .qm-form-row textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; resize: vertical; }
+    .qm-form-row label { margin: 0; white-space: nowrap; font-weight: 500; }
+    .qm-form-row button { margin-top: 0; padding: 5px 12px; font-size: 12px; }
+    .qm-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+    .qm-table th, .qm-table td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--qm-border, #d0d7de); }
+    .qm-table th { font-size: 11px; color: var(--qm-fg-subtle, #57606a); font-weight: 600; }
+    .qm-table .qm-shortcut-combo { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--qm-surface-1, #f6f8fa); padding: 2px 8px; border-radius: 4px; border: 1px solid var(--qm-border, #d0d7de); font-size: 11px; }
+    .qm-table .qm-shortcut-combo.editing { background: var(--qm-warn-bg, #fff8c5); border-color: var(--qm-warn, #d4a72c); }
+    .qm-table .qm-shortcut-edit { background: var(--qm-accent, #0969da); color: #fff; border: 0; border-radius: 4px; padding: 2px 10px; font-size: 11px; font-weight: 600; cursor: pointer; margin: 0; }
+
+    /* ─── Side-nav layout (QM-212) ───────────────────────────────────── */
+    .qm-options-shell {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      min-height: 720px;
     }
-    .qm-list li {
+    .qm-options-nav {
+      background: var(--qm-surface-1, #f6f8fa);
+      border-right: 1px solid var(--qm-border, #d0d7de);
+      padding: 16px 8px;
       display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      padding: 6px 8px;
-      background: #fff;
-      border: 1px solid #d0d7de;
-      border-radius: 6px;
-      margin-bottom: 6px;
+      flex-direction: column;
+      gap: 2px;
     }
-    .qm-list .qm-list-name {
-      font-weight: 600;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      color: #0969da;
-      min-width: 80px;
-    }
-    .qm-list .qm-list-body {
-      flex: 1;
-      color: #57606a;
-      white-space: pre-wrap;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 11px;
-      max-height: 60px;
-      overflow: hidden;
-    }
-    .qm-list .qm-list-remove {
-      background: #cf222e;
-      color: #fff;
-      border: 0;
-      border-radius: 5px;
-      padding: 3px 10px;
-      font-size: 11px;
-      font-weight: 600;
-      cursor: pointer;
-      margin: 0;
-    }
-    .qm-form-row {
+    .qm-options-nav-brand {
       display: flex;
-      gap: 6px;
       align-items: center;
-      margin-top: 6px;
+      gap: 8px;
+      padding: 0 8px 12px;
+      margin-bottom: 4px;
+      border-bottom: 1px solid var(--qm-border, #d0d7de);
     }
-    .qm-form-row input[type="text"],
-    .qm-form-row input[type="number"],
-    .qm-form-row textarea {
-      flex: 1;
-      padding: 6px 8px;
-      border: 1px solid #d0d7de;
+    .qm-options-nav-brand .qm-wordmark { font-size: 12.5px; font-weight: 700; }
+    .qm-options-nav-brand .qm-tag { font-family: ui-monospace, monospace; font-size: 9px; font-weight: 700; letter-spacing: 1px; color: var(--qm-fg-subtle, #57606a); background: var(--qm-surface-2, #eaeef2); padding: 1px 5px; border-radius: 3px; }
+    .qm-options-nav-item {
+      background: transparent;
+      border: 0;
+      text-align: left;
+      padding: 7px 12px;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--qm-fg, #1f2328);
       border-radius: 6px;
-      font-size: 12px;
-      box-sizing: border-box;
+      cursor: pointer;
       font-family: inherit;
     }
-    .qm-form-row textarea {
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      resize: vertical;
-    }
-    .qm-form-row label {
-      margin: 0;
-      white-space: nowrap;
-      font-weight: 500;
-    }
-    .qm-form-row button { margin-top: 0; padding: 5px 12px; font-size: 12px; }
-    .qm-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-      margin-top: 8px;
-    }
-    .qm-table th, .qm-table td {
-      padding: 6px 8px;
-      text-align: left;
-      border-bottom: 1px solid #d0d7de;
-    }
-    .qm-table th { font-size: 11px; color: #57606a; font-weight: 600; }
-    .qm-table .qm-shortcut-combo {
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      background: #f6f8fa;
-      padding: 2px 8px;
-      border-radius: 4px;
-      border: 1px solid #d0d7de;
-      font-size: 11px;
-    }
-    .qm-table .qm-shortcut-combo.editing {
-      background: #fff8c5;
-      border-color: #d4a72c;
-    }
-    .qm-table .qm-shortcut-edit {
-      background: #0969da;
+    .qm-options-nav-item:hover { background: var(--qm-surface-2, #eaeef2); }
+    .qm-options-nav-item[aria-current="page"] {
+      background: var(--qm-accent, #0969da);
       color: #fff;
-      border: 0;
-      border-radius: 4px;
-      padding: 2px 10px;
-      font-size: 11px;
+    }
+    .qm-options-main {
+      padding: 20px 24px;
+      overflow-y: auto;
+    }
+    .qm-options-pane[hidden] { display: none; }
+    .qm-options-pane h1 { font-size: 18px; margin: 0 0 4px; }
+    .qm-options-pane-lede { font-size: 12px; color: var(--qm-fg-subtle, #57606a); margin: 0 0 16px; }
+
+    /* ─── Appearance pane (QM-218) ───────────────────────────────────── */
+    .qm-tweaks-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--qm-border-muted, #eaeef2);
+    }
+    .qm-tweaks-row:last-child { border-bottom: 0; }
+    .qm-tweaks-row-label {
+      flex: 0 0 140px;
+      font-size: 12.5px;
       font-weight: 600;
+    }
+    .qm-tweaks-row-control { flex: 1; }
+    .qm-tweaks-swatches { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+    .qm-tweaks-swatch {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      border: 2px solid transparent;
       cursor: pointer;
+      padding: 0;
       margin: 0;
+    }
+    .qm-tweaks-swatch[aria-pressed="true"] {
+      border-color: var(--qm-fg, #1f2328);
+      outline: 2px solid var(--qm-surface, #fff);
+      outline-offset: -4px;
+    }
+    .qm-tweaks-segmented {
+      display: inline-flex;
+      border: 1px solid var(--qm-border, #d0d7de);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .qm-tweaks-seg {
+      background: var(--qm-surface, #fff);
+      border: 0;
+      padding: 5px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      color: var(--qm-fg, #1f2328);
+      font-family: inherit;
+    }
+    .qm-tweaks-seg + .qm-tweaks-seg { border-left: 1px solid var(--qm-border, #d0d7de); }
+    .qm-tweaks-seg[aria-pressed="true"] {
+      background: var(--qm-accent, #0969da);
+      color: #fff;
+    }
+
+    /* ─── About pane (QM-213) ────────────────────────────────────────── */
+    .qm-about-grid {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: 8px 16px;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    .qm-about-grid dt { font-weight: 600; color: var(--qm-fg-subtle, #57606a); }
+    .qm-about-grid dd { margin: 0; }
+    .qm-about-cta {
+      margin-top: 8px;
+      display: inline-flex;
+      gap: 8px;
     }
   </style>
 </head>
 <body>
-  <h1>GitHub PR Quick Merge</h1>
-
-  <div class="section">
-    <h2>Sign in with GitHub (recommended)</h2>
-
-    <label for="clientId">GitHub OAuth App Client ID</label>
-    <input type="text" id="clientId" placeholder="Iv1.xxxxxxxxxxxxxxxx" autocomplete="off" />
-    <div class="hint">
-      Register an OAuth App at
-      <a href="https://github.com/settings/applications/new" target="_blank" rel="noopener noreferrer">github.com/settings/applications/new</a>
-      with <strong>"Enable Device Flow"</strong> checked, then paste the Client ID here.
-      The extension publisher (or you) only needs to do this once.
-    </div>
-    <div class="hint" style="background:#fff8c5;border:1px solid #d4a72c;border-radius:6px;padding:8px;margin-top:8px;">
-      <strong>⚠ Warning:</strong> the Client ID identifies the OAuth app that will receive permissions on your account.
-      Only paste a Client ID from <em>your own</em> OAuth app — a malicious Client ID will authorize an attacker's app
-      against your GitHub account. Verify the source before signing in.
-    </div>
-    <button id="saveClientId" class="neutral">Save Client ID</button>
-    <button id="signin">Sign in with GitHub</button>
-
-    <div class="device-box" id="deviceBox">
-      <div>
-        <label>One-time code</label>
-        <span class="user-code" id="userCode">—</span>
+  <div class="qm-options-shell">
+    <nav class="qm-options-nav" aria-label="Settings sections">
+      <div class="qm-options-nav-brand">
+        <span id="brandSlot" aria-hidden="true"></span>
+        <span class="qm-wordmark">PR Quick Merge</span>
+        <span class="qm-tag">SETTINGS</span>
       </div>
-      <div class="hint">
-        Open <a id="verificationLink" href="#" target="_blank" rel="noopener noreferrer">github.com/login/device</a>
-        and paste this code.
-      </div>
-      <button id="copyAndOpen" class="secondary">Copy code &amp; open GitHub</button>
-      <div class="countdown" id="countdown"></div>
-    </div>
+      <button class="qm-options-nav-item" type="button" data-pane-target="signin" aria-current="page">Sign in</button>
+      <button class="qm-options-nav-item" type="button" data-pane-target="defaults">Repo defaults</button>
+      <button class="qm-options-nav-item" type="button" data-pane-target="shortcuts">Shortcuts</button>
+      <button class="qm-options-nav-item" type="button" data-pane-target="templates">Templates</button>
+      <button class="qm-options-nav-item" type="button" data-pane-target="stale">Stale PRs</button>
+      <button class="qm-options-nav-item" type="button" data-pane-target="sync">Sync</button>
+      <button class="qm-options-nav-item" type="button" data-pane-target="appearance">Appearance</button>
+      <button class="qm-options-nav-item" type="button" data-pane-target="about">About</button>
+    </nav>
 
-    <div class="status" id="oauthStatus"></div>
+    <main class="qm-options-main">
+      <!-- ─── Sign-in pane ──────────────────────────────────────────── -->
+      <section class="qm-options-pane" data-pane="signin">
+        <h1>Sign in with GitHub</h1>
+        <p class="qm-options-pane-lede">Authenticate the extension to fetch PRs and run merges.</p>
 
-    <div id="signedInBadge" class="signed-in">
-      <span>✓ A token is currently saved.</span>
-      <button id="signOut" class="neutral">Sign out / clear token</button>
-    </div>
+        <div class="section">
+          <h2>Sign in with GitHub (recommended)</h2>
+          <label for="clientId">GitHub OAuth App Client ID</label>
+          <input type="text" id="clientId" placeholder="Iv1.xxxxxxxxxxxxxxxx" autocomplete="off" />
+          <div class="hint">
+            Register an OAuth App at
+            <a href="https://github.com/settings/applications/new" target="_blank" rel="noopener noreferrer">github.com/settings/applications/new</a>
+            with <strong>"Enable Device Flow"</strong> checked, then paste the Client ID here.
+          </div>
+          <div class="hint" style="background:var(--qm-warn-bg,#fff8c5);border:1px solid var(--qm-warn,#d4a72c);border-radius:6px;padding:8px;margin-top:8px;">
+            <strong>⚠ Warning:</strong> the Client ID identifies the OAuth app that will receive permissions on your account.
+            Only paste a Client ID from <em>your own</em> OAuth app — a malicious Client ID will authorize an attacker's app
+            against your GitHub account.
+          </div>
+          <button id="saveClientId" class="neutral">Save Client ID</button>
+          <button id="signin">Sign in with GitHub</button>
+
+          <div class="device-box" id="deviceBox">
+            <div>
+              <label>One-time code</label>
+              <span class="user-code" id="userCode">—</span>
+            </div>
+            <div class="hint">
+              Open <a id="verificationLink" href="#" target="_blank" rel="noopener noreferrer">github.com/login/device</a>
+              and paste this code.
+            </div>
+            <button id="copyAndOpen" class="secondary">Copy code &amp; open GitHub</button>
+            <div class="countdown" id="countdown"></div>
+          </div>
+
+          <div class="status" id="oauthStatus"></div>
+
+          <div id="signedInBadge" class="signed-in">
+            <span>✓ A token is currently saved.</span>
+            <button id="signOut" class="neutral">Sign out / clear token</button>
+          </div>
+        </div>
+
+        <details>
+          <summary>Use a Personal Access Token instead</summary>
+          <div class="section" style="margin-top:8px;">
+            <label for="token">Personal Access Token</label>
+            <input type="password" id="token" placeholder="ghp_… or github_pat_…" autocomplete="off" />
+            <div class="hint">
+              Needs <code>repo</code> scope (classic) or <code>contents: write</code> + <code>pull_requests: write</code> (fine-grained).
+              Create one at
+              <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noopener noreferrer">github.com/settings/tokens</a>.
+            </div>
+            <div id="tokenStaleHint" class="hint" hidden style="background:var(--qm-warn-bg,#fff8c5);border:1px solid var(--qm-warn,#d4a72c);border-radius:6px;padding:8px;margin-top:8px;">
+              <strong>⚠ Token is 30+ days old.</strong> Consider rotating it.
+            </div>
+            <button id="save">Save</button>
+            <button id="test" class="secondary">Test</button>
+            <div class="status" id="status"></div>
+          </div>
+        </details>
+      </section>
+
+      <!-- ─── Defaults pane ────────────────────────────────────────── -->
+      <section class="qm-options-pane" data-pane="defaults" hidden>
+        <h1>Repo defaults &amp; merge behavior</h1>
+        <p class="qm-options-pane-lede">Per-repo merge preferences and rebase strategy.</p>
+
+        <div class="section">
+          <h2>Per-repo default merge method</h2>
+          <div class="hint">
+            Highlights the chosen button on each PR row for the matching repo, and
+            auto-selects it when bulk-merging.
+          </div>
+          <ul id="defaultsList" class="qm-defaults-list"></ul>
+          <div class="qm-defaults-add">
+            <input type="text" id="defaultRepo" placeholder="owner/repo" autocomplete="off" list="qm-repo-suggestions" />
+            <datalist id="qm-repo-suggestions"></datalist>
+            <select id="defaultMethod" aria-label="Default merge method">
+              <option value="squash">Squash</option>
+              <option value="merge">Merge</option>
+              <option value="rebase">Rebase</option>
+            </select>
+            <button id="addDefault" class="secondary">Add</button>
+          </div>
+          <div class="status" id="defaultsStatus"></div>
+        </div>
+
+        <div class="section">
+          <h2>Update branch strategy</h2>
+          <div class="hint">
+            When you click <strong>Update</strong> on a PR row that's behind its base, the extension calls GitHub's
+            <code>POST /pulls/:n/update-branch</code> endpoint with this strategy.
+          </div>
+          <div class="qm-form-row">
+            <label for="updateBranchStrategy">Strategy</label>
+            <select id="updateBranchStrategy" aria-label="Update branch strategy">
+              <option value="merge">Merge (default)</option>
+              <option value="rebase">Rebase</option>
+            </select>
+          </div>
+          <div class="status" id="updateBranchStatus"></div>
+        </div>
+
+        <div class="section">
+          <h2>Auto-rebase before merge</h2>
+          <div class="hint">
+            When a row is behind by at least this many commits, the extension Updates first then merges. <code>0</code> disables.
+          </div>
+          <div class="qm-form-row">
+            <label for="autoRebaseThreshold">Rebase when behind by</label>
+            <input type="number" id="autoRebaseThreshold" min="0" max="999" value="0" />
+            <span style="font-size:12px;color:var(--qm-fg-subtle,#57606a);">or more commits</span>
+          </div>
+          <div class="status" id="autoRebaseStatus"></div>
+        </div>
+      </section>
+
+      <!-- ─── Shortcuts pane ─────────────────────────────────────── -->
+      <section class="qm-options-pane" data-pane="shortcuts" hidden>
+        <h1>Keyboard shortcuts</h1>
+        <p class="qm-options-pane-lede">Press a combo while focused on the GitHub PR list to trigger an action.</p>
+
+        <div class="section">
+          <div class="hint">Click <strong>Edit</strong>, then press the desired combo. <strong>Esc</strong> cancels.</div>
+          <table id="shortcutsTable" class="qm-table">
+            <thead><tr><th>Action</th><th>Shortcut</th><th></th></tr></thead>
+            <tbody id="shortcutsTbody"></tbody>
+          </table>
+          <button id="shortcutsReset" class="neutral" type="button">Reset to defaults</button>
+          <div class="status" id="shortcutsStatus"></div>
+        </div>
+
+        <div class="section">
+          <h2>Per-row shortcut hint</h2>
+          <div class="hint">When active, hovering a PR row shows a small "▶ S to squash" reminder.</div>
+          <div class="qm-form-row">
+            <label for="shortcutModeSelect">Hover hint</label>
+            <select id="shortcutModeSelect">
+              <option value="off">Off</option>
+              <option value="active">Active</option>
+            </select>
+          </div>
+          <div class="status" id="shortcutModeStatus"></div>
+        </div>
+      </section>
+
+      <!-- ─── Templates pane ─────────────────────────────────────── -->
+      <section class="qm-options-pane" data-pane="templates" hidden>
+        <h1>Commit message templates</h1>
+        <p class="qm-options-pane-lede">Saved templates can be referenced by <code>name</code> when merging.</p>
+
+        <div class="section">
+          <ul id="templatesList" class="qm-list" aria-live="polite"></ul>
+          <div class="qm-form-row">
+            <input type="text" id="templateName" placeholder="template-name (e.g. release)" autocomplete="off" />
+          </div>
+          <div class="qm-form-row">
+            <textarea id="templateBody" placeholder="Subject line goes here&#10;&#10;Body goes here…" rows="5"></textarea>
+          </div>
+          <div class="qm-form-row">
+            <button id="templateSave" class="secondary">Save template</button>
+            <button id="templateClear" class="neutral" type="button">Clear</button>
+          </div>
+          <div class="status" id="templatesStatus"></div>
+        </div>
+      </section>
+
+      <!-- ─── Stale PRs pane ─────────────────────────────────────── -->
+      <section class="qm-options-pane" data-pane="stale" hidden>
+        <h1>Stale PRs</h1>
+        <p class="qm-options-pane-lede">Mark PRs that haven't been updated in this many days as stale on the GitHub PR list.</p>
+
+        <div class="section">
+          <div class="qm-form-row">
+            <label for="staleDaysInput">Global threshold</label>
+            <input type="number" id="staleDaysInput" min="1" max="365" value="14" />
+            <span style="font-size:12px;color:var(--qm-fg-subtle,#57606a);">days</span>
+          </div>
+          <div class="hint" style="margin-top:8px;">Per-repo overrides. Blank falls back to the global threshold.</div>
+          <ul id="repoStaleList" class="qm-list"></ul>
+          <div class="qm-form-row">
+            <input type="text" id="repoStaleRepo" placeholder="owner/repo" autocomplete="off" />
+            <input type="number" id="repoStaleDays" min="1" max="365" placeholder="days" style="max-width:90px;" />
+            <button id="repoStaleAdd" class="secondary" type="button">Add</button>
+          </div>
+          <div class="status" id="staleStatus"></div>
+        </div>
+      </section>
+
+      <!-- ─── Sync pane (Fast mode + Import/Export) ───────────────── -->
+      <section class="qm-options-pane" data-pane="sync" hidden>
+        <h1>Sync &amp; data</h1>
+        <p class="qm-options-pane-lede">Performance toggles and settings transport.</p>
+
+        <div class="section">
+          <h2>Fast mode (list endpoint)</h2>
+          <div class="hint">
+            Skip per-PR detail fetches. Loads faster on large PR lists, but the
+            mergeable-state column is unavailable — single-click merge stays
+            disabled while fast mode is on.
+          </div>
+          <div class="qm-form-row">
+            <label class="qm-checkbox-row" style="font-weight:400;">
+              <input type="checkbox" id="listModeEnabled" />
+              <span style="margin-left:6px;">Use the GitHub list endpoint instead of per-PR detail</span>
+            </label>
+          </div>
+          <div class="status" id="listModeStatus"></div>
+        </div>
+
+        <div class="section">
+          <h2>Import / export</h2>
+          <div class="hint">
+            Move templates, repo defaults, shortcut overrides, and stale-day preference between browsers.
+            Tokens are <strong>never</strong> exported.
+          </div>
+          <button id="exportBtn" class="neutral" type="button">Export settings…</button>
+          <button id="importBtn" class="neutral" type="button">Import settings…</button>
+          <input id="importFileInput" type="file" accept="application/json,.json" style="display:none" />
+          <div class="status" id="ioStatus"></div>
+        </div>
+      </section>
+
+      <!-- ─── Appearance pane (QM-218) ───────────────────────────── -->
+      <section class="qm-options-pane" data-pane="appearance" hidden>
+        <h1>Appearance</h1>
+        <p class="qm-options-pane-lede">Theme, accent color, density, and typography. Live-previews everywhere.</p>
+
+        <div class="section">
+          <div class="qm-tweaks-row">
+            <div class="qm-tweaks-row-label">Theme</div>
+            <div class="qm-tweaks-row-control">
+              <div class="qm-tweaks-segmented" role="group" aria-label="Theme">
+                <button type="button" class="qm-tweaks-seg" data-theme-value="auto" aria-pressed="true">Auto</button>
+                <button type="button" class="qm-tweaks-seg" data-theme-value="light" aria-pressed="false">Light</button>
+                <button type="button" class="qm-tweaks-seg" data-theme-value="dark" aria-pressed="false">Dark</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="qm-tweaks-row">
+            <div class="qm-tweaks-row-label">Accent color</div>
+            <div class="qm-tweaks-row-control qm-tweaks-swatches" id="accentSwatches" role="group" aria-label="Accent color"></div>
+          </div>
+
+          <div class="qm-tweaks-row">
+            <div class="qm-tweaks-row-label">Density</div>
+            <div class="qm-tweaks-row-control">
+              <div class="qm-tweaks-segmented" role="group" aria-label="Density">
+                <button type="button" class="qm-tweaks-seg" data-density-value="comfortable" aria-pressed="true">Comfortable</button>
+                <button type="button" class="qm-tweaks-seg" data-density-value="compact" aria-pressed="false">Compact</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="qm-tweaks-row">
+            <div class="qm-tweaks-row-label">Font family</div>
+            <div class="qm-tweaks-row-control">
+              <div class="qm-tweaks-segmented" role="group" aria-label="Font family">
+                <button type="button" class="qm-tweaks-seg" data-font-value="system" aria-pressed="true">System</button>
+                <button type="button" class="qm-tweaks-seg" data-font-value="inter" aria-pressed="false">Inter</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="status" id="tweaksStatus"></div>
+        </div>
+      </section>
+
+      <!-- ─── About pane (QM-213) ────────────────────────────────── -->
+      <section class="qm-options-pane" data-pane="about" hidden>
+        <h1>About</h1>
+        <p class="qm-options-pane-lede">PR Quick Merge is free and open source.</p>
+
+        <div class="section">
+          <dl class="qm-about-grid">
+            <dt>Version</dt><dd id="aboutVersion">—</dd>
+            <dt>License</dt><dd>MIT</dd>
+            <dt>Homepage</dt><dd><a href="https://github.com/bradygrapentine/gh-pr-quick-merge" target="_blank" rel="noopener noreferrer">github.com/bradygrapentine/gh-pr-quick-merge</a></dd>
+            <dt>Privacy policy</dt><dd><a href="https://github.com/bradygrapentine/gh-pr-quick-merge/blob/main/PRIVACY.md" target="_blank" rel="noopener noreferrer">PRIVACY.md</a></dd>
+            <dt>Security disclosure</dt><dd><a href="https://github.com/bradygrapentine/gh-pr-quick-merge/blob/main/SECURITY.md" target="_blank" rel="noopener noreferrer">SECURITY.md</a></dd>
+          </dl>
+          <div class="qm-about-cta">
+            <a class="qm-button qm-button-accent qm-button-sm" href="https://github.com/sponsors/bradygrapentine" target="_blank" rel="noopener noreferrer">♥ Sponsor on GitHub</a>
+            <a class="qm-button qm-button-ghost qm-button-sm" href="https://github.com/bradygrapentine/gh-pr-quick-merge/issues" target="_blank" rel="noopener noreferrer">Report an issue</a>
+          </div>
+        </div>
+      </section>
+    </main>
   </div>
-
-  <div class="section">
-    <h2>Per-repo default merge method</h2>
-    <div class="hint">
-      Highlights the chosen button on each PR row for the matching repo, and
-      auto-selects it when bulk-merging. Stored in <code>chrome.storage.sync</code>
-      so it follows you across browsers.
-    </div>
-    <ul id="defaultsList" class="qm-defaults-list"></ul>
-    <div class="qm-defaults-add">
-      <input type="text" id="defaultRepo" placeholder="owner/repo" autocomplete="off" list="qm-repo-suggestions" />
-      <datalist id="qm-repo-suggestions"></datalist>
-      <select id="defaultMethod" aria-label="Default merge method">
-        <option value="squash">Squash</option>
-        <option value="merge">Merge</option>
-        <option value="rebase">Rebase</option>
-      </select>
-      <button id="addDefault" class="secondary">Add</button>
-    </div>
-    <div class="status" id="defaultsStatus"></div>
-  </div>
-
-  <details>
-    <summary>Use a Personal Access Token instead</summary>
-    <div class="section" style="margin-top:8px;">
-      <label for="token">Personal Access Token</label>
-      <input type="password" id="token" placeholder="ghp_… or github_pat_…" autocomplete="off" />
-      <div class="hint">
-        Needs <code>repo</code> scope (classic) or <code>contents: write</code> + <code>pull_requests: write</code> (fine-grained).
-        Create one at
-        <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noopener noreferrer">github.com/settings/tokens</a>.
-        Stored locally via <code>chrome.storage.sync</code>.
-      </div>
-      <div id="tokenStaleHint" class="hint" hidden style="background:#fff8c5;border:1px solid #d4a72c;border-radius:6px;padding:8px;margin-top:8px;">
-        <strong>⚠ Token is 30+ days old.</strong> Consider rotating it. Paste a fresh token to reset the counter.
-      </div>
-      <div class="hint" style="margin-top:6px;">
-        <strong>Multi-account note:</strong> only one token is supported at a time.
-        To switch accounts, paste a token for the other account here.
-        Multiple simultaneous accounts are not supported.
-      </div>
-      <button id="save">Save</button>
-      <button id="test" class="secondary">Test</button>
-      <div class="status" id="status"></div>
-    </div>
-  </details>
-
-  <div class="section">
-    <h2>Commit message templates</h2>
-    <div class="hint">
-      Saved templates can be referenced by <code>name</code> when merging.
-      Stored in <code>chrome.storage.sync</code>.
-    </div>
-    <ul id="templatesList" class="qm-list" aria-live="polite"></ul>
-    <div class="qm-form-row">
-      <input type="text" id="templateName" placeholder="template-name (e.g. release)" autocomplete="off" />
-    </div>
-    <div class="qm-form-row">
-      <textarea id="templateBody" placeholder="Subject line goes here&#10;&#10;Body goes here…" rows="5"></textarea>
-    </div>
-    <div class="qm-form-row">
-      <button id="templateSave" class="secondary">Save template</button>
-      <button id="templateClear" class="neutral" type="button">Clear</button>
-    </div>
-    <div class="status" id="templatesStatus"></div>
-  </div>
-
-  <div class="section">
-    <h2>Keyboard shortcuts</h2>
-    <div class="hint">
-      Press a key combination while focused on the GitHub PR list to trigger an action.
-      Click <strong>Edit</strong>, then press the desired combo. <strong>Esc</strong> cancels.
-    </div>
-    <table id="shortcutsTable" class="qm-table">
-      <thead>
-        <tr><th>Action</th><th>Shortcut</th><th></th></tr>
-      </thead>
-      <tbody id="shortcutsTbody"></tbody>
-    </table>
-    <button id="shortcutsReset" class="neutral" type="button">Reset to defaults</button>
-    <div class="status" id="shortcutsStatus"></div>
-  </div>
-
-  <div class="section">
-    <h2>Update branch strategy</h2>
-    <div class="hint">
-      When you click <strong>Update</strong> on a PR row that's behind its base, the extension calls GitHub's
-      <code>POST /pulls/:n/update-branch</code> endpoint with this strategy.
-    </div>
-    <div class="qm-form-row">
-      <label for="updateBranchStrategy">Strategy</label>
-      <select id="updateBranchStrategy" aria-label="Update branch strategy">
-        <option value="merge">Merge (default)</option>
-        <option value="rebase">Rebase</option>
-      </select>
-    </div>
-    <div class="status" id="updateBranchStatus"></div>
-  </div>
-
-  <div class="section">
-    <h2>Auto-rebase before merge</h2>
-    <div class="hint">
-      When you click a merge button on a row that's behind its base by at least this many commits, the extension first
-      runs Update Branch, then merges. Set to <code>0</code> to disable.
-    </div>
-    <div class="qm-form-row">
-      <label for="autoRebaseThreshold">Rebase when behind by</label>
-      <input type="number" id="autoRebaseThreshold" min="0" max="999" value="0" />
-      <span style="font-size:12px;color:#57606a;">or more commits</span>
-    </div>
-    <div class="status" id="autoRebaseStatus"></div>
-  </div>
-
-  <div class="section">
-    <h2>Stale PRs</h2>
-    <div class="hint">
-      Mark PRs that haven't been updated in this many days as stale on the GitHub PR list.
-    </div>
-    <div class="qm-form-row">
-      <label for="staleDaysInput">Global threshold</label>
-      <input type="number" id="staleDaysInput" min="1" max="365" value="14" />
-      <span style="font-size:12px;color:#57606a;">days</span>
-    </div>
-    <div class="hint" style="margin-top:8px;">
-      Per-repo overrides. A blank value falls back to the global threshold.
-    </div>
-    <ul id="repoStaleList" class="qm-list"></ul>
-    <div class="qm-form-row">
-      <input type="text" id="repoStaleRepo" placeholder="owner/repo" autocomplete="off" />
-      <input type="number" id="repoStaleDays" min="1" max="365" placeholder="days" style="max-width:90px;" />
-      <button id="repoStaleAdd" class="secondary" type="button">Add</button>
-    </div>
-    <div class="status" id="staleStatus"></div>
-  </div>
-
-  <div class="section">
-    <h2>Fast mode (list endpoint)</h2>
-    <div class="hint">
-      Skip per-PR detail fetches. Loads faster on large PR lists, but the
-      mergeable-state column is unavailable — single-click merge stays
-      disabled while fast mode is on. Bulk close / label still work.
-    </div>
-    <div class="qm-form-row">
-      <label class="qm-checkbox-row" style="font-weight:400;">
-        <input type="checkbox" id="listModeEnabled" />
-        <span style="margin-left:6px;">Use the GitHub list endpoint instead of per-PR detail</span>
-      </label>
-    </div>
-    <div class="status" id="listModeStatus"></div>
-  </div>
-
-  <div class="section">
-    <h2>Import / export</h2>
-    <div class="hint">
-      Move templates, repo defaults, shortcut overrides, and stale-day preference between browsers.
-      Tokens are <strong>never</strong> exported.
-    </div>
-    <button id="exportBtn" class="neutral" type="button">Export settings…</button>
-    <button id="importBtn" class="neutral" type="button">Import settings…</button>
-    <input id="importFileInput" type="file" accept="application/json,.json" style="display:none" />
-    <div class="status" id="ioStatus"></div>
-  </div>
-
-  <footer class="qm-options-footer" style="margin-top:24px;padding-top:12px;border-top:1px solid #d0d7de;font-size:12px;color:#57606a;">
-    PR Quick Merge is free and open source.
-    <a href="https://github.com/sponsors/bradygrapentine"
-       target="_blank"
-       rel="noopener noreferrer"
-       style="color:#0969da;text-decoration:none;">♥ Support development on GitHub Sponsors</a>
-  </footer>
 </body>
+<script src="lib/qm-brand.js"></script>
+<script src="lib/qm-theme.js"></script>
+<script src="lib/qm-visual-prefs.js"></script>
 <script src="lib/repo-defaults.js"></script>
 <script src="lib/templates.js"></script>
 <script src="lib/shortcuts.js"></script>
 <script src="lib/import-export.js"></script>
+<script src="options-shell.js"></script>
 <script type="module" src="options.js"></script>
 </html>

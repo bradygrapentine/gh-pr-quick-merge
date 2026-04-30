@@ -4,7 +4,10 @@
  */
 
 const API = "https://api.github.com";
-const { aggregateMergeable, formatPopupRow, EMPTY_STATE_HINT } = window.QM_POPUP_DATA;
+// Pull popup-data helpers off the namespace explicitly — destructuring at
+// script top-level would clash with the function declarations that
+// popup-data.js puts on the global lexical scope.
+const QMPopupData = window.QM_POPUP_DATA;
 
 const SLUG_RE = /^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/;
 
@@ -13,7 +16,9 @@ const $ = (id) => document.getElementById(id);
 const state = {
   manage: false,
   pinned: [],
-  rowErrors: new Map(), // slug -> error message
+  rowErrors: new Map(),
+  lastSync: null,
+  lastEntries: [],
 };
 
 function setStatus(msg, kind = "") {
@@ -31,7 +36,7 @@ function setManageStatus(msg, kind = "") {
 
 function showEmptyState() {
   $("repoList").innerHTML = "";
-  $("emptyHint").textContent = EMPTY_STATE_HINT;
+  $("emptyHint").textContent = QMPopupData.EMPTY_STATE_HINT;
   $("emptyState").hidden = false;
 }
 
@@ -45,43 +50,130 @@ function setManageMode(on) {
   btn.setAttribute("aria-pressed", state.manage ? "true" : "false");
   btn.textContent = state.manage ? "Done" : "Manage";
   $("manageBox").hidden = !state.manage;
-  // Re-render rows so remove buttons appear/disappear.
   renderRowsFromState();
 }
 
+function _formatSyncAgo(ts) {
+  if (!ts) return "";
+  const sec = Math.max(0, Math.round((Date.now() - ts) / 1000));
+  if (sec < 5) return "synced just now";
+  if (sec < 60) return `synced ${sec}s ago`;
+  const min = Math.round(sec / 60);
+  if (min < 60) return `synced ${min}m ago`;
+  return `synced ${Math.round(min / 60)}h ago`;
+}
+
+function renderSummary(entries) {
+  const repoCount = entries.length;
+  const mergeable = entries.reduce((n, e) => n + (e.mergeableCount || 0), 0);
+  const stat = $("summaryStat");
+  if (repoCount === 0) {
+    stat.textContent = "No pinned repos";
+  } else {
+    stat.textContent = `${mergeable} mergeable across ${repoCount} repo${repoCount === 1 ? "" : "s"}`;
+  }
+  $("summarySync").textContent = state.lastSync ? `· ${_formatSyncAgo(state.lastSync)}` : "";
+}
+
 function renderRowsFromState() {
-  const entries = state.lastEntries || [];
-  renderRows(entries);
+  renderRows(state.lastEntries || []);
+}
+
+function _avatarTile(slug) {
+  const tile = document.createElement("span");
+  tile.className = "qm-popup-row-tile";
+  tile.setAttribute("aria-hidden", "true");
+  // Initial letter of the repo name (after "/").
+  const name = String(slug).split("/")[1] || "?";
+  tile.textContent = name.charAt(0).toUpperCase();
+  return tile;
+}
+
+function _ownerRepoSplit(slug) {
+  const wrap = document.createElement("div");
+  wrap.className = "qm-popup-row-name";
+  const [owner, repo] = String(slug).split("/");
+  const ownerEl = document.createElement("span");
+  ownerEl.className = "qm-popup-row-owner";
+  ownerEl.textContent = `${owner}/`;
+  const repoEl = document.createElement("span");
+  repoEl.className = "qm-popup-row-repo";
+  repoEl.textContent = repo || "";
+  wrap.appendChild(ownerEl);
+  wrap.appendChild(repoEl);
+  return wrap;
+}
+
+function _statsLine(entry) {
+  const ready = entry.mergeableCount || 0;
+  const open = entry.totalCount || 0;
+  const stale = entry.staleCount || 0;
+  const wrap = document.createElement("div");
+  wrap.className = "qm-popup-row-stats";
+
+  const r = document.createElement("span");
+  r.className = `qm-popup-row-stat ${ready > 0 ? "ready" : ""}`;
+  r.textContent = `${ready} ready`;
+  wrap.appendChild(r);
+
+  const sep1 = document.createElement("span");
+  sep1.className = "qm-popup-row-stat-sep";
+  sep1.textContent = "·";
+  wrap.appendChild(sep1);
+
+  const o = document.createElement("span");
+  o.className = "qm-popup-row-stat";
+  o.textContent = `${open} open`;
+  wrap.appendChild(o);
+
+  if (stale > 0) {
+    const sep2 = document.createElement("span");
+    sep2.className = "qm-popup-row-stat-sep";
+    sep2.textContent = "·";
+    wrap.appendChild(sep2);
+    const s = document.createElement("span");
+    s.className = "qm-popup-row-stat warn";
+    s.textContent = `${stale} stale`;
+    wrap.appendChild(s);
+  }
+
+  return wrap;
 }
 
 function renderRows(entries) {
   state.lastEntries = entries;
+  renderSummary(entries);
   const list = $("repoList");
   list.innerHTML = "";
   for (const entry of entries) {
-    const formatted = formatPopupRow(entry);
-    const li = document.createElement("li");
-    li.dataset.slug = `${entry.owner}/${entry.repo}`;
-
-    const a = document.createElement("a");
-    a.href = formatted.url;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-
-    const label = document.createElement("div");
-    label.className = "qm-popup-row-label";
-    label.textContent = formatted.label;
-
-    const subtitle = document.createElement("div");
-    const ready = entry.mergeableCount > 0;
-    subtitle.className = `qm-popup-row-subtitle ${ready ? "ready" : ""}`;
-    subtitle.textContent = formatted.subtitle;
-
-    a.appendChild(label);
-    a.appendChild(subtitle);
-    li.appendChild(a);
-
     const slug = `${entry.owner}/${entry.repo}`;
+    const formatted = QMPopupData.formatPopupRow(entry);
+    const li = document.createElement("li");
+    li.dataset.slug = slug;
+
+    const link = document.createElement("a");
+    link.href = formatted.url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.className = "qm-popup-row-link";
+
+    link.appendChild(_avatarTile(slug));
+
+    const body = document.createElement("div");
+    body.className = "qm-popup-row-body";
+    body.appendChild(_ownerRepoSplit(slug));
+    body.appendChild(_statsLine(entry));
+    link.appendChild(body);
+
+    if (entry.mergeableCount > 0) {
+      const cta = document.createElement("span");
+      cta.className = "qm-popup-row-cta qm-button qm-button-primary qm-button-sm";
+      cta.textContent = `Merge ${entry.mergeableCount}`;
+      link.appendChild(cta);
+    }
+
+    li.appendChild(link);
+
     const errMsg = state.rowErrors.get(slug);
     if (errMsg) {
       const errPill = document.createElement("span");
@@ -108,23 +200,31 @@ function renderRows(entries) {
     list.appendChild(li);
   }
 
-  // Render rows for pinned repos that failed entirely (no entry came back).
+  // Render rows for pinned repos that failed entirely (no entry came back),
+  // and — in manage mode — also stub rows for pinned repos with no fetch
+  // attempt yet so the user can remove them before signing in.
   const haveSlugs = new Set(entries.map((e) => `${e.owner}/${e.repo}`));
   for (const slug of state.pinned) {
     if (haveSlugs.has(slug)) continue;
     const errMsg = state.rowErrors.get(slug);
-    if (!errMsg) continue;
+    if (!errMsg && !state.manage) continue;
     const li = document.createElement("li");
     li.dataset.slug = slug;
     li.className = "qm-popup-row-failed";
-    const label = document.createElement("div");
-    label.className = "qm-popup-row-label";
-    label.textContent = slug;
-    li.appendChild(label);
-    const errPill = document.createElement("span");
-    errPill.className = "qm-popup-row-error";
-    errPill.textContent = errMsg;
-    li.appendChild(errPill);
+    const wrap = document.createElement("div");
+    wrap.className = "qm-popup-row-link";
+    wrap.appendChild(_avatarTile(slug));
+    const body = document.createElement("div");
+    body.className = "qm-popup-row-body";
+    body.appendChild(_ownerRepoSplit(slug));
+    wrap.appendChild(body);
+    li.appendChild(wrap);
+    if (errMsg) {
+      const errPill = document.createElement("span");
+      errPill.className = "qm-popup-row-error";
+      errPill.textContent = errMsg;
+      li.appendChild(errPill);
+    }
     if (state.manage) {
       const removeBtn = document.createElement("button");
       removeBtn.type = "button";
@@ -161,6 +261,7 @@ async function fetchRepoPrs(owner, repo, token) {
       number: pr.number,
       title: pr.title,
       mergeable_state: pr.draft ? "blocked" : null,
+      updated_at: pr.updated_at || null,
     })),
   };
 }
@@ -179,12 +280,13 @@ async function loadAndRender() {
   const repos = Array.isArray(pinnedRepos) ? pinnedRepos : [];
   state.pinned = repos.map(String);
 
-  // Token-stale banner (QM-044 popup side).
   $("staleBanner").hidden = !(localData && localData.tokenStale);
 
   if (repos.length === 0) {
     setStatus("");
     state.lastEntries = [];
+    state.lastSync = Date.now();
+    renderSummary([]);
     if (state.manage) {
       $("repoList").innerHTML = "";
     } else {
@@ -215,7 +317,8 @@ async function loadAndRender() {
   });
   const failed = state.rowErrors.size;
 
-  const entries = aggregateMergeable(ok);
+  const entries = QMPopupData.aggregateMergeable(ok);
+  state.lastSync = Date.now();
   renderRows(entries);
 
   if (failed > 0) {
@@ -261,11 +364,46 @@ function openOptions() {
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+function _injectBrand() {
+  const slot = $("brandSlot");
+  if (slot && window.QM_BRAND && typeof window.QM_BRAND.makeMark === "function") {
+    slot.innerHTML = "";
+    slot.appendChild(window.QM_BRAND.makeMark());
+  }
+}
+
+async function _bootstrapPrefs() {
+  if (window.QM_VISUAL_PREFS && chrome.storage && chrome.storage.sync) {
+    try {
+      await window.QM_VISUAL_PREFS.bootstrap({ root: document.documentElement, store: chrome.storage.sync });
+    } catch (_e) { /* best-effort; defaults apply */ }
+  }
+  if (window.QM_THEME && chrome.storage && chrome.storage.sync) {
+    try {
+      await window.QM_THEME.bootstrap({ root: document.documentElement, store: chrome.storage.sync });
+    } catch (_e) { /* best-effort */ }
+  }
+}
+
+async function _maybeOnboard() {
+  if (!window.QM_ONBOARDING || !chrome.storage) return;
+  const mount = $("onboardingSlot");
+  await window.QM_ONBOARDING.maybeRender({
+    mount,
+    localStore: chrome.storage.local,
+    syncStore: chrome.storage.sync,
+    onConnect: openOptions,
+  });
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  // Attach click handlers FIRST so tests / fast users don't race
+  // the async bootstrap calls below.
   $("openOptions").addEventListener("click", openOptions);
   $("goToOptions").addEventListener("click", openOptions);
   $("staleOpenOptions").addEventListener("click", openOptions);
   $("manageBtn").addEventListener("click", () => setManageMode(!state.manage));
+  $("footerPin").addEventListener("click", () => setManageMode(true));
   $("refreshBtn").addEventListener("click", () => {
     loadAndRender().catch((e) => setStatus(`Failed: ${e.message || e}`, "err"));
   });
@@ -274,7 +412,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.key === "Enter") addRepo(e.target.value);
   });
 
+  _injectBrand();
+  await _bootstrapPrefs();
+  await _maybeOnboard();
   loadAndRender().catch((e) => {
     setStatus(`Failed: ${e.message || e}`, "err");
   });
+
+  // Refresh "synced Ns ago" text once a second so it stays accurate.
+  setInterval(() => {
+    if (state.lastSync) renderSummary(state.lastEntries || []);
+  }, 1000);
 });

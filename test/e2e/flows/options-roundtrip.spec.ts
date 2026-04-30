@@ -15,11 +15,14 @@ test.describe('options page round-trip', () => {
     });
     await page.reload();
 
+    await page.locator('[data-pane-target="defaults"]').click();
     await page.locator('#updateBranchStrategy').selectOption('rebase');
     await page.locator('#autoRebaseThreshold').fill('3');
     await page.locator('#autoRebaseThreshold').dispatchEvent('change');
+    await page.locator('[data-pane-target="stale"]').click();
     await page.locator('#staleDaysInput').fill('21');
     await page.locator('#staleDaysInput').dispatchEvent('change');
+    await page.locator('[data-pane-target="sync"]').click();
     await page.locator('#listModeEnabled').check();
 
     await page.reload();
@@ -30,9 +33,12 @@ test.describe('options page round-trip', () => {
     expect(sync.qm_stale_days).toBe(21);
     expect(sync.listModeEnabled).toBe(true);
 
+    await page.locator('[data-pane-target="defaults"]').click();
     await expect(page.locator('#updateBranchStrategy')).toHaveValue('rebase');
     await expect(page.locator('#autoRebaseThreshold')).toHaveValue('3');
+    await page.locator('[data-pane-target="stale"]').click();
     await expect(page.locator('#staleDaysInput')).toHaveValue('21');
+    await page.locator('[data-pane-target="sync"]').click();
     await expect(page.locator('#listModeEnabled')).toBeChecked();
 
     await page.close();
@@ -46,6 +52,7 @@ test.describe('options page round-trip', () => {
     });
     await page.reload();
 
+    await page.locator('[data-pane-target="stale"]').click();
     await page.locator('#repoStaleRepo').fill('octocat/hello-world');
     await page.locator('#repoStaleDays').fill('7');
     await page.locator('#repoStaleAdd').click();
@@ -67,6 +74,7 @@ test.describe('options page round-trip', () => {
     });
     await page.reload();
 
+    await page.locator('[data-pane-target="templates"]').click();
     await page.locator('#templateName').fill('release');
     await page.locator('#templateBody').fill('Release {title}\n\n{body}');
     await page.locator('#templateSave').click();

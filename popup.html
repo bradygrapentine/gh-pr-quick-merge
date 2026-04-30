@@ -8,38 +8,50 @@
 </head>
 <body>
   <header class="qm-popup-header">
-    <h1>Pinned repos</h1>
+    <div class="qm-popup-brand">
+      <span id="brandSlot" class="qm-popup-brand-slot" aria-hidden="true"></span>
+      <span class="qm-wordmark">PR Quick Merge</span>
+      <span class="qm-tag">EXT</span>
+    </div>
     <div class="qm-popup-header-actions">
-      <button id="refreshBtn" class="qm-popup-btn-icon" type="button" title="Refresh" aria-label="Refresh">↻</button>
-      <button id="manageBtn" class="qm-popup-btn-link" type="button" aria-pressed="false">Manage</button>
-      <button id="openOptions" class="qm-popup-btn-link" type="button">Options</button>
+      <button id="refreshBtn" class="qm-button qm-button-ghost qm-button-sm" type="button" title="Refresh" aria-label="Refresh">↻</button>
+      <button id="manageBtn" class="qm-button qm-button-ghost qm-button-sm" type="button" aria-pressed="false">Manage</button>
+      <button id="openOptions" class="qm-button qm-button-ghost qm-button-sm" type="button">Settings</button>
     </div>
   </header>
 
   <div id="staleBanner" class="qm-popup-stale-banner" hidden>
     <span>Your token is 30+ days old — consider rotating it.</span>
-    <button id="staleOpenOptions" class="qm-popup-btn-link" type="button">Open Options</button>
+    <button id="staleOpenOptions" class="qm-button qm-button-ghost qm-button-sm" type="button">Open Options</button>
+  </div>
+
+  <div id="summary" class="qm-popup-summary" aria-live="polite">
+    <span id="summaryStat" class="qm-popup-summary-stat">—</span>
+    <span id="summarySync" class="qm-popup-summary-sync"></span>
   </div>
 
   <div id="status" class="qm-popup-status" aria-live="polite"></div>
+
+  <div id="onboardingSlot"></div>
 
   <ul id="repoList" class="qm-popup-list"></ul>
 
   <div id="manageBox" class="qm-popup-manage" hidden>
     <label for="manageRepoInput" class="qm-popup-manage-label">Add repo</label>
     <div class="qm-popup-manage-row">
-      <input id="manageRepoInput" type="text" placeholder="owner/repo" autocomplete="off" />
-      <button id="manageAddBtn" class="qm-popup-btn-primary" type="button">Add</button>
+      <input id="manageRepoInput" class="qm-input qm-input-sm" type="text" placeholder="owner/repo" autocomplete="off" />
+      <button id="manageAddBtn" class="qm-button qm-button-primary qm-button-sm" type="button">Add</button>
     </div>
     <div id="manageStatus" class="qm-popup-manage-status" aria-live="polite"></div>
   </div>
 
   <div id="emptyState" class="qm-popup-empty" hidden>
     <p id="emptyHint"></p>
-    <button id="goToOptions" class="qm-popup-btn-primary" type="button">Open Options</button>
+    <button id="goToOptions" class="qm-button qm-button-primary" type="button">Open Options</button>
   </div>
 
   <footer class="qm-popup-footer">
+    <button id="footerPin" class="qm-popup-footer-pin qm-button qm-button-ghost qm-button-sm" type="button">+ Pin a repo</button>
     <a id="sponsorLink"
        href="https://github.com/sponsors/bradygrapentine"
        target="_blank"
@@ -48,10 +60,14 @@
        title="Support PR Quick Merge on GitHub Sponsors"
        aria-label="Sponsor PR Quick Merge on GitHub">
       <span class="qm-popup-sponsor-heart" aria-hidden="true">♥</span>
-      <span class="qm-popup-sponsor-text">Support</span>
+      <span class="qm-popup-sponsor-text">Sponsor</span>
     </a>
   </footer>
 
+  <script src="lib/qm-brand.js"></script>
+  <script src="lib/qm-theme.js"></script>
+  <script src="lib/qm-visual-prefs.js"></script>
+  <script src="lib/qm-onboarding.js"></script>
   <script src="lib/popup-data.js"></script>
   <script src="popup.js"></script>
 </body>

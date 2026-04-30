@@ -29,6 +29,12 @@ const state = {
   repoStaleThresholds: {},
   // QM-067 — when true, skip per-PR detail fetch; use list endpoint data only
   listMode: false,
+  // QM-209 — "active" enables hover hint on row widget primary button.
+  shortcutMode: "off",
+  // Track active widgets so a shortcutMode flip re-renders them.
+  rowWidgets: new Set(),
+  // QM-214 — flipped by Pause button on the bulk bar to abort the merge loop.
+  bulkPaused: false,
 };
 
 const prKey = (pr) => `${pr.owner}/${pr.repo}#${pr.num}`;
@@ -48,6 +54,7 @@ async function loadInitialState() {
         "repoDefaults",
         "qm_templates",
         "qm_shortcuts",
+        "qm_shortcut_mode",
         "qm_stale_days",
         "qm_repo_stale_thresholds",
         "listModeEnabled",
@@ -67,6 +74,7 @@ async function loadInitialState() {
   const rst = syncStore.qm_repo_stale_thresholds;
   state.repoStaleThresholds = rst && typeof rst === "object" ? rst : {};
   state.listMode = !!syncStore.listModeEnabled;
+  state.shortcutMode = syncStore.qm_shortcut_mode === "active" ? "active" : "off";
 }
 
 function pickDefaultForBulkLocal(prs, map) {
@@ -400,7 +408,7 @@ async function injectRow(row) {
       pr,
       prState: null,
       getDefaultMethod: () => state.repoDefaults[`${pr.owner}/${pr.repo}`] || "squash",
-      getShortcutHint: () => null, // QM-209 toggled in a follow-up; read state.shortcutMode
+      getShortcutHint: () => state.shortcutMode === "active" ? "▶ S to squash" : null,
       onMethodChange: () => { /* no-op; cached for the next click */ },
       onMerge: async (method) => {
         const current = state.cache.get(prKey(pr));
@@ -457,6 +465,16 @@ async function injectRow(row) {
       },
     });
     container.appendChild(rowWidget.root);
+    state.rowWidgets.add(rowWidget);
+    // Drop the widget reference when its row leaves the DOM so the set
+    // doesn't leak as the user paginates the PR list.
+    const detachObs = new MutationObserver(() => {
+      if (!document.body.contains(container)) {
+        state.rowWidgets.delete(rowWidget);
+        detachObs.disconnect();
+      }
+    });
+    detachObs.observe(document.body, { childList: true, subtree: true });
   } else {
     // Fallback for environments where qm-row-widget didn't load — preserves
     // the v1.0 three-button behavior so the extension never goes blank.
@@ -743,18 +761,26 @@ function ensureBulkBar() {
   bar = document.createElement("div");
   bar.id = "qm-bulk-bar";
   bar.className = "qm-bulk-bar";
+  bar.dataset.state = "idle";
+  // QM-214 — dark-pill bulk bar. Idle layout: count badge + repo summary +
+  // method select + action cluster. Mid-flight: progress text + Pause.
   bar.innerHTML = `
-    <span class="qm-bulk-count">0 selected</span>
-    <span class="qm-bulk-pro" title="Pro feature">PRO</span>
-    <select class="qm-bulk-method" aria-label="Merge method">
+    <span class="qm-bulk-badge"><span class="qm-bulk-count">0</span> selected</span>
+    <span class="qm-bulk-repos" aria-hidden="true"></span>
+    <span class="qm-bulk-pro" title="Sponsor-only feature">SPONSOR</span>
+    <select class="qm-bulk-method qm-input qm-input-sm" aria-label="Merge method">
       <option value="squash">Squash &amp; merge</option>
       <option value="merge">Merge commit</option>
       <option value="rebase">Rebase &amp; merge</option>
     </select>
-    <button class="qm-btn qm-bulk-go">Merge selected</button>
-    <button class="qm-btn qm-bulk-close">Close selected</button>
-    <button class="qm-btn qm-bulk-label">Label selected</button>
-    <button class="qm-btn qm-bulk-clear">Clear</button>
+    <button class="qm-button qm-button-primary qm-button-sm qm-bulk-go" type="button">Merge <span class="qm-bulk-go-count">0</span></button>
+    <button class="qm-button qm-button-ghost qm-button-sm qm-bulk-close" type="button">Close</button>
+    <button class="qm-button qm-button-ghost qm-button-sm qm-bulk-label" type="button">Label</button>
+    <button class="qm-button qm-button-ghost qm-button-sm qm-bulk-clear" type="button">Clear</button>
+    <span class="qm-bulk-progress" hidden>
+      <span class="qm-bulk-progress-text">0 / 0</span>
+      <button class="qm-button qm-button-ghost qm-button-sm qm-bulk-pause" type="button">Pause</button>
+    </span>
   `;
   document.body.appendChild(bar);
   bar.querySelector(".qm-bulk-clear").addEventListener("click", () => {
@@ -768,7 +794,31 @@ function ensureBulkBar() {
   bar.querySelector(".qm-bulk-go").addEventListener("click", onBulkMerge);
   bar.querySelector(".qm-bulk-close").addEventListener("click", onBulkClose);
   bar.querySelector(".qm-bulk-label").addEventListener("click", onBulkLabel);
+  bar.querySelector(".qm-bulk-pause").addEventListener("click", () => {
+    state.bulkPaused = true;
+    bar.querySelector(".qm-bulk-pause").disabled = true;
+    bar.querySelector(".qm-bulk-pause").textContent = "Stopping…";
+  });
   return bar;
+}
+
+function setBulkBarState(stateName, payload = {}) {
+  const bar = document.getElementById("qm-bulk-bar");
+  if (!bar) return;
+  bar.dataset.state = stateName;
+  const progress = bar.querySelector(".qm-bulk-progress");
+  const idleControls = bar.querySelectorAll(".qm-bulk-go, .qm-bulk-close, .qm-bulk-label, .qm-bulk-method");
+  if (stateName === "running") {
+    if (progress) progress.hidden = false;
+    idleControls.forEach((el) => { el.hidden = true; });
+    const text = bar.querySelector(".qm-bulk-progress-text");
+    if (text) text.textContent = `${payload.done || 0} / ${payload.total || 0}`;
+    const pauseBtn = bar.querySelector(".qm-bulk-pause");
+    if (pauseBtn) { pauseBtn.disabled = false; pauseBtn.textContent = "Pause"; }
+  } else {
+    if (progress) progress.hidden = true;
+    idleControls.forEach((el) => { el.hidden = false; });
+  }
 }
 
 // QM-061 — flash a row green/red after a bulk action.
@@ -870,7 +920,19 @@ async function onBulkLabel() {
 function renderBulkBar() {
   const bar = ensureBulkBar();
   const n = state.selected.size;
-  bar.querySelector(".qm-bulk-count").textContent = `${n} selected`;
+  const count = bar.querySelector(".qm-bulk-count");
+  if (count) count.textContent = String(n);
+  const goCount = bar.querySelector(".qm-bulk-go-count");
+  if (goCount) goCount.textContent = String(n);
+  // Repo summary (e.g. "2 repos") — replaces the old static "selected" label.
+  const reposEl = bar.querySelector(".qm-bulk-repos");
+  if (reposEl) {
+    const repoSet = new Set();
+    for (const { pr } of state.selected.values()) repoSet.add(`${pr.owner}/${pr.repo}`);
+    reposEl.textContent = repoSet.size > 0
+      ? `· ${repoSet.size} repo${repoSet.size === 1 ? "" : "s"}`
+      : "";
+  }
   bar.classList.toggle("qm-bulk-bar-shown", n > 0);
   syncBulkBarFromDefaults();
 }
@@ -977,35 +1039,54 @@ async function onBulkMerge() {
     toast("Set a GitHub token first", "warn");
     return;
   }
-  const goBtn = document.querySelector(".qm-bulk-go");
-  goBtn.disabled = true;
+  state.bulkPaused = false;
+  setBulkBarState("running", { done: 0, total: items.length });
   let success = 0;
   let failed = 0;
+  let done = 0;
   for (const { pr, row, container } of items) {
+    if (state.bulkPaused) break;
+    // Mark this row as in-flight (per-row progress, QM-214).
+    container.classList.add("qm-bulk-row-running");
     const cached = state.cache.get(prKey(pr));
     if (!cached?.head_sha) {
       failed++;
-      continue;
-    }
-    try {
-      await doMerge({ pr, kind: method, token, headSha: cached.head_sha });
-      success++;
-      row.style.opacity = "0.5";
-      const status = container.querySelector(".qm-status");
-      if (status) {
-        status.textContent = "✓";
-        status.dataset.kind = "merged";
+      container.classList.remove("qm-bulk-row-running");
+      flashRow(container, false, "Not ready");
+    } else {
+      try {
+        await doMerge({ pr, kind: method, token, headSha: cached.head_sha });
+        success++;
+        row.style.opacity = "0.5";
+        container.classList.remove("qm-bulk-row-running");
+        const status = container.querySelector(".qm-status");
+        if (status) {
+          status.textContent = "✓";
+          status.dataset.kind = "merged";
+        }
+        flashRow(container, true, "Merged");
+      } catch (e) {
+        failed++;
+        container.classList.remove("qm-bulk-row-running");
+        toast(`Failed ${prKey(pr)}: ${e.message}`, "error");
+        flashRow(container, false, `Failed: ${e.message || ""}`);
       }
-    } catch (e) {
-      failed++;
-      toast(`Failed ${prKey(pr)}: ${e.message}`, "error");
     }
+    done++;
+    const text = document.querySelector("#qm-bulk-bar .qm-bulk-progress-text");
+    if (text) text.textContent = `${done} / ${items.length}`;
   }
+  const stopped = state.bulkPaused;
+  state.bulkPaused = false;
   state.selected.clear();
   document.querySelectorAll(".qm-select:checked").forEach((cb) => (cb.checked = false));
+  setBulkBarState("idle");
   renderBulkBar();
-  goBtn.disabled = false;
-  toast(`Bulk merge: ${success} ok, ${failed} failed`, failed ? "warn" : "ok");
+  if (stopped) {
+    toast(`Bulk merge stopped: ${success} ok, ${failed} failed, ${items.length - done} skipped`, "warn");
+  } else {
+    toast(`Bulk merge: ${success} ok, ${failed} failed`, failed ? "warn" : "ok");
+  }
 }
 
 async function showProGate() {
@@ -1222,6 +1303,17 @@ function onShortcutKeydown(event) {
 
 async function start() {
   await loadInitialState();
+  // QM-219 — read accent/density/font and apply CSS vars on the document root
+  // so injected widgets pick them up. Best-effort; defaults work if storage
+  // is unavailable.
+  try {
+    if (window.QM_VISUAL_PREFS && chrome.storage && chrome.storage.sync) {
+      await window.QM_VISUAL_PREFS.bootstrap({
+        root: document.documentElement,
+        store: chrome.storage.sync,
+      });
+    }
+  } catch (_e) { /* defaults */ }
   ensureLiveRegion();
   document.addEventListener("keydown", onShortcutKeydown);
   scan();
@@ -1252,6 +1344,14 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     if (changes.qm_shortcuts) {
       const next = changes.qm_shortcuts.newValue;
       state.shortcuts = Array.isArray(next) ? next : (SHORTCUTS.DEFAULT_BINDINGS || []);
+    }
+    if (changes.qm_shortcut_mode) {
+      state.shortcutMode = changes.qm_shortcut_mode.newValue === "active" ? "active" : "off";
+      // Re-render each live widget so the hint span appears / disappears.
+      for (const w of state.rowWidgets) {
+        const cached = state.cache.get(w.root.dataset.qmKey) || null;
+        try { w.setState(cached); } catch (_e) { /* widget already disposed */ }
+      }
     }
     if (changes.qm_stale_days) {
       const next = Number(changes.qm_stale_days.newValue);
