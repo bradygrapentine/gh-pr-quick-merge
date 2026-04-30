@@ -22,21 +22,50 @@ The backlog is organized by **Epic** (matching `ROADMAP.md`). Each Epic decompos
 
 ## §0 Status board
 
-- Ready: 69 (across Epics 1, 2, 4, 5, 6, 7)
-- Deferred: 21 (Epic 3 — license & payment infra)
+_Last sync: 2026-04-29 (v1.0 polish)_
+
+- Ready: 8 (v1.0 launch follow-ups + 2 v1.1 candidates — see §1)
+- Blocked-on-human: 2 (QM-104 CWS submit; QM-108 AMO submit)
+- Deferred: 22 (Epic 3 license server + QM-165 BMaC)
 - In progress: 0
 - In review: 0
-- Blocked: 0
-- Done (pre-Epic): 14
 - Shipped (v0.2.0): 5
+- Shipped (v0.3 + v0.4 + v1.0 backlog): 60+ (PRs #16, #18–#25)
+- Done (pre-Epic): 14
 
-**v0.2 leftover IDs absorbed into Epic structure** — QM-010, QM-016, QM-018, QM-022, QM-024..029 absorbed into Epic 1/2 stories; QM-030 retired as Epic 3 scope (now deferred).
+**v1.0 effort remaining:** ~2 eng-days (Sentry SDK vendoring + repo settings + store submissions). All code-level v1.0 work is on `main`.
 
-**Effort floor:** ~25 eng-days (down from 60 pre-slim). Operating cost: ~$1.25/mo (domain only).
+**Operating cost:** ~$1.25/mo (domain only — when registered). Donation-funded; first sponsor at any tier covers the floor.
 
 ---
 
 ## §1 Ready
+
+### v1.0 launch follow-ups (NEW — surface during v1-polish review, 2026-04-29)
+
+| ID | Title | Feature | Est | Deps | Notes |
+|----|-------|---------|-----|------|-------|
+| QM-167 | Enable Dependabot security updates on the repo | F4.5 | XS | — | Settings → Code security → enable. Audited 2026-04-29: currently **disabled**. |
+| QM-168 | Configure branch protection on `main` | F6.6 | S | — | Required: PR review ≥ 1, status checks (`test`, `manifest-lint`, `e2e`) green, no force pushes. Currently unconfigured. |
+| QM-169 | Vendor `@sentry/browser` SDK + DSN injection | F5.2 | M | — | Follow-up from PR #21. Add `npm run vendor:sentry` script; `scripts/package.sh` calls it before `web-ext build`; `SENTRY_DSN` injected via `sed`. See [`docs/runbook-external-services.md`](./docs/runbook-external-services.md) §5. |
+| QM-170 | Privacy-policy stable HTTPS URL | F4.3 | S | — | Currently lives at `docs/privacy-policy.md` in the repo. CWS + AMO submissions need a stable URL — either GitHub Pages on this repo or a custom domain. Recommend GitHub Pages for v1.0 (zero cost). |
+
+### v1.1 candidates (gaps surfaced 2026-04-29 — not v1.0 blocking)
+
+| ID | Title | Notes |
+|----|-------|-------|
+| QM-171 | Custom modal for bulk close + label confirmation | Replace native `confirm()` / `prompt()`. The typed-confirmation modal already exists for bulk merge (`confirmBulkMergeTyped`); reuse. |
+| QM-172 | Real label-picker dropdown (fetches repo labels) | Currently `prompt()` for comma-separated text. The plan included `lib/label-picker.js` as a stub; v1.1 fills it. |
+| QM-173 | Sentry crash-reporting consent toggle in options | The sanitiser is in place; the SDK boots only when DSN configured at build time. v1.1: surface a user-facing on/off toggle so users can opt in even on builds where DSN is shipped. |
+| QM-174 | Onboarding tour for first-time installs | Pinned-repo + token setup is friction-laden for new users. A 3-step popover walkthrough on first install. |
+| QM-175 | Per-repo merge-template assignment UI | Templates exist; per-repo binding is hard-coded to `*` (global) or `owner/repo`. Options-page picker would let users assign saved templates per repo. |
+| QM-176 | Update-branch poll-instead-of-fixed-3-s wait | Per `plans/v0.4-row-actions.md` §Risks. After clicking Update, poll `/pulls/:n` until `behind_by === 0` instead of a fixed 3-s refresh. |
+| QM-177 | Anonymous opt-in install/usage telemetry (PostHog) | Was deferred from v1.0 per Epic 5 slim; revisit if growth signal is needed for prioritisation. |
+| QM-178 | Safari port assessment | Effort vs. revenue tradeoff. Reserved per Post-1.0 roadmap. |
+
+### Historical — Epics 1, 2, 4, 5, 6, 7 (mostly shipped — see §7)
+
+> The rows below this line were the v0.3 → v1.0 build-out. Most are shipped (PRs #16–#25). Kept inline for cross-reference; canonical shipped status is in §7 and `git log`. New work should land in the launch-follow-ups or v1.1-candidates tables above.
 
 ### Epic 1 — v0.3: Power-user features
 
@@ -241,3 +270,41 @@ _Merged to main, included in v0.2.0 release._
 - QM-019 — Closed remaining SECURITY findings (F-03, F-05, F-06, F-15) · PR [#12](https://github.com/bradygrapentine/gh-pr-quick-merge/pull/12)
 - QM-021 — Toolbar popup · PR [#3](https://github.com/bradygrapentine/gh-pr-quick-merge/pull/3)
 - QM-023 — `lib/stale-pr.js` pure module · PR [#4](https://github.com/bradygrapentine/gh-pr-quick-merge/pull/4)
+
+**v0.3 — Epic 1 (PRs #16, #22):**
+- QM-031, 032 — Templates wired into merge action + storage helpers
+- QM-033 — Template editor UI in options
+- QM-034, 035 — Shortcut listener + a11y
+- QM-036 — Shortcut customization UI
+- QM-037 — Repo-name autocomplete in defaults UI
+- QM-038 — Import/export for repo defaults + templates (`lib/import-export.js`)
+- QM-039 — Stale-PR badge injection
+- QM-040 — Stale-threshold config UI
+- QM-041, 042 — Popup manage mode + refresh + error states
+- QM-043 — Token-rotation reminder
+- QM-044 — Multi-account hint
+- QM-045 — Row-actions extension point + `lib/api.js` + `behind_by` (PR [#23](https://github.com/bradygrapentine/gh-pr-quick-merge/pull/23))
+- QM-046 — Fixture-DOM integration tests + `test/fixtures/*.html`
+
+**v0.4 — Epic 2 (PRs #24, #25):**
+- QM-051..057 — Update branch + Merge-when-Green + Auto-Rebase row actions (`lib/update-branch.js`, `lib/merge-queue.js`, `lib/auto-rebase.js`, background poller, options strategy + threshold)
+- QM-058..061 — Bulk close + bulk label (`lib/bulk-ops.js`, per-row flash feedback)
+- QM-062..064 — Stale-PR row highlighting with per-repo thresholds + tooltip
+- QM-065..067 — Fast-mode list endpoint (`lib/list-mode.js`, options toggle)
+- QM-068..070 — Auto-rebase orchestration + UI
+
+**v1.0 backlog — Epics 4/5/6/7 (slimmed) (PRs #18–#21):**
+- QM-101, 102, 103, 106, 107, 109, 118, 119, 120 — Distribution: store-listing copy, screenshot specs, AMO source-disclosure recipe, privacy policy, demo-video script, launch posts (PR [#18](https://github.com/bradygrapentine/gh-pr-quick-merge/pull/18))
+- QM-104, 108 — **Blocked-on-human** (CWS / AMO submission dashboards); artifacts ready
+- QM-126, 127, 128 — Sentry sanitiser + boot scaffold (PR [#21](https://github.com/bradygrapentine/gh-pr-quick-merge/pull/21))
+- QM-141..143, 145..151, 153..156 — Quality: Playwright scaffold, e2e workflow, release script + runbook, staged-rollout SOP, perf baseline (PR [#19](https://github.com/bradygrapentine/gh-pr-quick-merge/pull/19))
+- QM-161..164 — Donations: GitHub Sponsors live, donation modal, README support section, popup heart, options Support link (PR [#20](https://github.com/bradygrapentine/gh-pr-quick-merge/pull/20))
+- QM-165 — Buy Me a Coffee secondary platform: **deferred** per plan
+
+**v1-polish — quality + housekeeping (PR pending):**
+- 95% line coverage gate (`@vitest/coverage-v8`)
+- 6 new E2E specs (`donation-modal`, `options-roundtrip`, `popup-manage`, `merge-queue-lifecycle`, `bulk-close`, `update-branch`)
+- v1.0 security review (0 critical/high/medium; 2 repo-settings warnings → QM-167/168)
+- `docs/runbook-external-services.md` + `docs/v1-launch-checklist.md`
+- README + ROADMAP + BACKLOG status sync
+- Stale-branch cleanup; auto-delete-branch enabled on the repo

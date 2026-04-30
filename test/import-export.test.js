@@ -1,10 +1,5 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { readFileSync } from "node:fs";
-import path from "node:path";
-
-const SRC = readFileSync(path.resolve(__dirname, "../lib/import-export.js"), "utf8");
-
-let api;
+import { describe, it, expect } from "vitest";
+import api from "../lib/import-export.js";
 
 function fakeStore(initial = {}) {
   const data = { ...initial };
@@ -22,13 +17,6 @@ function fakeStore(initial = {}) {
     _data: data,
   };
 }
-
-beforeEach(() => {
-  const scope = {};
-  // eslint-disable-next-line no-new-func
-  new Function("window", "self", "globalThis", "module", `${SRC}`)(scope, scope, scope, undefined);
-  api = scope.QM_IMPORT_EXPORT;
-});
 
 describe("import-export.exportAll", () => {
   it("returns schema + only the keys present in the store", async () => {

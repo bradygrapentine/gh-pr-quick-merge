@@ -1,9 +1,93 @@
-# Security Review — gh-pr-quick-merge
+# Security policy & audit log
 
-**Original review:** v0.1.0 (2026-04-29).
+## Reporting a vulnerability
+
+If you find a security issue in PR Quick Merge, **do not** open a public GitHub issue. Email **grapentineb@gmail.com** with:
+
+- A clear description of the issue and its impact.
+- Steps to reproduce (or a proof of concept).
+- Browser + extension version where you reproduced it.
+
+Expect a first response within 5 business days. Confirmed issues will be fixed in a patch release; reporters are credited in the changelog with their permission.
+
+### Scope
+
+In scope:
+
+- The browser extension's runtime: `content.js`, `background.js`, `popup.*`, `options.*`, all `lib/*`.
+- The Sentry sanitization filter (`lib/sentry-sanitize.js`).
+- OAuth Device Flow handling (`auth.js`).
+- Build / packaging scripts (`scripts/package.sh`, `scripts/release.sh`).
+
+Out of scope:
+
+- Issues in third-party libraries that don't affect PR Quick Merge's behavior; report those upstream.
+- Findings that require the user to install a malicious extension or grant credentials to an attacker — those are out-of-band for any browser extension.
+
+## Threat model
+
+PR Quick Merge is intentionally simple to keep the trust surface small:
+
+- **No first-party server.** The browser talks directly to `api.github.com`. There is no PR Quick Merge backend that could be compromised.
+- **Token never leaves the device.** GitHub OAuth Device Flow tokens (or PATs) are stored in `chrome.storage.local`. They are read by the extension's content script and sent only as `Authorization: Bearer …` headers to `api.github.com`.
+- **OAuth Device Flow is user-supplied.** The Client ID is registered in the user's own GitHub developer settings. There is no developer-owned client secret in the chain.
+- **No remote code.** CSP locks scripts to `self`; no `eval`, no remote `<script>` injection, no third-party SDK loaded at runtime in the shipped bundle.
+
+## v1.0 audit (2026-04-29)
+
+Reviewed: diff `v0.2.0..main` (PRs #18–#25). All v0.1 findings F-01 through F-09 and F-15 are closed (see history below). Remaining items from the v0.1 review:
+
+- **F-10** — deferred indefinitely. Pro paywall replaced with a donation prompt (PR #20); no license enforcement is needed now or for v1.0.
+- **F-13, F-14** — informational, still apply (innerHTML uses only static literals; no runtime npm deps shipped to the user).
+
+### v1.0 hardening checklist
+
+| Control | Status |
+|---|---|
+| Manifest CSP: `script-src 'self'; object-src 'self'; base-uri 'none'` | ✅ |
+| `host_permissions` minimal: `api.github.com`, `github.com/login/device/code`, `github.com/login/oauth/access_token` | ✅ |
+| Runtime permissions minimal: `storage`, `management`, `alarms` | ✅ |
+| No `eval()` / `new Function()` in shipped source | ✅ verified by grep |
+| Sentry payloads redacted before transmit (`lib/sentry-sanitize.js`) | ✅ 18 unit tests |
+| Token never logged or transmitted to non-GitHub hosts | ✅ |
+| `innerHTML` interpolations only over constants (no user-controlled strings) | ✅ audited |
+| GitHub repo: secret scanning + push protection | ✅ enabled |
+| GitHub repo: Dependabot security updates | ⚠ disabled — see launch checklist |
+| Branch protection on `main`: required CI green | ⚠ not configured — see launch checklist |
+
+The two ⚠ items are GitHub repo-settings (not code) and are tracked as v1.0 launch-checklist stories in `BACKLOG.md` (QM-167, QM-168).
+
+### New code surface reviewed in this audit
+
+- `lib/api.js` — centralised GitHub REST helpers. `apiPost`/`apiPut` send `Authorization: Bearer …` only when `token` is supplied; no token leaks to other hosts because `path` is always concatenated with `https://api.github.com` (or absolute `https://...github.com` URLs the caller already approved). ✅
+- `lib/update-branch.js`, `lib/merge-queue.js`, `lib/auto-rebase.js` — pure orchestration over `lib/api.js`. No new network destinations. Queue size capped at `MAX_ENTRIES=10` to bound API rate-limit impact. ✅
+- `lib/bulk-ops.js`, `lib/list-mode.js` — same pattern; per-PR error capture prevents one bad request from leaking via stack traces. ✅
+- `background.js` — merge-queue poller fires once per minute and only on entries the user explicitly enqueued. Reads token from `chrome.storage.local`; never logs it. Per-entry `try/catch` so one bad PR can't take the tick down. ✅
+- `content.js` `injectRowActions` — only renders buttons; no DOM injection of user-controlled strings. The donation modal's only template-string interpolation is `${SPONSORS_URL}`, a const. ✅
+- `lib/sentry-init.js` — boots the SDK only when a vendored bundle is present **and** a DSN is configured. Default state is no-op so a half-configured build cannot silently transmit telemetry. ✅
+- `creative/store-copy/BUILD.md` — AMO source-disclosure recipe is byte-reproducible. ✅
+
+### Findings (v1.0)
+
+**0 critical, 0 high, 0 medium.** Two repo-setting warnings (above) tracked as launch-checklist items.
+
+---
+
+## Audit log
+
+| Date | Reviewer | Scope | Findings |
+|---|---|---|---|
+| 2026-04-29 | self (v1.0 polish) | diff `v0.2.0..main` (PRs #18–#25) | 0 critical, 0 high, 0 medium; 2 repo-settings warnings → BACKLOG.md QM-167/168 |
+| 2026-04-29 | self | QM-019 closure | F-03, F-05, F-06, F-15 closed |
+| 2026-04-29 | self (v0.1.0) | initial | 8 of 15 findings closed in PR #1; see "History" below |
+
+---
+
+## History — original v0.1.0 review (kept for context)
+
 **Closed in PR #1 (Wave 2 partial):** F-01, F-02, F-04, F-07, F-08, F-09, F-11, F-12 (8 of 15).
 **Closed in PR for QM-019:** F-03, F-05, F-06, F-15 (4 more).
-**Remaining:** F-10 (deferred to v1.0 — needs license server, tracked as QM-030); F-13 + F-14 (informational, no action needed).
+**Remaining:** F-10 (deferred; donation-funded v1.0 means no paywall to enforce); F-13 + F-14 (informational, no action needed).
 
 
 ## Summary

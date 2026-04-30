@@ -1,17 +1,5 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { readFileSync } from "node:fs";
-import path from "node:path";
-
-const SRC = readFileSync(path.resolve(__dirname, "../lib/api.js"), "utf8");
-
-let api;
-
-function loadApi() {
-  const scope = {};
-  // eslint-disable-next-line no-new-func
-  new Function("window", "self", "globalThis", "module", `${SRC}`)(scope, scope, scope, undefined);
-  api = scope.QM_API;
-}
+import { describe, it, expect } from "vitest";
+import api from "../lib/api.js";
 
 function makeRes({ status = 200, body = {}, ok } = {}) {
   return {
@@ -20,10 +8,6 @@ function makeRes({ status = 200, body = {}, ok } = {}) {
     json: async () => body,
   };
 }
-
-beforeEach(() => {
-  loadApi();
-});
 
 describe("api.apiGet", () => {
   it("calls fetch with API_BASE prefix when path starts with /", async () => {

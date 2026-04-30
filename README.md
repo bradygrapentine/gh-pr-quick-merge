@@ -1,6 +1,6 @@
 # GitHub PR Quick Merge
 
-**Status:** v0.2.0 — first public release. OAuth device flow, real icons, bulk-merge UI (gated behind Pro modal), toolbar popup, per-repo default merge method, 149 unit tests, GitHub Actions CI with required `web-ext lint`, 12 of 15 SECURITY findings closed. See [ROADMAP.md](./ROADMAP.md), [CHANGELOG.md](./CHANGELOG.md).
+**Status:** v0.4.0 — v1.0 launch candidate. All v0.3 polish (templates, shortcuts, stale badge, popup manage) and v0.4 row-actions (Update branch / Merge-when-Green / Auto-Rebase / bulk close / bulk label / per-repo stale threshold / fast list mode) shipped. 284 unit tests at 95% line coverage; Playwright E2E suite scaffolded (20 specs); GitHub Sponsors live; Sentry crash-reporting sanitiser ready (SDK vendoring is the last pre-launch follow-up). See [ROADMAP.md](./ROADMAP.md), [CHANGELOG.md](./CHANGELOG.md), [docs/v1-launch-checklist.md](./docs/v1-launch-checklist.md), [SECURITY.md](./SECURITY.md).
 
 Squash, merge, or rebase pull requests directly from the GitHub Pull Requests list — no need to open each PR.
 
