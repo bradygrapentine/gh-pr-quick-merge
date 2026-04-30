@@ -11,9 +11,14 @@ import { test, expect } from '../fixtures/base';
  */
 test.describe('visual: pr-page action bar', () => {
   async function mountFixture(page: any, extensionId: string) {
+    // Popup is normally ~360×500; resize so modal overlay (position:fixed;
+    // inset:0) has room to render fully — playwright's toBeVisible
+    // counts elements clipped by the viewport as hidden.
+    await page.setViewportSize({ width: 800, height: 600 });
     await page.goto(`chrome-extension://${extensionId}/popup.html`);
     await page.evaluate(() => {
       document.body.innerHTML = '';
+      document.body.style.minHeight = '600px';
       // Re-import the module — popup.html doesn't ship it yet, so add it
       // dynamically. The script is bundled with the extension and
       // available via a relative path.
