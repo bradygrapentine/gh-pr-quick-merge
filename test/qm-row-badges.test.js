@@ -32,10 +32,14 @@ describe("buildSizeBadge", () => {
 
 describe("buildCommentsBadge", () => {
   const pr = { owner: "octo", repo: "world", num: 5 };
-  it("renders bubble + count and links to #issue-comment-area", () => {
+  it("renders bubble + count and stores the comments href on a data attr", () => {
+    // Span with role=link rather than <a> — the strip mounts inside
+    // the row title <a>, and nested anchors would split the title.
     const el = buildCommentsBadge({ comments: 3 }, pr);
+    expect(el.tagName).toBe("SPAN");
+    expect(el.getAttribute("role")).toBe("link");
     expect(el.textContent).toBe("💬 3");
-    expect(el.getAttribute("href")).toBe("/octo/world/pull/5#issue-comment-area");
+    expect(el.dataset.qmCommentsHref).toBe("/octo/world/pull/5#issue-comment-area");
   });
   it("hides when count is zero or missing", () => {
     expect(buildCommentsBadge({ comments: 0 }, pr)).toBeNull();
