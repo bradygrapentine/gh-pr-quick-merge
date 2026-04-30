@@ -111,9 +111,10 @@ body[data-qm-density="compact"] {
   font-size: var(--qm-pop-fs-cap);
   font-weight: 700;
   letter-spacing: var(--qm-pop-tr-cap);
-  color: var(--qm-accent, #1f6feb);
-  background: var(--qm-accent-medium);
-  padding: 1px 6px;
+  color: var(--qm-fg-subtle, #57606a);
+  background: transparent;
+  border: 1px solid var(--qm-border, #d0d7de);
+  padding: 0 5px;
   border-radius: 3px;
   text-transform: uppercase;
 }
@@ -155,12 +156,9 @@ body[data-qm-density="compact"] {
 .qm-popup-summary-sync {
   font-size: var(--qm-pop-fs-meta);
   font-weight: 500;
-  color: var(--qm-accent, #1f6feb);
-  background: var(--qm-accent-soft);
-  padding: 2px 8px;
-  border-radius: 999px;
+  color: var(--qm-fg-subtle, #57606a);
   font-variant-numeric: tabular-nums;
-  align-self: flex-start;
+  /* Sync timestamp is metadata; let the vitals stat carry the headline. */
 }
 
 /* ─── Status banner (between vitals and stream) ─────────────────────── */
@@ -275,14 +273,12 @@ body[data-qm-density="compact"] {
 
 /* ─── 5 · Footer ────────────────────────────────────────────────────── */
 .qm-popup-footer {
-  border-top: 1px solid var(--qm-accent-medium);
+  border-top: 1px solid var(--qm-border, #d0d7de);
   padding: var(--qm-pop-pad-tight) var(--qm-pop-pad-x);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background:
-    linear-gradient(0deg, var(--qm-accent-soft), transparent),
-    var(--qm-surface-1, #f6f8fa);
+  background: var(--qm-surface-1, #f6f8fa);
 }
 .qm-popup-footer-pin {
   font-size: 11px;
