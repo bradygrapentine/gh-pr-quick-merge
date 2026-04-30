@@ -1498,6 +1498,8 @@ async function refreshPrPageActionBar() {
         handlers: {
           onRebaseClick: () => onPrPageRebaseClick(parts, prState),
           onApproveClick: () => onPrPageApproveClick(parts, prState),
+          onMergeClick: () => onPrPageMergeClick(parts, prState, "merge"),
+          onSquashClick: () => onPrPageMergeClick(parts, prState, "squash"),
         },
       });
     } catch (_e) {
@@ -1565,6 +1567,29 @@ async function onPrPageApproveClick(parts, prState) {
     refreshPrPageActionBar();
   } catch (e) {
     toast(`Approve failed: ${e && e.message ? e.message : "unknown"}`, "err");
+  }
+}
+
+// Merge / Squash from the PR-page action bar. `kind` is "merge" or
+// "squash"; we reuse the existing doMerge() so commit-message templates
+// + repo-default routing carry over from the /pulls list path.
+async function onPrPageMergeClick(parts, prState, kind) {
+  const PR_ACTIONS = self.QM_PR_PAGE_ACTIONS;
+  if (!PR_ACTIONS) return;
+  const sel = `[data-qm-action="${kind}"]`;
+  const trigger = document.querySelector(`#${PR_ACTIONS.BAR_ID} ${sel}`);
+  const confirmed = await PR_ACTIONS.showActionConfirmModal({ trigger, action: kind });
+  if (!confirmed) return;
+  try {
+    const pr = { owner: parts.owner, repo: parts.repo, num: parts.num };
+    await doMerge({ pr, kind, token: state.token, headSha: prState && prState.head_sha });
+    toast(`${kind === "squash" ? "Squashed" : "Merged"} ${pr.owner}/${pr.repo}#${pr.num}`, "ok");
+    // Force a state refetch — bar will hide once mergeable_state flips
+    // off "clean" (PR is now closed).
+    state.cache.delete(prKey(parts));
+    setTimeout(refreshPrPageActionBar, 800);
+  } catch (e) {
+    toast(`${kind === "squash" ? "Squash" : "Merge"} failed: ${e && e.message ? e.message : "unknown"}`, "err");
   }
 }
 
