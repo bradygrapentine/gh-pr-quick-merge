@@ -1,0 +1,19 @@
+# GitHub Pages config — serves docs/ via the default Cayman theme so the
+# privacy policy + release docs render as HTML at
+#   https://bradygrapentine.github.io/gh-pr-quick-merge/<page>
+#
+# Required by Chrome Web Store + AMO submissions, which both demand a stable
+# HTTPS URL for the privacy policy (QM-170).
+title: PR Quick Merge
+description: Squash, merge, or rebase pull requests directly from the GitHub Pull Requests list.
+theme: jekyll-theme-cayman
+markdown: kramdown
+url: https://bradygrapentine.github.io
+baseurl: /gh-pr-quick-merge
+exclude:
+  - runbook-external-services.md
+  - runbook-release.md
+  - sop-staged-rollout.md
+  - snapshot-update.md
+  - store-submission-guide.md
+  - v1-launch-checklist.md
