@@ -510,6 +510,10 @@ async function injectRow(row) {
   if (rowWidget) rowWidget.setState(prState);
   applyStaleBadge(container, prState, pr);
   applyRowBadgesAndCi(container, prState, pr, token);
+  // Re-apply the active filter to this newly-injected row. Cheap — the
+  // keeper fn is one chain of predicates and the row count is bounded by
+  // GitHub's page size.
+  if (typeof reapplyFilters === "function") reapplyFilters();
   if (state.listMode) {
     const note = document.createElement("span");
     note.className = "qm-list-mode-note";
@@ -1345,6 +1349,7 @@ async function start() {
   observer.observe(document.body, { childList: true, subtree: true });
   renderBulkBar();
   refreshPrPageActionBar();
+  initFilterBar();
 }
 
 if (document.readyState === "loading") {
@@ -1356,11 +1361,72 @@ if (document.readyState === "loading") {
 document.addEventListener("turbo:render", () => {
   scan();
   refreshPrPageActionBar();
+  initFilterBar();
 });
 document.addEventListener("pjax:end", () => {
   scan();
   refreshPrPageActionBar();
+  initFilterBar();
 });
+
+// === Epic 11 Track B — quick-filter bar (QM-504..508) ====================
+
+const filterState = {
+  filters: {},
+  keeperFn: () => true,
+};
+
+async function initFilterBar() {
+  const FILTER_BAR = self.QM_FILTER_BAR;
+  const FILTERS = self.QM_FILTERS;
+  if (!FILTER_BAR || !FILTERS) return;
+  // Mount on /pulls list pages only — not on individual PR pages, where
+  // there's no row list to filter.
+  const onListPage = location.pathname.endsWith("/pulls")
+    || /\/pulls(\?|$)/.test(location.pathname + location.search)
+    || /^\/pulls/.test(location.pathname);
+  if (!onListPage) {
+    FILTER_BAR.removeFilterBar();
+    return;
+  }
+  filterState.filters = await FILTER_BAR.loadFilters();
+  FILTER_BAR.ensureFilterBar({
+    filters: filterState.filters,
+    onChange: async (next) => {
+      filterState.filters = next;
+      await FILTER_BAR.saveFilters(next);
+      reapplyFilters();
+    },
+  });
+  reapplyFilters();
+}
+
+function reapplyFilters() {
+  const FILTERS = self.QM_FILTERS;
+  if (!FILTERS) return;
+  const STALE = self.QM_STALE_PR;
+  const SIZER = self.QM_SIZE;
+  const ctx = {
+    viewerLogin: prPageState.viewer && prPageState.viewer.login,
+    staleHelpers: STALE,
+    sizer: SIZER,
+    staleThresholds: STALE && STALE.DEFAULT_THRESHOLDS,
+  };
+  filterState.keeperFn = FILTERS.composeFilter(filterState.filters, ctx);
+  const rows = document.querySelectorAll(".js-issue-row[data-qm-injected='true']");
+  FILTERS.applyFiltersToRows(filterState.keeperFn, rows, (row) => {
+    const link = (self.QM_GITHUB_SELECTORS && self.QM_GITHUB_SELECTORS.findPrAnchor)
+      ? self.QM_GITHUB_SELECTORS.findPrAnchor(row)
+      : row.querySelector("a[href*='/pull/']");
+    const parsed = link && self.QM_HELPERS && self.QM_HELPERS.parsePrLink
+      ? self.QM_HELPERS.parsePrLink(link.getAttribute("href") || "")
+      : null;
+    if (!parsed) return null;
+    const cached = state.cache.get(prKey(parsed));
+    if (!cached || cached.error) return null;
+    return { state: cached, pr: { ...parsed, author: cached.author } };
+  });
+}
 
 // === Epic 10 — PR-page action bar (QM-402..408) ============================
 //
