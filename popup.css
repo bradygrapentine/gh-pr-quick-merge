@@ -102,6 +102,35 @@ body[data-qm-density="compact"] {
     var(--qm-surface-1, #f6f8fa);
   border-bottom: 1.5px solid var(--qm-accent, #1f6feb);
   gap: 10px;
+  overflow: hidden;
+}
+/* Refine pass 8 (overdrive): a thin accent scan line sweeps L→R across
+ * the brand band's bottom edge whenever the popup is refreshing. JS adds
+ * .qm-popup-syncing on the body during loadAndRender; this rule paints
+ * the line as a pseudo-element so it doesn't flow with content. */
+.qm-popup-header::after {
+  content: "";
+  position: absolute;
+  left: -40%;
+  bottom: 0;
+  width: 40%;
+  height: 1.5px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--qm-accent, #1f6feb),
+    transparent
+  );
+  opacity: 0;
+  pointer-events: none;
+}
+body.qm-popup-syncing .qm-popup-header::after {
+  opacity: 1;
+  animation: qm-pop-scan 1.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes qm-pop-scan {
+  0%   { left: -40%; }
+  100% { left: 100%; }
 }
 .qm-popup-brand {
   display: inline-flex;
@@ -123,6 +152,27 @@ body[data-qm-density="compact"] {
     0 6px 14px -8px var(--qm-accent, #1f6feb);
 }
 .qm-popup-brand-slot svg { width: 16px; height: 16px; }
+/* Refine pass 8 (overdrive): the brand mark draws itself in on first
+ * paint — a CLI/terminal vibe consistent with PRODUCT.md anchor refs
+ * (Vercel CLI dashboards, Stripe docs). Stroked paths animate dasharray
+ * → 0; the filled circles fade in after, on a stagger. */
+.qm-popup-brand-slot path {
+  stroke-dasharray: 50;
+  stroke-dashoffset: 50;
+  animation: qm-pop-brand-draw 700ms cubic-bezier(0.16, 1, 0.3, 1) 80ms forwards;
+}
+.qm-popup-brand-slot circle {
+  opacity: 0;
+  animation: qm-pop-brand-pop 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.qm-popup-brand-slot circle:nth-of-type(1) { animation-delay: 580ms; }
+.qm-popup-brand-slot circle:nth-of-type(2) { animation-delay: 700ms; }
+.qm-popup-brand-slot circle:nth-of-type(3) { animation-delay: 820ms; }
+@keyframes qm-pop-brand-draw { to { stroke-dashoffset: 0; } }
+@keyframes qm-pop-brand-pop {
+  from { opacity: 0; transform: scale(0.6); transform-origin: center; }
+  to   { opacity: 1; transform: scale(1); }
+}
 .qm-popup-header .qm-wordmark {
   font-size: var(--qm-pop-fs-body);
   font-weight: 700;

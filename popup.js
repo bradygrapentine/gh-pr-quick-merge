@@ -276,13 +276,16 @@ async function loadAndRender() {
   hideEmptyState();
   setStatus("Loading…");
   state.rowErrors.clear();
-  // Spin the refresh glyph while the fetch is in flight (refine pass 6).
+  // Spin the refresh glyph while the fetch is in flight (refine pass 6)
+  // and run the brand-band scan line (refine pass 8 / overdrive).
   const refreshBtn = $("refreshBtn");
   if (refreshBtn) refreshBtn.classList.add("qm-spinning");
+  document.body.classList.add("qm-popup-syncing");
   try {
     return await _loadAndRenderInner();
   } finally {
     if (refreshBtn) refreshBtn.classList.remove("qm-spinning");
+    document.body.classList.remove("qm-popup-syncing");
   }
 }
 
