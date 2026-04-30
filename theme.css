@@ -457,6 +457,10 @@
   /* Per-state shadow — peripheral vision can read 'ready' / 'blocked' from
    * the row's tint alone before focusing on the pill itself. */
   --qm-rw-state-glow: transparent;
+  /* Motion. ease-out-quint per the design laws. */
+  --qm-rw-mo-fast: 120ms cubic-bezier(0.22, 1, 0.36, 1);
+  --qm-rw-mo-med: 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: box-shadow var(--qm-rw-mo-med);
 }
 .qm-row-widget:has(.qm-row-widget-status[data-state="ready"]) {
   --qm-rw-state-glow: color-mix(in oklch, var(--qm-success) 30%, transparent);
@@ -490,6 +494,9 @@
   color: var(--qm-fg-muted);
   border-right: 1px solid var(--qm-border);
   font-variant-numeric: tabular-nums;
+  transition:
+    background-color var(--qm-rw-mo-med),
+    color var(--qm-rw-mo-med);
 }
 .qm-row-widget-status[data-kind="success"] {
   color: var(--qm-success);
@@ -524,6 +531,9 @@
    * STATE × ACTION, not STATE × NEUTRAL_CHROME. */
   background: var(--qm-accent) !important;
   color: var(--qm-accent-fg, #fff) !important;
+  transition:
+    background-color var(--qm-rw-mo-fast),
+    color var(--qm-rw-mo-fast);
 }
 .qm-row-widget-main:hover:not(:disabled) {
   background: color-mix(in oklch, var(--qm-accent) 92%, black) !important;
@@ -587,6 +597,18 @@
 }
 
 /* Caret menu (QM-207) */
+@keyframes qm-row-widget-menu-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qm-row-widget,
+  .qm-row-widget-status,
+  .qm-row-widget-main,
+  .qm-row-widget-caret { transition: none !important; }
+  .qm-row-widget-spinner,
+  .qm-row-widget-menu { animation: none !important; }
+}
 .qm-row-widget-menu {
   position: absolute;
   top: calc(100% + 4px);
@@ -597,6 +619,8 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  transform-origin: top right;
+  animation: qm-row-widget-menu-in var(--qm-rw-mo-med) both;
 }
 .qm-row-widget-menuitem {
   appearance: none;
