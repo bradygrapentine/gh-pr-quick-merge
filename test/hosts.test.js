@@ -141,3 +141,40 @@ describe("hosts/github/selectors — extracted from content.js", () => {
     expect(out).toEqual({ owner: "octocat", repo: "hello-world", num: 42 });
   });
 });
+
+describe("hosts/github/selectors — isPullRequestPage (QM-400)", () => {
+  // Truth table covers: list pages (false), PR pages with sub-tabs
+  // (true), issue pages (false), profile / dashboard pages (false),
+  // and edge cases (numeric repo names, empty path, query strings).
+  it.each([
+    // [pathname, expected, description]
+    ["/octocat/hello-world/pull/1", true, "canonical PR url"],
+    ["/octocat/hello-world/pull/42", true, "multi-digit PR number"],
+    ["/octocat/hello-world/pull/1/files", true, "PR files sub-tab"],
+    ["/octocat/hello-world/pull/1/commits", true, "PR commits sub-tab"],
+    ["/octocat/hello-world/pull/1/checks", true, "PR checks sub-tab"],
+    ["/123-org/456-repo/pull/7", true, "numeric-prefixed owner / repo"],
+    ["/pulls", false, "global PR list"],
+    ["/octocat/hello-world/pulls", false, "repo PR list"],
+    ["/octocat/hello-world/issues/1", false, "issue page"],
+    ["/octocat/hello-world/pull", false, "missing PR number"],
+    ["/octocat/hello-world/pull/", false, "trailing slash, no number"],
+    ["/octocat/hello-world/pull/abc", false, "non-numeric PR id"],
+    ["/octocat", false, "user profile"],
+    ["/", false, "root"],
+    ["", false, "empty path"],
+  ])("isPullRequestPage(%j) -> %s (%s)", (path, expected) => {
+    expect(githubSelectors.isPullRequestPage(path)).toBe(expected);
+  });
+
+  it("falls back to location.pathname when called with no arg", () => {
+    const original = window.location.pathname;
+    // happy-dom allows direct assignment to location.pathname.
+    window.history.replaceState({}, "", "/octocat/hello-world/pull/9");
+    try {
+      expect(githubSelectors.isPullRequestPage()).toBe(true);
+    } finally {
+      window.history.replaceState({}, "", original);
+    }
+  });
+});

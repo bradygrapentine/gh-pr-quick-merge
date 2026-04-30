@@ -1326,6 +1326,7 @@ async function start() {
   scan();
   observer.observe(document.body, { childList: true, subtree: true });
   renderBulkBar();
+  refreshPrPageActionBar();
 }
 
 if (document.readyState === "loading") {
@@ -1334,8 +1335,142 @@ if (document.readyState === "loading") {
   start();
 }
 
-document.addEventListener("turbo:render", () => scan());
-document.addEventListener("pjax:end", () => scan());
+document.addEventListener("turbo:render", () => {
+  scan();
+  refreshPrPageActionBar();
+});
+document.addEventListener("pjax:end", () => {
+  scan();
+  refreshPrPageActionBar();
+});
+
+// === Epic 10 — PR-page action bar (QM-402..408) ============================
+//
+// Mounts the always-visible rebase / approve bar on /<o>/<r>/pull/<n>.
+// Decision logic + DOM live in lib/qm-pr-page-actions.js; this glue
+// wires it to content-script context (chrome.storage, fetch, toast).
+
+const prPageState = {
+  writePermDenied: false,
+  viewer: null,
+  inFlight: null,
+};
+
+async function fetchViewer(token) {
+  if (!token) return null;
+  if (prPageState.viewer) return prPageState.viewer;
+  try {
+    const data = await API_HELPERS.apiGet("/user", { token });
+    if (data && data.login) prPageState.viewer = { login: data.login };
+    return prPageState.viewer;
+  } catch (_e) {
+    return null;
+  }
+}
+
+async function refreshPrPageActionBar() {
+  const SELECTORS = self.QM_GITHUB_SELECTORS;
+  const PR_ACTIONS = self.QM_PR_PAGE_ACTIONS;
+  if (!SELECTORS || !PR_ACTIONS) return;
+  if (!SELECTORS.isPullRequestPage()) {
+    PR_ACTIONS.removePrPageActionBar();
+    return;
+  }
+  const parts = PR_ACTIONS.parsePrPagePath(location.pathname);
+  if (!parts) {
+    PR_ACTIONS.removePrPageActionBar();
+    return;
+  }
+  const token = state.token;
+  if (!token) {
+    PR_ACTIONS.removePrPageActionBar();
+    return;
+  }
+
+  // Avoid stacking concurrent fetches on rapid soft-nav.
+  if (prPageState.inFlight) return;
+  prPageState.inFlight = (async () => {
+    try {
+      // Bypass the row-state cache so the bar reflects the freshest
+      // mergeable_state — list-page cache TTL is too long for the PR
+      // page, where the user just navigated to take an action.
+      state.cache.delete(prKey(parts));
+      const [prState, viewer] = await Promise.all([
+        fetchPrState(parts, token),
+        fetchViewer(token),
+      ]);
+      if (!SELECTORS.isPullRequestPage()) return; // navigated away mid-fetch
+      PR_ACTIONS.ensurePrPageActionBar({
+        state: prState || {},
+        viewer,
+        writePermDenied: prPageState.writePermDenied,
+        handlers: {
+          onRebaseClick: () => onPrPageRebaseClick(parts, prState),
+          onApproveClick: () => onPrPageApproveClick(parts, prState),
+        },
+      });
+    } catch (_e) {
+      // Network errors leave the bar untouched — better than blanking.
+    } finally {
+      prPageState.inFlight = null;
+    }
+  })();
+}
+
+async function onPrPageRebaseClick(parts, prState) {
+  const PR_ACTIONS = self.QM_PR_PAGE_ACTIONS;
+  const updateLib = self.QM_UPDATE_BRANCH;
+  if (!PR_ACTIONS || !updateLib) return;
+  const trigger = document.querySelector(`#${PR_ACTIONS.BAR_ID} [data-qm-action="rebase"]`);
+  const confirmed = await PR_ACTIONS.showRebaseConfirmModal({ trigger });
+  if (!confirmed) return;
+  try {
+    const sync = await chrome.storage.sync.get("updateBranchStrategy");
+    const strategy = sync && sync.updateBranchStrategy === "rebase" ? "rebase" : "merge";
+    await updateLib.updateBranch({
+      owner: parts.owner,
+      repo: parts.repo,
+      pullNumber: parts.num,
+      expectedHeadSha: prState && prState.head_sha,
+      strategy,
+      token: state.token,
+      api: API_HELPERS,
+    });
+    toast(`Update queued for ${parts.owner}/${parts.repo}#${parts.num}`, "ok");
+    // Refresh in-place so the bar re-renders against fresh state.
+    setTimeout(refreshPrPageActionBar, 1500);
+  } catch (e) {
+    if (e && e.name === "UpdateConflictError") {
+      toast("Branch changed since fetch — refreshing", "warn");
+      setTimeout(refreshPrPageActionBar, 250);
+    } else if (e && e.name === "UpdateForbiddenError") {
+      prPageState.writePermDenied = true;
+      toast("No write permission — opening merge panel link", "err");
+      refreshPrPageActionBar();
+    } else {
+      toast(`Update failed: ${e && e.message ? e.message : "unknown"}`, "err");
+    }
+  }
+}
+
+async function onPrPageApproveClick(parts, prState) {
+  const PR_ACTIONS = self.QM_PR_PAGE_ACTIONS;
+  if (!PR_ACTIONS) return;
+  try {
+    await PR_ACTIONS.submitReview({
+      owner: parts.owner,
+      repo: parts.repo,
+      pullNumber: parts.num,
+      token: state.token,
+      api: API_HELPERS,
+    });
+    toast(`Approved ${parts.owner}/${parts.repo}#${parts.num}`, "ok");
+    if (prState) prState.viewer_has_approved = true;
+    refreshPrPageActionBar();
+  } catch (e) {
+    toast(`Approve failed: ${e && e.message ? e.message : "unknown"}`, "err");
+  }
+}
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName === "sync") {

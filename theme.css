@@ -44,6 +44,18 @@
   --qm-danger-soft: oklch(96% 0.04 25);
   --qm-info: oklch(58% 0.16 240);
 
+  /* Action colors (QM-407) — semantic per merge action. Each maps to a
+   * status hue so the rebase warning stays the same yellow as `qm-warn`,
+   * approve stays the same blue as `qm-info`, etc. The aliases exist so
+   * action-specific markup can read intent directly without callers
+   * having to remember which status maps to which action. */
+  --qm-color-merge: var(--qm-success);
+  --qm-color-rebase: var(--qm-warn);
+  --qm-color-rebase-soft: var(--qm-warn-soft);
+  --qm-color-approve: var(--qm-info);
+  --qm-color-squash: oklch(58% 0.18 280); /* purple — same as --qm-accent */
+  --qm-color-close: var(--qm-danger);
+
   /* Type stacks — fall back through system fonts so we don't ship .woff2
    * yet (deferred to a follow-up; AMO source-disclosure + CSP review). */
   --qm-font-sans: "Inter Tight", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
@@ -811,4 +823,124 @@
   background: var(--qm-surface-2);
   border-radius: 3px;
   padding: 1px 5px;
+}
+
+/* === PR-page action bar (QM-402..408) ===================================
+ *
+ * Injected on /<owner>/<repo>/pull/<n> next to GitHub's merge-status
+ * panel. Rebase button is yellow (warn) — clicking opens a confirm
+ * modal. Approve button is blue (info) — single-click, no modal.
+ */
+.qm-pr-action-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+  padding: 8px 10px;
+  background: var(--qm-surface);
+  border: 1px solid var(--qm-border);
+  border-radius: var(--qm-r-2);
+  font-family: var(--qm-font-sans);
+}
+.qm-pr-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--qm-r-1);
+  border: 1px solid transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: filter 100ms ease;
+}
+.qm-pr-action:hover { filter: brightness(0.95); }
+.qm-pr-action:focus-visible {
+  outline: 2px solid var(--qm-fg);
+  outline-offset: 2px;
+}
+.qm-pr-action-rebase {
+  background: var(--qm-color-rebase);
+  color: #1a1a1a;
+  border-color: color-mix(in oklch, var(--qm-color-rebase) 70%, #000);
+}
+.qm-pr-action-approve {
+  background: var(--qm-color-approve);
+  color: #ffffff;
+  border-color: color-mix(in oklch, var(--qm-color-approve) 70%, #000);
+}
+.qm-pr-action-disabled,
+.qm-pr-action[disabled] {
+  background: var(--qm-surface-2);
+  color: var(--qm-fg-muted);
+  border-color: var(--qm-border);
+  cursor: not-allowed;
+}
+.qm-pr-action-link {
+  font-size: 12px;
+  color: var(--qm-info);
+  text-decoration: underline;
+}
+
+/* Confirmation modal (QM-403). Centered overlay with focus trap; the
+ * focus styles match the action bar so keyboard users see consistent
+ * affordances. */
+.qm-pr-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483600;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--qm-font-sans);
+}
+.qm-pr-modal {
+  background: var(--qm-bg);
+  color: var(--qm-fg);
+  border: 1px solid var(--qm-border);
+  border-radius: var(--qm-r-3);
+  box-shadow: var(--qm-shadow-pop);
+  padding: 20px 22px;
+  width: min(440px, 92vw);
+}
+.qm-pr-modal-title {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.qm-pr-modal-body {
+  margin: 0 0 16px 0;
+  font-size: 13px;
+  color: var(--qm-fg-muted);
+  line-height: 1.5;
+}
+.qm-pr-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.qm-pr-modal-cancel,
+.qm-pr-modal-confirm {
+  padding: 6px 14px;
+  border-radius: var(--qm-r-1);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.qm-pr-modal-cancel {
+  background: var(--qm-surface);
+  color: var(--qm-fg);
+  border: 1px solid var(--qm-border);
+}
+.qm-pr-modal-confirm {
+  background: var(--qm-color-rebase);
+  color: #1a1a1a;
+  border: 1px solid color-mix(in oklch, var(--qm-color-rebase) 70%, #000);
+}
+.qm-pr-modal-confirm:focus-visible,
+.qm-pr-modal-cancel:focus-visible {
+  outline: 2px solid var(--qm-fg);
+  outline-offset: 2px;
 }
