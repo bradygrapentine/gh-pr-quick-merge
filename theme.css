@@ -282,64 +282,84 @@
   font-family: var(--qm-font-sans);
 }
 .qm-toast {
+  position: relative;
   display: flex;
   align-items: stretch;
-  gap: 10px;
-  min-width: 240px;
-  max-width: 380px;
-  background: var(--qm-fg);
+  gap: 11px;
+  min-width: 260px;
+  max-width: 400px;
+  /* Tinted-toward-fg backgrounds + per-kind tint of the same hue. The bar
+   * is no longer a separate <span> visual — the toast itself carries
+   * subtle kind tinting via background, with a stronger left edge stripe
+   * via box-shadow inset (avoids the side-stripe-border anti-pattern). */
+  background: color-mix(in oklch, var(--qm-fg) 96%, var(--qm-success));
   color: var(--qm-bg);
-  border-radius: 8px;
-  padding: 10px 12px;
-  box-shadow: var(--qm-shadow-2);
+  border-radius: 9px;
+  padding: 11px 13px 11px 15px;
+  box-shadow:
+    var(--qm-shadow-2),
+    inset 4px 0 0 var(--qm-success);
   pointer-events: auto;
-  animation: qm-toast-in 160ms ease;
+  font-feature-settings: "ss01", "cv11";
+  animation: qm-toast-in 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.qm-toast[data-kind="warn"] {
+  background: color-mix(in oklch, var(--qm-fg) 95%, var(--qm-warn));
+  box-shadow: var(--qm-shadow-2), inset 4px 0 0 var(--qm-warn);
+}
+.qm-toast[data-kind="err"] {
+  background: color-mix(in oklch, var(--qm-fg) 94%, var(--qm-danger));
+  box-shadow: var(--qm-shadow-2), inset 4px 0 0 var(--qm-danger);
+}
+.qm-toast[data-kind="info"] {
+  background: color-mix(in oklch, var(--qm-fg) 94%, var(--qm-accent));
+  box-shadow: var(--qm-shadow-2), inset 4px 0 0 var(--qm-accent);
 }
 .qm-toast.qm-toast-leaving {
-  animation: qm-toast-out 160ms ease forwards;
+  animation: qm-toast-out 220ms cubic-bezier(0.55, 0, 0.6, 1) forwards;
 }
-.qm-toast-bar {
-  width: 4px;
-  border-radius: 2px;
-  background: var(--qm-success);
-  flex-shrink: 0;
-}
-.qm-toast[data-kind="warn"] .qm-toast-bar { background: var(--qm-warn); }
-.qm-toast[data-kind="err"] .qm-toast-bar  { background: var(--qm-danger); }
-.qm-toast[data-kind="info"] .qm-toast-bar { background: var(--qm-accent); }
-.qm-toast-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+/* Bar still rendered for callers that build the markup but it's now a
+ * vertical accent reservation — actual color comes from the inset shadow. */
+.qm-toast-bar { display: none; }
+.qm-toast-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .qm-toast-title {
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: 650;
   line-height: 1.2;
+  letter-spacing: -0.1px;
 }
 .qm-toast-sub {
   font-family: var(--qm-font-mono);
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.6);
-  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.62);
+  line-height: 1.35;
   word-break: break-word;
 }
 .qm-toast-close {
   appearance: none;
   background: transparent;
   border: 0;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.38);
   cursor: pointer;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1;
   padding: 0 2px;
   align-self: flex-start;
+  transition: color 140ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .qm-toast-close:hover { color: var(--qm-bg); }
 
 @keyframes qm-toast-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 @keyframes qm-toast-out {
-  from { opacity: 1; transform: translateY(0); }
-  to   { opacity: 0; transform: translateY(8px); }
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(20px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qm-toast,
+  .qm-toast-close { animation: none !important; transition: none !important; }
 }
 
 /* === Pro / Sponsor upsell card (QM-216) ===
@@ -349,52 +369,87 @@
  * GitHub" with no monthly-price line. If a paid tier ever ships, set
  * data-treatment="paid" to swap copy + show the price block.
  */
+@keyframes qm-sponsor-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes qm-sponsor-card-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
 .qm-sponsor-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.32);
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2147483641;
   font-family: var(--qm-font-sans);
+  animation: qm-sponsor-overlay-in 200ms ease-out both;
 }
 .qm-sponsor-card {
   position: relative;
-  width: 420px;
+  width: 440px;
   max-width: calc(100vw - 32px);
-  padding: 28px;
+  padding: 32px 30px 28px;
   border-radius: var(--qm-r-4);
   background: var(--qm-surface);
-  border: 1px solid var(--qm-border);
-  box-shadow: var(--qm-shadow-3);
+  border: 1px solid var(--qm-accent-medium);
+  box-shadow:
+    var(--qm-shadow-3),
+    0 32px 80px -32px var(--qm-accent-medium);
   color: var(--qm-fg);
   overflow: hidden;
+  font-feature-settings: "ss01", "cv11";
+  animation: qm-sponsor-card-in 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .qm-sponsor-card::before {
   content: "";
   position: absolute;
-  top: -40px;
-  right: -40px;
-  width: 160px;
-  height: 160px;
+  top: -50px;
+  right: -50px;
+  width: 200px;
+  height: 200px;
   border-radius: 50%;
-  background: var(--qm-accent-soft);
-  opacity: 0.6;
+  background: radial-gradient(
+    circle at 30% 30%,
+    var(--qm-accent),
+    var(--qm-accent-soft) 60%,
+    transparent
+  );
+  opacity: 0.35;
   pointer-events: none;
+  filter: blur(8px);
+}
+.qm-sponsor-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--qm-accent),
+    color-mix(in oklch, var(--qm-accent) 50%, transparent),
+    var(--qm-accent),
+    transparent
+  );
 }
 .qm-sponsor-content { position: relative; z-index: 1; }
 .qm-sponsor-title {
-  font-size: 20px;
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  margin: 14px 0 6px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  margin: 16px 0 8px;
 }
 .qm-sponsor-lede {
-  font-size: 13px;
+  font-size: 13.5px;
   color: var(--qm-fg-muted);
   line-height: 1.55;
-  margin: 0 0 18px;
+  margin: 0 0 20px;
+  letter-spacing: -0.05px;
 }
 .qm-sponsor-list {
   list-style: none;
@@ -407,21 +462,47 @@
 .qm-sponsor-list li {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-size: 13px;
+  padding: 4px 0;
 }
-.qm-sponsor-list .qm-sponsor-check { color: var(--qm-accent); }
+.qm-sponsor-list .qm-sponsor-check {
+  color: var(--qm-accent);
+  font-weight: 700;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--qm-accent-soft);
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
 .qm-sponsor-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
+.qm-sponsor-actions .qm-button-accent {
+  flex: 1;
+  font-weight: 700;
+  letter-spacing: -0.05px;
+  box-shadow: 0 8px 20px -10px var(--qm-accent, #1f6feb);
+  transition: transform 120ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.qm-sponsor-actions .qm-button-accent:hover { transform: translateY(-1px); }
+.qm-sponsor-actions .qm-button-accent:active { transform: translateY(0); }
 .qm-sponsor-footnote {
   font-size: 11px;
   color: var(--qm-fg-subtle);
   text-align: center;
-  margin-top: 10px;
+  margin-top: 14px;
 }
 .qm-sponsor-footnote a { color: var(--qm-fg-muted); text-decoration: underline; }
+@media (prefers-reduced-motion: reduce) {
+  .qm-sponsor-overlay,
+  .qm-sponsor-card,
+  .qm-sponsor-actions .qm-button-accent { animation: none !important; transition: none !important; }
+}
 
 /* === Row widget (QM-206..210) ===
  *

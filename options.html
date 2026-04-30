@@ -88,16 +88,23 @@
     .qm-table .qm-shortcut-combo.editing { background: var(--qm-warn-bg, #fff8c5); border-color: var(--qm-warn, #d4a72c); }
     .qm-table .qm-shortcut-edit { background: var(--qm-accent, #0969da); color: #fff; border: 0; border-radius: 4px; padding: 2px 10px; font-size: 11px; font-weight: 600; cursor: pointer; margin: 0; }
 
-    /* ─── Side-nav layout (QM-212) ───────────────────────────────────── */
+    /* ─── Side-nav layout (QM-212) — refined ─────────────────────────── */
+    @keyframes qm-options-pane-in {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
     .qm-options-shell {
       display: grid;
-      grid-template-columns: 180px 1fr;
+      grid-template-columns: 200px 1fr;
       min-height: 720px;
+      font-feature-settings: "ss01", "cv11";
     }
     .qm-options-nav {
-      background: var(--qm-surface-1, #f6f8fa);
+      background:
+        linear-gradient(180deg, color-mix(in oklch, var(--qm-accent, #0969da) 5%, transparent), transparent 40%),
+        var(--qm-surface-1, #f6f8fa);
       border-right: 1px solid var(--qm-border, #d0d7de);
-      padding: 16px 8px;
+      padding: 20px 10px;
       display: flex;
       flex-direction: column;
       gap: 2px;
@@ -105,37 +112,93 @@
     .qm-options-nav-brand {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 0 8px 12px;
-      margin-bottom: 4px;
+      gap: 9px;
+      padding: 0 8px 14px;
+      margin-bottom: 6px;
       border-bottom: 1px solid var(--qm-border, #d0d7de);
     }
-    .qm-options-nav-brand .qm-wordmark { font-size: 12.5px; font-weight: 700; }
-    .qm-options-nav-brand .qm-tag { font-family: ui-monospace, monospace; font-size: 9px; font-weight: 700; letter-spacing: 1px; color: var(--qm-fg-subtle, #57606a); background: var(--qm-surface-2, #eaeef2); padding: 1px 5px; border-radius: 3px; }
+    .qm-options-nav-brand .qm-wordmark {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: -0.1px;
+    }
+    .qm-options-nav-brand .qm-tag {
+      font-family: ui-monospace, monospace;
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.7px;
+      color: var(--qm-fg-subtle, #57606a);
+      background: transparent;
+      border: 1px solid var(--qm-border, #d0d7de);
+      padding: 0 5px;
+      border-radius: 3px;
+      text-transform: uppercase;
+    }
     .qm-options-nav-item {
       background: transparent;
       border: 0;
       text-align: left;
-      padding: 7px 12px;
+      padding: 8px 12px;
       font-size: 12.5px;
       font-weight: 500;
+      letter-spacing: -0.05px;
       color: var(--qm-fg, #1f2328);
       border-radius: 6px;
       cursor: pointer;
       font-family: inherit;
+      transition: background-color 140ms cubic-bezier(0.22, 1, 0.36, 1), color 140ms;
+      position: relative;
     }
-    .qm-options-nav-item:hover { background: var(--qm-surface-2, #eaeef2); }
+    .qm-options-nav-item:hover {
+      background: color-mix(in oklch, var(--qm-accent, #0969da) 8%, transparent);
+    }
     .qm-options-nav-item[aria-current="page"] {
       background: var(--qm-accent, #0969da);
       color: #fff;
+      font-weight: 600;
+      box-shadow:
+        0 1px 0 color-mix(in oklch, var(--qm-accent, #0969da) 30%, white) inset,
+        0 6px 14px -8px var(--qm-accent, #0969da);
+    }
+    .qm-options-nav-item[aria-current="page"]::before {
+      content: "";
+      position: absolute;
+      left: -10px;
+      top: 6px;
+      bottom: 6px;
+      width: 3px;
+      border-radius: 0 2px 2px 0;
+      background: var(--qm-accent, #0969da);
     }
     .qm-options-main {
-      padding: 20px 24px;
+      padding: 28px 32px 32px;
       overflow-y: auto;
     }
     .qm-options-pane[hidden] { display: none; }
-    .qm-options-pane h1 { font-size: 18px; margin: 0 0 4px; }
-    .qm-options-pane-lede { font-size: 12px; color: var(--qm-fg-subtle, #57606a); margin: 0 0 16px; }
+    .qm-options-pane:not([hidden]) {
+      /* `forwards` (not `both`) — Playwright's animation-disabled visual
+       * snapshots pause at frame 0; with `both` the pane persists
+       * opacity:0, breaking CI screenshots. Same fix as popup body. */
+      animation: qm-options-pane-in 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .qm-options-pane h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      margin: 0 0 6px;
+      line-height: 1.15;
+    }
+    .qm-options-pane-lede {
+      font-size: 13px;
+      color: var(--qm-fg-subtle, #57606a);
+      margin: 0 0 22px;
+      letter-spacing: -0.05px;
+      line-height: 1.45;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .qm-options-pane:not([hidden]),
+      .qm-options-nav-item { animation: none !important; transition: none !important; }
+    }
 
     /* ─── Appearance pane (QM-218) ───────────────────────────────────── */
     .qm-tweaks-row {
