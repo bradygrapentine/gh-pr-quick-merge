@@ -107,6 +107,24 @@ describe("pr-state — fetchPrState", () => {
     expect(out.behind_by).toBe(2);
   });
 
+  it("surfaces auto_merge when GitHub has it armed (QM-406 fallback signal)", async () => {
+    const fetchImpl = fakeFetch(
+      jsonRes({
+        head: {},
+        base: {},
+        auto_merge: { merge_method: "squash", enabled_by: { login: "carol" } },
+      })
+    );
+    const out = await fetchPrState(PR, "tok", { fetchImpl, cache: new Map() });
+    expect(out.auto_merge).toEqual({ merge_method: "squash", enabled_by: "carol" });
+  });
+
+  it("auto_merge is null when GitHub has no auto-merge armed", async () => {
+    const fetchImpl = fakeFetch(jsonRes({ head: {}, base: {} }));
+    const out = await fetchPrState(PR, "tok", { fetchImpl, cache: new Map() });
+    expect(out.auto_merge).toBeNull();
+  });
+
   it("defaults behind_by to 0 when GitHub omits it", async () => {
     const fetchImpl = fakeFetch(jsonRes({ head: {}, base: {} }));
     const out = await fetchPrState(PR, "tok", { fetchImpl, cache: new Map() });
