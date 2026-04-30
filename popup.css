@@ -46,6 +46,15 @@ body {
   /* Tabular figures everywhere a number lives — no jitter on re-render. */
   font-variant-numeric: tabular-nums;
   font-feature-settings: "ss01", "cv11";
+
+  /* Accent tint scale — color-mix derives shades from --qm-accent so the
+   * Tweaks panel's accent picker (QM-218) propagates everywhere automatically.
+   * Per PRODUCT.md principle 2 (committed accent: 30-60% of surface), these
+   * carry hover states, hairlines, and the brand-band spine. */
+  --qm-accent-soft: color-mix(in oklch, var(--qm-accent, #1f6feb) 8%, transparent);
+  --qm-accent-medium: color-mix(in oklch, var(--qm-accent, #1f6feb) 14%, transparent);
+  --qm-accent-strong: color-mix(in oklch, var(--qm-accent, #1f6feb) 28%, transparent);
+  --qm-accent-fg: #fff;
 }
 [data-qm-density="compact"] body,
 body[data-qm-density="compact"] {
@@ -64,8 +73,11 @@ body[data-qm-density="compact"] {
   align-items: center;
   justify-content: space-between;
   padding: var(--qm-pop-pad-tight) var(--qm-pop-pad-x);
-  border-bottom: 1px solid var(--qm-border, #d0d7de);
-  background: var(--qm-surface-1, #f6f8fa);
+  /* Accent-tinted surface + accent hairline as the visual spine. */
+  background:
+    linear-gradient(180deg, var(--qm-accent-soft), transparent),
+    var(--qm-surface-1, #f6f8fa);
+  border-bottom: 1.5px solid var(--qm-accent, #1f6feb);
   gap: 10px;
 }
 .qm-popup-brand {
@@ -93,8 +105,8 @@ body[data-qm-density="compact"] {
   font-size: var(--qm-pop-fs-cap);
   font-weight: 700;
   letter-spacing: var(--qm-pop-tr-cap);
-  color: var(--qm-fg-subtle, #57606a);
-  background: var(--qm-surface-2, #eaeef2);
+  color: var(--qm-accent, #1f6feb);
+  background: var(--qm-accent-medium);
   padding: 1px 6px;
   border-radius: 3px;
   text-transform: uppercase;
@@ -131,8 +143,12 @@ body[data-qm-density="compact"] {
 .qm-popup-summary-sync {
   font-size: var(--qm-pop-fs-meta);
   font-weight: 500;
-  color: var(--qm-fg-subtle, #57606a);
+  color: var(--qm-accent, #1f6feb);
+  background: var(--qm-accent-soft);
+  padding: 2px 8px;
+  border-radius: 999px;
   font-variant-numeric: tabular-nums;
+  align-self: flex-start;
 }
 
 /* ─── Status banner (between vitals and stream) ─────────────────────── */
@@ -173,7 +189,7 @@ body[data-qm-density="compact"] {
   color: inherit;
 }
 .qm-popup-row-link:hover {
-  background: var(--qm-surface-1, #f6f8fa);
+  background: var(--qm-accent-soft);
 }
 .qm-popup-row-tile {
   display: inline-flex;
@@ -182,8 +198,8 @@ body[data-qm-density="compact"] {
   width: 30px;
   height: 30px;
   border-radius: 7px;
-  background: var(--qm-surface-2, #eaeef2);
-  color: var(--qm-accent, #1f6feb);
+  background: var(--qm-accent, #1f6feb);
+  color: var(--qm-accent-fg, #fff);
   font-weight: 700;
   font-size: 13px;
   flex: 0 0 auto;
@@ -244,12 +260,14 @@ body[data-qm-density="compact"] {
 
 /* ─── 5 · Footer ────────────────────────────────────────────────────── */
 .qm-popup-footer {
-  border-top: 1px solid var(--qm-border, #d0d7de);
+  border-top: 1px solid var(--qm-accent-medium);
   padding: var(--qm-pop-pad-tight) var(--qm-pop-pad-x);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--qm-surface-1, #f6f8fa);
+  background:
+    linear-gradient(0deg, var(--qm-accent-soft), transparent),
+    var(--qm-surface-1, #f6f8fa);
 }
 .qm-popup-footer-pin {
   font-size: 11px;
