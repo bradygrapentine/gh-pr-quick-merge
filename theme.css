@@ -1061,3 +1061,11 @@
 .js-issue-row[data-qm-hidden-by-filter="true"] {
   display: none;
 }
+
+/* Track C — exclusion chips. Subtle danger-tinted treatment so the user
+ * sees at a glance that "Hide bots" reads as removal, not inclusion. */
+.qm-filter-chip-exclude.qm-filter-chip-active {
+  background: var(--qm-danger-soft);
+  color: var(--qm-danger);
+  border-color: color-mix(in oklch, var(--qm-danger) 40%, var(--qm-border));
+}
