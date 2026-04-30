@@ -1251,7 +1251,9 @@
 .qm-container-pinned {
   position: absolute !important;
   top: 12px;
-  right: 12px;
+  /* Leave room for GitHub's native row icons (comments, labels,
+   * assignees, milestone) which sit at the row's right edge. */
+  right: 96px;
   z-index: 5;
 }
 

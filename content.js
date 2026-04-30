@@ -754,7 +754,7 @@ function injectRowActions(ctx) {
       if (!entry) {
         badge.textContent = "";
         badge.dataset.kind = "";
-        watchBtn.textContent = "Auto-merge when green";
+        watchBtn.textContent = "Auto merge";
         watchBtn.title = "Once CI is green, automatically merge this PR";
         watchBtn.style.display = "";
         cancelBtn.style.display = "none";
