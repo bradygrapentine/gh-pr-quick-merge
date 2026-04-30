@@ -1099,44 +1099,53 @@
  * is the warning hue — same yellow as the rebase action — so users see
  * at a glance that this row will be auto-mutated by the extension.
  */
-/* Auto-rebase rendered as a regular button matching the watch button +
- * other action buttons. Hidden checkbox handles state. */
-.qm-auto-rebase-toggle {
-  display: inline-flex;
+/* Auto-rebase + Auto-merge: identical button shape; only label differs.
+ * Auto-rebase wraps a hidden checkbox so click toggles persistent
+ * state; Auto-merge is a plain button. The shared selectors below
+ * keep both rendered identically. */
+.qm-auto-rebase-toggle,
+.qm-watch-btn,
+.qm-update-btn,
+.qm-cancel-watch-btn {
+  display: inline-flex !important;
   align-items: center;
+  justify-content: center;
   gap: 0;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-family: var(--qm-font-sans);
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--qm-fg);
-  background: linear-gradient(180deg, var(--qm-surface) 0%, var(--qm-surface-2) 100%);
-  border: 1px solid var(--qm-border-strong);
+  padding: 4px 10px !important;
+  border-radius: 6px !important;
+  font-family: var(--qm-font-sans) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+  color: var(--qm-fg) !important;
+  background: linear-gradient(180deg, var(--qm-surface) 0%, var(--qm-surface-2) 100%) !important;
+  border: 1px solid var(--qm-border-strong) !important;
   cursor: pointer;
   user-select: none;
-  line-height: 1;
+  margin: 0 !important;
 }
-.qm-auto-rebase-toggle:hover {
-  background: var(--qm-surface-2);
+.qm-auto-rebase-toggle:hover,
+.qm-watch-btn:hover,
+.qm-update-btn:hover,
+.qm-cancel-watch-btn:hover {
+  background: var(--qm-surface-2) !important;
 }
 .qm-auto-rebase-checkbox {
-  /* Visually hide; the wrapper button itself signals state. */
   position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
+  width: 1px; height: 1px;
+  opacity: 0; pointer-events: none;
 }
 .qm-auto-rebase-label {
   text-transform: none;
+  font-family: inherit;
+  font-size: inherit;
 }
 .qm-auto-rebase-toggle:has(.qm-auto-rebase-checkbox:checked) {
   background: linear-gradient(180deg,
     color-mix(in oklch, var(--qm-color-rebase) 16%, var(--qm-surface)) 0%,
-    color-mix(in oklch, var(--qm-color-rebase) 22%, var(--qm-surface)) 100%);
-  border-color: color-mix(in oklch, var(--qm-color-rebase) 60%, var(--qm-border));
-  color: color-mix(in oklch, var(--qm-color-rebase) 60%, #000);
+    color-mix(in oklch, var(--qm-color-rebase) 22%, var(--qm-surface)) 100%) !important;
+  border-color: color-mix(in oklch, var(--qm-color-rebase) 60%, var(--qm-border-strong)) !important;
+  color: color-mix(in oklch, var(--qm-color-rebase) 60%, #000) !important;
 }
 
 /* === Vendored fonts (QM-205) ============================================
