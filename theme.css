@@ -1107,7 +1107,9 @@
 .qm-watch-btn,
 .qm-update-btn,
 .qm-cancel-watch-btn {
-  display: inline-flex !important;
+  /* NOTE: no `display: !important` — JS toggles display:none on
+   * cancel/update/watch when they shouldn't render, and our rule
+   * must not lock them visible. */
   align-items: center;
   justify-content: center;
   gap: 0;
@@ -1123,6 +1125,12 @@
   cursor: pointer;
   user-select: none;
   margin: 0 !important;
+}
+.qm-auto-rebase-toggle,
+.qm-watch-btn,
+.qm-update-btn,
+.qm-cancel-watch-btn {
+  display: inline-flex;
 }
 .qm-auto-rebase-toggle:hover,
 .qm-watch-btn:hover,
