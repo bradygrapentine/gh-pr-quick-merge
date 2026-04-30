@@ -50,7 +50,12 @@ describe("decideRebaseUi (QM-406 fallback matrix)", () => {
     [{ behind_by: 1 }, { writePermDenied: true }, "show-disabled", "no perms → fallback"],
     [{ behind_by: 0, mergeable_state: "clean" }, { writePermDenied: true }, "show-disabled", "fallback wins over hide"],
     [null, {}, "hide", "null state"],
+    [null, { writePermDenied: true }, "show-disabled", "null state + fallback still surfaces"],
     [undefined, {}, "hide", "undefined state"],
+    // Native-control DOM-probe co-signal (dom_injection.md).
+    [{ behind_by: 0, mergeable_state: "clean" }, { nativeControlPresent: true }, "show", "native control overrides API hide"],
+    [{ behind_by: 0, mergeable_state: "unknown" }, { nativeControlPresent: true }, "show", "native control wins over unknown state"],
+    [{ behind_by: 1 }, { nativeControlPresent: true, writePermDenied: true }, "show-disabled", "perm denial still wins over native"],
   ])("decideRebaseUi(%j, %j) -> %s (%s)", (state, opts, expected) => {
     expect(decideRebaseUi(state, opts)).toBe(expected);
   });
@@ -221,5 +226,11 @@ describe("showRebaseConfirmModal (QM-403 a11y)", () => {
     expect(document.getElementById(MODAL_ID)).toBeTruthy();
     closeRebaseConfirmModal();
     expect(document.getElementById(MODAL_ID)).toBeNull();
+  });
+
+  it("renders doc-verbatim safety copy from pr_page_rebase_button.md", () => {
+    showRebaseConfirmModal();
+    const body = document.querySelector(".qm-pr-modal-body");
+    expect(body.textContent).toBe("This may update the branch and retrigger CI. Continue?");
   });
 });
