@@ -494,20 +494,44 @@
   font-size: 11.5px;
   font-weight: 600;
   letter-spacing: -0.1px;
+  /* Action cell is saturated accent — committed strategy. The status cell
+   * stays semantic (success/warn/danger) so the row reads
+   * STATE × ACTION, not STATE × NEUTRAL_CHROME. */
+  background: var(--qm-accent) !important;
+  color: var(--qm-accent-fg, #fff) !important;
+}
+.qm-row-widget-main:hover:not(:disabled) {
+  background: color-mix(in oklch, var(--qm-accent) 92%, black) !important;
+}
+.qm-row-widget-main:disabled {
+  background: var(--qm-surface-1) !important;
+  color: var(--qm-fg-muted) !important;
+  cursor: not-allowed;
 }
 .qm-row-widget-caret {
   padding: var(--qm-rw-pad-y) 6px;
   border-radius: 0;
   border: 0;
-  border-left: 1px solid color-mix(in oklch, var(--qm-accent) 30%, transparent);
+  border-left: 1px solid color-mix(in oklch, white 30%, transparent);
+  background: var(--qm-accent) !important;
+  color: var(--qm-accent-fg, #fff) !important;
+}
+.qm-row-widget-caret:hover:not(:disabled) {
+  background: color-mix(in oklch, var(--qm-accent) 92%, black) !important;
+}
+.qm-row-widget-caret:disabled {
+  background: var(--qm-surface-1) !important;
+  color: var(--qm-fg-muted) !important;
+  border-left-color: var(--qm-border);
+  cursor: not-allowed;
 }
 .qm-row-widget-default-dot {
   display: inline-block;
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: var(--qm-primary-soft);
-  border: 1px solid currentColor;
+  background: var(--qm-accent-fg, #fff);
+  box-shadow: 0 0 0 1.5px color-mix(in oklch, var(--qm-accent) 50%, white);
 }
 .qm-row-widget-shortcut {
   font-family: var(--qm-font-mono);
