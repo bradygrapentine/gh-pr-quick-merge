@@ -65,12 +65,18 @@ body {
 }
 
 /* On open, slide the popup body up a hair while it fades in. Triggered
- * once at DOM construction; re-renders inside don't replay it. */
+ * once at DOM construction; re-renders inside don't replay it.
+ *
+ * `forwards` (not `both`) means the body's natural opacity:1 / transform:0
+ * applies before the animation starts. Playwright disables animations for
+ * visual snapshots and pauses them at frame 0; with `both` that leaves the
+ * body invisible and breaks CI screenshots. With `forwards`, the snapshot
+ * captures the static end-state and the live popup still animates in. */
 @keyframes qm-pop-enter {
   from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-body { animation: qm-pop-enter var(--qm-pop-mo-med) both; }
+body { animation: qm-pop-enter var(--qm-pop-mo-med) forwards; }
 
 @media (prefers-reduced-motion: reduce) {
   body { animation: none; }
