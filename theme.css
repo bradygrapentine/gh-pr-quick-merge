@@ -1090,3 +1090,43 @@
   color: var(--qm-danger);
   border-color: color-mix(in oklch, var(--qm-danger) 40%, var(--qm-border));
 }
+
+/* === Auto-rebase opt-in toggle ===========================================
+ *
+ * Compact checkbox sitting in each PR row's qm-container. Active state
+ * is the warning hue — same yellow as the rebase action — so users see
+ * at a glance that this row will be auto-mutated by the extension.
+ */
+.qm-auto-rebase-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  padding: 1px 6px 1px 4px;
+  border-radius: 999px;
+  font-family: var(--qm-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  color: var(--qm-fg-muted);
+  background: var(--qm-surface-2);
+  border: 1px solid var(--qm-border);
+  cursor: pointer;
+  user-select: none;
+}
+.qm-auto-rebase-toggle:hover {
+  color: var(--qm-fg);
+}
+.qm-auto-rebase-checkbox {
+  margin: 0;
+  width: 11px;
+  height: 11px;
+  accent-color: var(--qm-color-rebase);
+}
+.qm-auto-rebase-label {
+  text-transform: lowercase;
+}
+.qm-auto-rebase-toggle:has(.qm-auto-rebase-checkbox:checked) {
+  background: color-mix(in oklch, var(--qm-color-rebase) 14%, var(--qm-surface));
+  border-color: color-mix(in oklch, var(--qm-color-rebase) 50%, var(--qm-border));
+  color: color-mix(in oklch, var(--qm-color-rebase) 60%, #000);
+}
