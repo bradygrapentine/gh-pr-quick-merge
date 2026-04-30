@@ -27,6 +27,7 @@ _Last sync: 2026-04-29 (v1.0 polish)_
 - Ready: 12 (v1.0 launch follow-ups + 8 v1.1 candidates — see §1)
 - Epic 8 (v1.1 Design Refresh): 21 stories (QM-200..220) — handoff received 2026-04-29; reference at `~/projects/handoff_pr_quick_merge_design/`
 - Epic 9 (v2.0 GitLab port): 31 stories (QM-300..330) — scoped 2026-04-29; plan at `plans/v2-gitlab-port.md`. Requires v1.0 launched + v1.1 design merged before Phase 0 begins.
+- Epic 10 (v1.2 PR-page safety): 11 stories (QM-400..410) — scoped 2026-04-30; plan at `plans/v1.2-epic-10-pr-page-safety.md`. Single-track, single-PR squash; QM-401 prep already shipped in PR #41.
 - Blocked-on-human: 2 (QM-104 CWS submit; QM-108 AMO submit)
 - Deferred: 22 (Epic 3 license server + QM-165 BMaC)
 - In progress: 0
@@ -223,6 +224,27 @@ The design files at `~/projects/handoff_pr_quick_merge_design/` are **React + Ba
 | QM-328 | Contract tests — both adapters exercised against the same `HostAdapter` suite | M | QM-300, QM-312 | Enforces interface parity. New file `test/host-adapter-contract.test.js`. |
 | QM-329 | Shared MR/PR fixture data so visual snapshots cover both hosts | S | QM-326 | Updates `test/fixtures/` with a GitLab MR-list snapshot. |
 | QM-330 | Release runbook update — staged rollout SOP + GitLab smoke checklist | S | QM-321 | `docs/runbook-release.md` adds GitLab steps; SOP unchanged. |
+
+### Epic 10 — v1.2 PR-page safety: always-visible rebase button (NEW — scoped 2026-04-30)
+
+**Plan:** [`plans/v1.2-epic-10-pr-page-safety.md`](./plans/v1.2-epic-10-pr-page-safety.md)
+**Source of intent:** ship a persistent, warning-styled rebase / update button on every GitHub PR page, plus an inline Approve action. Confirmation modal before mutation; idempotent across Turbo / pjax soft-nav.
+**Estimate:** ~3 eng-days. Single-track, single-PR squash-merge per `dispatch-or-direct` heuristics.
+**Dependencies:** Epic 8 design tokens merged ✅; Epic 9 Phase 0 host-adapter scaffold merged ✅; QM-401 (`fetchPrState` extraction) shipped in PR #41 ✅.
+
+| ID | Title | Est | Deps | Notes |
+|----|-------|-----|------|-------|
+| QM-400 | PR-page detection — `manifest.json` matches `/*/pull/*` + `isPullRequestPage()` selector | S | — | Gate new init block on this. URL matrix unit test. |
+| QM-401 | `fetchPrState` extraction to host adapter | — | — | **Shipped in PR #41** (`662d44c`). Landed at `lib/hosts/github/pr-state.js` (plan said `api.js`; same module). |
+| QM-402 | Always-visible rebase button injection | M | QM-400, QM-401 | `ensurePrPageActionBar()` mirroring `ensureBulkBar`. `data-gps-visible-rebase` idempotency tag. |
+| QM-403 | Warning visual + confirmation modal | M | QM-402 | Focus trap, ESC closes, Enter confirms. Reuses `QM_TOAST` for post-action feedback. |
+| QM-404 | Wire to `updateBranch` API | M | QM-403 | Reads `updateBranchStrategy` from sync; handles `UpdateConflictError` (422) + `UpdateForbiddenError` (403). |
+| QM-405 | Soft-nav survival | S | QM-402 | Hooks existing `MutationObserver` + `pjax:end` / `turbo:render`. e2e covers two-PR soft-nav. |
+| QM-406 | Fallback (hide when not applicable) | S | QM-402 | Matrix over (mergeable_state × behind_by × write_perm). Disabled fallback + "Open merge panel" link when API unsafe. |
+| QM-407 | Action color tokens (extends Epic 8 F8.1) | XS | — | Verify `--qm-color-merge`, `--qm-color-rebase`, `--qm-color-approve`, `--qm-color-squash`, `--qm-color-close` exist in light + dark. Add any missing. |
+| QM-408 | Inline Approve action | S | QM-402, QM-407 | Single-click → confirmation toast (no modal — review approval is reversible). Hides on self-PR. |
+| QM-409 | Playwright e2e — `pr-page-rebase.spec.ts` | M | QM-400..408 | Mount, click, modal, confirm, soft-nav, not-applicable. Logged-in + logged-out fixtures. |
+| QM-410 | Visual regression baselines — `pr-page.spec.ts` | S | QM-409 | Idle, hover, modal, success toast, fallback, dark-mode. Baselines per platform. |
 
 ### Historical — Epics 1, 2, 4, 5, 6, 7 (mostly shipped — see §7)
 

@@ -9,10 +9,10 @@ A browser extension that lets devs squash / merge / rebase PRs directly from the
 ## Map
 
 ```
-v0.1 ── v0.2 ── v0.3 ── v0.4 ── v1.0 ── v1.1 ──── v2.0 ─────── Post-1.0
-shipped shipped shipped shipped launch  Design    GitLab port  Teams + GH Marketplace
-                                │       Refresh   (Epic 9)
-                                │       (Epic 8)
+v0.1 ── v0.2 ── v0.3 ── v0.4 ── v1.0 ── v1.1 ──── v1.2 ──────── v2.0 ─────── Post-1.0
+shipped shipped shipped shipped launch  Design    PR-page       GitLab port  Teams + GH Marketplace
+                                │       Refresh   safety        (Epic 9)
+                                │       (Epic 8)  (Epic 10)
                                 ├─ Epic 4 distribution shipped (PR #18)
                                 ├─ Epic 5 Sentry sanitiser shipped (PR #21);
                                 │   SDK vendoring follow-up open
@@ -36,6 +36,7 @@ The path from v0.2 to v1.0 is broken into **6 Epics**. Each Epic decomposes into
 | 7 | Donation infrastructure | v1.0 | extension + GH Sponsors | QM-161..170 |
 | 8 | v1.1 Design Refresh | v1.1 | extension UI | QM-200..220 |
 | 9 | GitLab port (multi-host architecture) | v2.0 | extension | QM-300..330 |
+| 10 | PR-page safety: always-visible rebase + inline approve | v1.2 | extension | QM-400..410 |
 
 **Scope simplification (2026-04-29):** v1.0 ships **donation-funded** via GitHub Sponsors instead of a paid Pro tier. The license-server / Stripe / ed25519 / state-machine path (Epic 3) is deferred — plans remain on disk as scaffolding if a paid tier becomes warranted later. Epics 4/5/6 are slimmed to remove license-server-coupled stories. Epic 7 is new.
 
@@ -200,6 +201,18 @@ First sponsor at any tier covers the floor. Everything else is funding developme
 **Constraint:** the extension is plain JS + DOM (no React, no bundler). The handoff is React-based; rebuild against the existing stack.
 
 **Estimate:** L overall (~10–14 eng-days). F8.1 blocks everything; F8.3 / F8.4 / F8.5 parallelise after foundation lands.
+
+---
+
+## v1.2 — PR-page safety: always-visible rebase  (Epic 10)
+
+**Targets:** ship a persistent, warning-styled rebase / update button on every GitHub PR page, plus an inline Approve action. Detailed plan: [`plans/v1.2-epic-10-pr-page-safety.md`](./plans/v1.2-epic-10-pr-page-safety.md).
+
+**Theme:** the v0.x → v1.1 product surface is the `/pulls` list. v1.2 extends the same one-click ergonomic into the individual PR page so the merge / rebase decision can happen in-context. Confirmation modal before mutation (CI may rerun); idempotent across Turbo / pjax soft-nav; clean fallback when GitHub doesn't expose the action.
+
+**Estimate:** ~3 eng-days. Single-track, single-PR squash-merge — file-touch overlap on `content.js` makes parallelisation a net loss.
+
+**Story range:** QM-400..410 (11 stories; QM-401 already shipped in PR #41).
 
 ---
 
