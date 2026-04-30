@@ -425,50 +425,78 @@
 
 /* === Row widget (QM-206..210) ===
  *
- * Compact pill: status badge + main "Merge" button + caret. Replaces the
- * v0.2 three-button stack injected on every github.com/pulls row.
+ * Two-cell pill scanned at >100ms intervals on a 30-row PR list:
+ *
+ *   [ STATUS CELL ]│[  Merge   ▾  ]
+ *
+ * The left cell (status) and right cell (action) are visually distinct —
+ * status sits on a colored tint matching the state kind, action sits on
+ * the surface. State is read by glance, action is read by intent.
+ *
+ * Refine pass 1 — layout: separated the two cells via background change
+ * instead of just a divider line, tokenised the spatial scale so density
+ * propagates predictably, and tightened the asymmetric padding.
  */
 .qm-row-widget {
   position: relative;
   display: inline-flex;
-  align-items: center;
+  align-items: stretch;
   gap: 0;
-  padding: 3px;
+  padding: 0;
   background: var(--qm-surface);
   border: 1px solid var(--qm-border);
-  border-radius: 8px;
+  border-radius: 7px;
   box-shadow: var(--qm-shadow-1);
   font-family: var(--qm-font-sans);
+  overflow: hidden;
+  /* Internal spatial scale; one knob to tighten the whole widget. */
+  --qm-rw-pad-x: 9px;
+  --qm-rw-pad-y: 4px;
+  --qm-rw-status-pad-x: 8px;
+  --qm-rw-gap: 6px;
 }
 .qm-row-widget-status {
+  display: inline-flex;
+  align-items: center;
   font-family: var(--qm-font-mono);
   font-size: 9.5px;
   font-weight: 700;
   letter-spacing: 0.5px;
-  padding: 0 8px 0 6px;
-  margin-right: 2px;
-  border-right: 1px solid var(--qm-border);
+  padding: 0 var(--qm-rw-status-pad-x);
+  background: var(--qm-surface-1);
   color: var(--qm-fg-muted);
+  border-right: 1px solid var(--qm-border);
 }
-.qm-row-widget-status[data-kind="success"] { color: var(--qm-success); }
-.qm-row-widget-status[data-kind="warn"]    { color: var(--qm-warn); }
-.qm-row-widget-status[data-kind="danger"]  { color: var(--qm-danger); }
-.qm-row-widget-status[data-kind="muted"]   { color: var(--qm-fg-subtle); }
+.qm-row-widget-status[data-kind="success"] {
+  color: var(--qm-success);
+  background: color-mix(in oklch, var(--qm-success) 12%, var(--qm-surface));
+}
+.qm-row-widget-status[data-kind="warn"] {
+  color: var(--qm-warn);
+  background: color-mix(in oklch, var(--qm-warn) 12%, var(--qm-surface));
+}
+.qm-row-widget-status[data-kind="danger"] {
+  color: var(--qm-danger);
+  background: color-mix(in oklch, var(--qm-danger) 12%, var(--qm-surface));
+}
+.qm-row-widget-status[data-kind="muted"] { color: var(--qm-fg-subtle); }
 
 .qm-row-widget-main {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 8px;
-  border-radius: 4px 0 0 4px;
-  border-right-width: 0;
+  gap: var(--qm-rw-gap);
+  padding: var(--qm-rw-pad-y) var(--qm-rw-pad-x);
+  border-radius: 0;
+  border: 0;
   font-size: 11.5px;
   font-weight: 500;
 }
 .qm-row-widget-caret {
-  padding: 4px 5px;
-  border-radius: 0 4px 4px 0;
+  padding: var(--qm-rw-pad-y) 6px;
+  border-radius: 0;
+  border: 0;
+  border-left: 1px solid color-mix(in oklch, var(--qm-accent) 30%, transparent);
 }
 .qm-row-widget-default-dot {
   display: inline-block;
