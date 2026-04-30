@@ -1,3 +1,18 @@
+/* PR Quick Merge — popup
+ *
+ * Refine pass 1: layout. Introduces an explicit spatial scale and rebuilds
+ * the popup as five distinct bands with deliberate rhythm — not the uniform
+ * 8-14px padding the v1.1 design refresh shipped with. Bands, top to bottom:
+ *   1. Brand band      tight     — sticky, identity carrier
+ *   2. Vitals band     loose     — biggest type on the surface; the "what"
+ *   3. Stream          medium    — repo rows; scannable
+ *   4. Action band     comfy     — manage / pin
+ *   5. Footer          tight     — secondary chrome
+ *
+ * Per PRODUCT.md principle 4 ("density is intentional"), comfortable is the
+ * default; data-qm-density="compact" pulls everything 25-30% tighter.
+ */
+
 html, body {
   margin: 0;
   height: auto;
@@ -9,9 +24,23 @@ body {
   overflow-y: auto;
   color: var(--qm-fg, #1f2328);
   background: var(--qm-surface, #fff);
+
+  /* Spatial scale used across every popup band. Override per density. */
+  --qm-pop-pad-x: 16px;
+  --qm-pop-pad-tight: 9px;
+  --qm-pop-pad-comfy: 13px;
+  --qm-pop-pad-loose: 18px;
+  --qm-pop-band-gap: 14px;
+}
+[data-qm-density="compact"] body,
+body[data-qm-density="compact"] {
+  --qm-pop-pad-x: 14px;
+  --qm-pop-pad-tight: 6px;
+  --qm-pop-pad-comfy: 9px;
+  --qm-pop-pad-loose: 12px;
 }
 
-/* ─── Sticky header ─────────────────────────────────────────────────── */
+/* ─── 1 · Brand band ────────────────────────────────────────────────── */
 .qm-popup-header {
   position: sticky;
   top: 0;
@@ -19,15 +48,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
+  padding: var(--qm-pop-pad-tight) var(--qm-pop-pad-x);
   border-bottom: 1px solid var(--qm-border, #d0d7de);
   background: var(--qm-surface-1, #f6f8fa);
-  gap: 8px;
+  gap: 10px;
 }
 .qm-popup-brand {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   min-width: 0;
 }
 .qm-popup-brand-slot {
@@ -60,46 +89,55 @@ body {
   gap: 4px;
 }
 .qm-popup-header-actions .qm-button-sm {
-  padding: 2px 8px;
+  padding: 3px 9px;
   font-size: 11px;
 }
 
-/* ─── Summary strip ─────────────────────────────────────────────────── */
+/* ─── 2 · Vitals band ──────────────────────────────────────────────── */
 .qm-popup-summary {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  font-size: 11.5px;
-  color: var(--qm-fg-subtle, #57606a);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: var(--qm-pop-pad-loose) var(--qm-pop-pad-x) var(--qm-pop-pad-comfy);
   background: var(--qm-surface, #fff);
   border-bottom: 1px solid var(--qm-border, #d0d7de);
 }
 .qm-popup-summary-stat {
-  font-weight: 600;
+  font-size: 15.5px;
+  font-weight: 700;
+  letter-spacing: -0.1px;
   color: var(--qm-fg, #1f2328);
+  line-height: 1.15;
 }
 .qm-popup-summary-sync {
+  font-size: 10.5px;
+  font-weight: 500;
   color: var(--qm-fg-subtle, #57606a);
   font-variant-numeric: tabular-nums;
 }
 
-/* ─── Status banner ─────────────────────────────────────────────────── */
+/* ─── Status banner (between vitals and stream) ─────────────────────── */
 .qm-popup-status {
   font-size: 11px;
   color: var(--qm-fg-subtle, #656d76);
-  padding: 4px 14px;
+  padding: 4px var(--qm-pop-pad-x);
   min-height: 0;
 }
 .qm-popup-status:empty { padding: 0; }
-.qm-popup-status.err { color: var(--qm-danger, #cf222e); padding: 6px 14px; }
+.qm-popup-status.err {
+  color: var(--qm-danger, #cf222e);
+  padding: 7px var(--qm-pop-pad-x);
+  background: var(--qm-danger-bg, #ffebe9);
+  border-bottom: 1px solid var(--qm-danger, #cf222e);
+}
 
-/* ─── Repo list ─────────────────────────────────────────────────────── */
+/* ─── 3 · Stream (repo list) ───────────────────────────────────────── */
 .qm-popup-list {
   list-style: none;
   padding: 0;
   margin: 0;
-  max-height: 380px;
+  max-height: 360px;
   overflow-y: auto;
 }
 .qm-popup-list li {
@@ -111,8 +149,8 @@ body {
 .qm-popup-row-link {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
+  gap: 12px;
+  padding: var(--qm-pop-pad-comfy) var(--qm-pop-pad-x);
   text-decoration: none;
   color: inherit;
 }
@@ -123,9 +161,9 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
   background: var(--qm-surface-2, #eaeef2);
   color: var(--qm-accent, #1f6feb);
   font-weight: 700;
@@ -152,10 +190,10 @@ body {
 .qm-popup-row-stats {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   font-size: 10.5px;
   color: var(--qm-fg-subtle, #656d76);
-  margin-top: 2px;
+  margin-top: 3px;
   font-variant-numeric: tabular-nums;
 }
 .qm-popup-row-stat.ready {
@@ -165,30 +203,30 @@ body {
 .qm-popup-row-stat.warn {
   color: var(--qm-warn, #9a6700);
 }
-.qm-popup-row-stat-sep { opacity: 0.5; }
+.qm-popup-row-stat-sep { opacity: 0.4; }
 
 .qm-popup-row-cta {
   flex: 0 0 auto;
   font-size: 11px;
-  padding: 3px 9px;
+  padding: 4px 10px;
 }
 
 /* ─── Empty state ───────────────────────────────────────────────────── */
 .qm-popup-empty {
-  padding: 24px 16px;
+  padding: 32px var(--qm-pop-pad-x) 28px;
   text-align: center;
 }
 .qm-popup-empty p {
   font-size: 12px;
   color: var(--qm-fg-subtle, #656d76);
-  margin: 0 0 12px;
+  margin: 0 0 14px;
   line-height: 1.5;
 }
 
-/* ─── Footer ────────────────────────────────────────────────────────── */
+/* ─── 5 · Footer ────────────────────────────────────────────────────── */
 .qm-popup-footer {
   border-top: 1px solid var(--qm-border, #d0d7de);
-  padding: 8px 12px;
+  padding: var(--qm-pop-pad-tight) var(--qm-pop-pad-x);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -196,16 +234,16 @@ body {
 }
 .qm-popup-footer-pin {
   font-size: 11px;
-  padding: 2px 8px;
+  padding: 3px 9px;
 }
 .qm-popup-sponsor {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   font-size: 11px;
   color: var(--qm-fg-subtle, #57606a);
   text-decoration: none;
-  padding: 2px 6px;
+  padding: 3px 7px;
   border-radius: 4px;
 }
 .qm-popup-sponsor:hover {
@@ -219,45 +257,47 @@ body {
 }
 .qm-popup-sponsor-text { font-weight: 500; }
 
-/* ─── Stale-token banner ────────────────────────────────────────────── */
+/* ─── Stale-token banner (above vitals) ─────────────────────────────── */
 .qm-popup-stale-banner {
   background: var(--qm-warn-bg, #fff8c5);
   border-bottom: 1px solid var(--qm-warn, #d4a72c);
   color: var(--qm-warn-fg, #4a3c03);
   font-size: 12px;
-  padding: 8px 12px;
+  padding: var(--qm-pop-pad-tight) var(--qm-pop-pad-x);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
 }
 .qm-popup-stale-banner button {
   font-size: 11px;
   white-space: nowrap;
 }
 
-/* ─── Manage box ────────────────────────────────────────────────────── */
+/* ─── 4 · Action band (manage box) ──────────────────────────────────── */
 .qm-popup-manage {
   border-top: 1px solid var(--qm-border, #d0d7de);
   background: var(--qm-surface-1, #f6f8fa);
-  padding: 10px 12px;
+  padding: var(--qm-pop-pad-comfy) var(--qm-pop-pad-x);
 }
 .qm-popup-manage-label {
   display: block;
   font-size: 11px;
   color: var(--qm-fg-subtle, #57606a);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   font-weight: 500;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
 }
 .qm-popup-manage-row {
   display: flex;
-  gap: 6px;
+  gap: 7px;
 }
 .qm-popup-manage-row .qm-input { flex: 1; }
 .qm-popup-manage-status {
   font-size: 11px;
   color: var(--qm-fg-subtle, #57606a);
-  margin-top: 6px;
+  margin-top: 7px;
   min-height: 1em;
 }
 .qm-popup-manage-status.ok { color: var(--qm-success, #1a7f37); }
@@ -268,12 +308,12 @@ body {
   border: 1px solid var(--qm-danger, #cf222e);
   color: var(--qm-danger, #cf222e);
   border-radius: 4px;
-  padding: 1px 6px;
+  padding: 2px 8px;
   font-size: 10px;
   cursor: pointer;
   margin-left: 6px;
   position: absolute;
-  right: 14px;
+  right: var(--qm-pop-pad-x);
   top: 50%;
   transform: translateY(-50%);
 }
@@ -286,23 +326,18 @@ body {
   background: var(--qm-danger-bg, #ffebe9);
   color: var(--qm-danger, #cf222e);
   font-size: 10px;
-  padding: 1px 6px;
+  padding: 2px 7px;
   border-radius: 10px;
-  margin: 0 14px 8px;
+  margin: 0 var(--qm-pop-pad-x) 8px;
 }
 .qm-popup-row-failed {
   opacity: 0.7;
 }
 
-/* Density: compact mode shrinks all paddings ~25%. */
-[data-qm-density="compact"] .qm-popup-row-link { padding: 7px 14px; }
-[data-qm-density="compact"] .qm-popup-row-tile { width: 24px; height: 24px; font-size: 12px; }
-[data-qm-density="compact"] .qm-popup-summary { padding: 6px 14px; }
-
-/* ─── Onboarding card ───────────────────────────────────────────────── */
+/* ─── Onboarding card (lives in stream slot) ────────────────────────── */
 .qm-onboarding {
-  margin: 12px 14px;
-  padding: 14px;
+  margin: var(--qm-pop-pad-comfy) var(--qm-pop-pad-x);
+  padding: var(--qm-pop-pad-comfy) var(--qm-pop-pad-comfy) var(--qm-pop-pad-tight);
   position: relative;
   background: linear-gradient(180deg, var(--qm-surface-1, #f6f8fa), var(--qm-surface, #fff));
 }
@@ -315,41 +350,42 @@ body {
   padding: 0 6px;
 }
 .qm-onboarding-title {
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 700;
   margin: 0 0 4px;
   color: var(--qm-fg, #1f2328);
+  letter-spacing: -0.1px;
 }
 .qm-onboarding-lede {
   font-size: 11.5px;
   color: var(--qm-fg-subtle, #57606a);
-  margin: 0 0 10px;
-  line-height: 1.4;
+  margin: 0 0 12px;
+  line-height: 1.45;
 }
 .qm-onboarding-steps {
   list-style: none;
   padding: 0;
-  margin: 0 0 12px;
+  margin: 0 0 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
 }
 .qm-onboarding-step {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 8px;
+  gap: 11px;
+  padding: 8px 10px;
   background: var(--qm-surface, #fff);
   border: 1px solid var(--qm-border-muted, #eaeef2);
-  border-radius: 6px;
+  border-radius: 7px;
 }
 .qm-onboarding-glyph {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 5px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
   background: var(--qm-accent, #1f6feb);
   color: #fff;
   font-weight: 700;
