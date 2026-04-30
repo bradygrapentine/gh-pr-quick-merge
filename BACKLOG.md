@@ -26,6 +26,7 @@ _Last sync: 2026-04-29 (v1.0 polish)_
 
 - Ready: 12 (v1.0 launch follow-ups + 8 v1.1 candidates — see §1)
 - Epic 8 (v1.1 Design Refresh): 21 stories (QM-200..220) — handoff received 2026-04-29; reference at `~/projects/handoff_pr_quick_merge_design/`
+- Epic 9 (v2.0 GitLab port): 31 stories (QM-300..330) — scoped 2026-04-29; plan at `plans/v2-gitlab-port.md`. Requires v1.0 launched + v1.1 design merged before Phase 0 begins.
 - Blocked-on-human: 2 (QM-104 CWS submit; QM-108 AMO submit)
 - Deferred: 22 (Epic 3 license server + QM-165 BMaC)
 - In progress: 0
@@ -154,6 +155,74 @@ The design files at `~/projects/handoff_pr_quick_merge_design/` are **React + Ba
 | Bulk bar, onboarding, Pro upsell, toast | `components/extras.jsx` |
 | Tweaks / theme controls | `tweaks-panel.jsx` |
 | All-up canvas | `design-canvas.jsx` + `PR Quick Merge.html` |
+
+### Epic 9 — v2.0 GitLab port (NEW — scoped 2026-04-29)
+
+**Plan:** [`plans/v2-gitlab-port.md`](./plans/v2-gitlab-port.md)
+**Source of intent:** ship the same one-click merge ergonomic on GitLab (gitlab.com + self-hosted) without forking the codebase. Single extension, host-adapter pattern.
+**Estimate:** XL — ~20 eng-days, parallelisable to ~12 calendar days.
+**Dependencies:** v1.0 launched on both stores; v1.1 design refresh complete.
+
+#### F9.0 — Refactor for multi-host (Phase 0)
+
+| ID | Title | Est | Deps | Notes |
+|----|-------|-----|------|-------|
+| QM-300 | Introduce `lib/hosts/index.js` + `HostAdapter` interface (JSDoc types) | M | — | Defines the contract both GitHub and GitLab adapters must satisfy. Pure types + dispatch; no behavior change. |
+| QM-301 | Move `lib/api.js` → `lib/hosts/github/api.js` (with thin re-export at the old path) | S | QM-300 | Backwards-compat shim during migration; removed in QM-303. |
+| QM-302 | Write `lib/hosts/github/adapter.js` implementing `HostAdapter`; route `content.js` through adapter methods | M | QM-301 | The biggest single PR in Phase 0. After this, `content.js` is host-agnostic. |
+| QM-303 | Token storage migration — `chrome.storage.local.token` → `tokens["github.com"]` | S | QM-302 | One-shot migration on first run after upgrade. Remove the temporary re-export from QM-301 in this PR. |
+| QM-304 | Extract DOM selectors from `content.js` into `lib/hosts/github/selectors.js` | S | QM-302 | Mechanical move; tests pin the contract. |
+| QM-305 | Phase 0 regression sweep — full Playwright + unit suites green; manual smoke on real github.com | S | QM-300..304 | Gate before Phase 1 starts. |
+
+#### F9.1 — GitLab adapter (Phase 1)
+
+| ID | Title | Est | Deps | Notes |
+|----|-------|-----|------|-------|
+| QM-306 | `lib/hosts/gitlab/api.js` — apiGet/apiPost/apiPut against `gitlab.com/api/v4` | M | QM-300 | `PRIVATE-TOKEN` header; project-id encoding (numeric or url-encoded namespace path). 12+ unit tests. |
+| QM-307 | `lib/hosts/gitlab/selectors.js` — `parseRowAnchor` for `.merge-request` rows | S | QM-306 | DOM selectors against gitlab.com merge-request list pages. |
+| QM-308 | `fetchMrState` — normalise GitLab `merge_status`/`detailed_merge_status` into the shared shape | M | QM-306 | Output the same `{ ready, behind, blocked, draft, head_sha, behind_by }` shape as `fetchPrState`. |
+| QM-309 | `doMerge` — squash via `squash=true`; respect project-level `merge_method` setting | M | QM-306, QM-308 | Greys out methods the project disabled; surfaces a friendly error if user tries one anyway. |
+| QM-310 | `updateBranch` — `PUT /merge_requests/:iid/rebase`, poll `rebase_in_progress` | S | QM-306 | GitLab returns 202; mirrors GitHub's queued behaviour. |
+| QM-311 | Bulk close + label — `PUT /merge_requests/:iid` with `state_event: close` and `add_labels` | S | QM-306 | Single-endpoint merge of two GitHub-side calls. |
+| QM-312 | `lib/hosts/gitlab/adapter.js` — implements `HostAdapter`; passes the same contract test suite as the GitHub adapter | M | QM-306..311 | The contract suite (from QM-300) runs against both adapters; parity enforced. |
+
+#### F9.2 — Host detection + UI surfacing (Phase 2)
+
+| ID | Title | Est | Deps | Notes |
+|----|-------|-----|------|-------|
+| QM-313 | `manifest.json` — add `gitlab.com/*` to content_scripts.matches | S | QM-312 | Self-hosted handled at runtime via QM-318. |
+| QM-314 | Host-aware injection in `content.js` | S | QM-312, QM-313 | `lib/hosts/index.js#detect()` picks adapter; `injectRowActions` API stays unchanged. |
+| QM-315 | Per-host status-pill copy mapping | S | QM-314 | READY / BEHIND / BLOCKED / DRAFT generalise to GitLab; "BEHIND" copy stays neutral ("needs rebase" remains a tooltip detail). |
+| QM-316 | Popup — host icons on pinned-list rows; mixed-host counts | S | QM-314 | "10 mergeable across 4 repos" wording adapts when only GitLab projects are pinned. |
+| QM-317 | Options — new "Hosts" pane (GitHub / GitLab.com / Add self-hosted…) | M | QM-314 | New section; replaces the Sign-in pane that v1.1 ships with. |
+
+#### F9.3 — Self-hosted GitLab (Phase 3)
+
+| ID | Title | Est | Deps | Notes |
+|----|-------|-----|------|-------|
+| QM-318 | `chrome.permissions.request` flow when user adds a self-hosted host | M | QM-317 | Pre-flight disclosure modal that the token will be sent only to that domain. |
+| QM-319 | Per-host token storage shape | S | QM-303, QM-318 | Sign-in / sign-out flows operate on the right slot in `tokens` map. |
+| QM-320 | `lib/import-export.js` gains the multi-host shape | S | QM-319 | Exports `hosts` array; tokens still excluded. |
+| QM-321 | `docs/runbook-external-services.md` + `SECURITY.md` updates | S | QM-318..320 | Per-instance disclosure, GitLab PAT instructions, threat-model update for multi-host. |
+
+#### F9.4 — Distribution + launch (Phase 4)
+
+| ID | Title | Est | Deps | Notes |
+|----|-------|-----|------|-------|
+| QM-322 | Product rename decision + manifest update | S | QM-321 | Recommendation: "Quick Merge" (drop the GitHub-flavoured "PR"). Subtitle "PR Quick Merge" preserved on listings for 6 months for SEO continuity. Decide before this story starts. |
+| QM-323 | Store-listing copy refresh — new screenshots, descriptions, taglines | M | QM-322 | "One-click merge for GitHub and GitLab pull requests" tagline candidate. |
+| QM-324 | Launch posts — Show HN + r/programming + Reddit-GitLab + newsletter pitch | S | QM-323 | Frame around "GitLab parity reached on this dev-tool surface". |
+| QM-325 | Privacy-policy update — explicit per-host destination list | S | QM-321 | Already covered by `docs/privacy-policy.md`; v2.0 update reflects each host the extension talks to. |
+
+#### F9.5 — Quality + ops (Phase 5)
+
+| ID | Title | Est | Deps | Notes |
+|----|-------|-----|------|-------|
+| QM-326 | Playwright e2e suite for GitLab — fixture project + lifecycle tests | M | QM-312 | Mirrors the existing GitHub e2e set: happy-path merge, update-branch, bulk-close, merge-queue lifecycle. New bot account (or reuse `gh-pr-qm-bot` if it has GitLab credentials). |
+| QM-327 | SECURITY.md threat-model update for multi-host | S | QM-321 | Adds "user adds a malicious self-hosted host" to the threat model with the consent flow as the mitigation. |
+| QM-328 | Contract tests — both adapters exercised against the same `HostAdapter` suite | M | QM-300, QM-312 | Enforces interface parity. New file `test/host-adapter-contract.test.js`. |
+| QM-329 | Shared MR/PR fixture data so visual snapshots cover both hosts | S | QM-326 | Updates `test/fixtures/` with a GitLab MR-list snapshot. |
+| QM-330 | Release runbook update — staged rollout SOP + GitLab smoke checklist | S | QM-321 | `docs/runbook-release.md` adds GitLab steps; SOP unchanged. |
 
 ### Historical — Epics 1, 2, 4, 5, 6, 7 (mostly shipped — see §7)
 
