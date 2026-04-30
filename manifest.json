@@ -61,6 +61,7 @@
         "lib/qm-row-badges.js",
         "lib/qm-filters.js",
         "lib/qm-filter-bar.js",
+        "lib/qm-auto-rebase-toggle.js",
         "content.js"
       ],
       "css": ["theme.css", "styles.css"],

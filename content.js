@@ -274,7 +274,54 @@ function fetchPrState(pr, token) {
   return PR_STATE.fetchPrState(pr, token, { cache: state.cache });
 }
 
-// Epic 11 Track A — render row badges + render CI state.
+// Auto-rebase opt-in — per-PR map persisted in chrome.storage.sync.
+// Loaded once at start, kept hot in `state.autoRebaseMap`, written
+// through to storage on every toggle. The set of in-flight rebases is
+// tracked separately so a slow rebase doesn't double-fire.
+state.autoRebaseMap = state.autoRebaseMap || {};
+state.autoRebaseInFlight = state.autoRebaseInFlight || new Set();
+
+async function _hydrateAutoRebaseMap() {
+  const T = self.QM_AUTO_REBASE_TOGGLE;
+  if (!T) return;
+  state.autoRebaseMap = await T.loadAutoRebaseMap();
+}
+_hydrateAutoRebaseMap();
+
+function _maybeAutoRebase(pr, prState) {
+  const T = self.QM_AUTO_REBASE_TOGGLE;
+  const updateLib = self.QM_UPDATE_BRANCH;
+  if (!T || !updateLib || !prState || !prState.head_sha) return;
+  if (!T.isEnabled(pr, state.autoRebaseMap)) return;
+  // Only fire when GitHub says the PR is behind.
+  const behind = prState.mergeable_state === "behind" || Number(prState.behind_by) > 0;
+  if (!behind) return;
+  const key = prKey(pr);
+  if (state.autoRebaseInFlight.has(key)) return;
+  state.autoRebaseInFlight.add(key);
+  (async () => {
+    try {
+      const sync = await chrome.storage.sync.get("updateBranchStrategy");
+      const strategy = sync && sync.updateBranchStrategy === "rebase" ? "rebase" : "merge";
+      await updateLib.updateBranch({
+        owner: pr.owner, repo: pr.repo, pullNumber: pr.num,
+        expectedHeadSha: prState.head_sha, strategy,
+        token: state.token, api: API_HELPERS,
+      });
+      toast(`Auto-rebase queued for ${key}`, "ok");
+      state.cache.delete(key);
+    } catch (e) {
+      toast(`Auto-rebase failed for ${key}: ${e && e.message ? e.message : "unknown"}`, "err");
+    } finally {
+      // Cool-down: clear the in-flight flag after 5s so a sustained
+      // 403 / 422 doesn't busy-loop.
+      setTimeout(() => state.autoRebaseInFlight.delete(key), 5000);
+    }
+  })();
+}
+
+// Epic 11 Track A — render row badges + render CI state + mount the
+// auto-rebase opt-in toggle.
 //
 // If `prState` came from the GraphQL piggy-back (`fetchPrStateAndCi`),
 // `ci_state` is already attached and we render synchronously. Otherwise
@@ -284,8 +331,22 @@ function fetchPrState(pr, token) {
 function applyRowBadgesAndCi(container, prState, pr, token) {
   const ROW_BADGES = self.QM_ROW_BADGES;
   const PR_STATE = self.QM_GITHUB_PR_STATE;
+  const T = self.QM_AUTO_REBASE_TOGGLE;
   if (!ROW_BADGES || !prState || prState.error || prState.listMode) return;
   ROW_BADGES.applyRowBadges(container, prState, pr);
+
+  // Auto-rebase toggle — render, persist on toggle, evaluate trigger.
+  if (T) {
+    T.mountToggle(container, pr, {
+      enabled: T.isEnabled(pr, state.autoRebaseMap),
+      onChange: async (next) => {
+        state.autoRebaseMap = T.setEnabled(pr, state.autoRebaseMap, next);
+        await T.saveAutoRebaseMap(state.autoRebaseMap);
+        if (next) _maybeAutoRebase(pr, prState);
+      },
+    });
+    _maybeAutoRebase(pr, prState);
+  }
 
   // GraphQL combined-fetch path — single round-trip already covered
   // both row state and CI rollup, no second call needed.
