@@ -560,10 +560,11 @@
 }
 .qm-row-widget-shortcut {
   font-family: var(--qm-font-mono);
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.78);
-  margin-left: 4px;
+  color: rgba(255, 255, 255, 0.62);
+  margin-left: 5px;
+  letter-spacing: 0.2px;
 }
 .qm-row-widget:not(:hover) .qm-row-widget-shortcut { display: none; }
 
@@ -625,10 +626,9 @@
   font-family: var(--qm-font-mono);
   font-size: 9.5px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.6px;
   color: var(--qm-fg-subtle);
   background: var(--qm-surface-2);
-  border: 1px solid var(--qm-border);
   border-radius: 3px;
-  padding: 1px 4px;
+  padding: 1px 5px;
 }
