@@ -1,3 +1,16 @@
+/* PR Quick Merge — popup
+ *
+ * Refine passes:
+ *  1 layout    — five-band rhythm + tokenized spatial scale
+ *  2 typeset   — typographic scale 10.5/12/13.5/15.5/17 with weight + tracking
+ *                contrast doing the heavy hierarchy lift (size deltas alone
+ *                are too narrow for a 360px surface)
+ *
+ * Bands, top to bottom: brand · vitals · stream · action · footer.
+ * Per PRODUCT.md principle 4 ("density is intentional"), comfortable is the
+ * default; data-qm-density="compact" pulls everything 25-30% tighter.
+ */
+
 html, body {
   margin: 0;
   height: auto;
@@ -9,9 +22,78 @@ body {
   overflow-y: auto;
   color: var(--qm-fg, #1f2328);
   background: var(--qm-surface, #fff);
+
+  /* Spatial scale used across every popup band. Override per density. */
+  --qm-pop-pad-x: 16px;
+  --qm-pop-pad-tight: 9px;
+  --qm-pop-pad-comfy: 13px;
+  --qm-pop-pad-loose: 18px;
+  --qm-pop-band-gap: 14px;
+
+  /* Typographic scale (px). Five steps; ratio ≈1.13 — flat by necessity at
+   * 360px width, so contrast comes from weight + tracking + color, not size. */
+  --qm-pop-fs-cap: 9.5px;     /* uppercase micro-labels, tag chips */
+  --qm-pop-fs-meta: 10.5px;   /* sync timestamp, row stats, tertiary copy */
+  --qm-pop-fs-body: 12px;     /* row owner/repo, button text */
+  --qm-pop-fs-sub: 13.5px;    /* onboarding step labels */
+  --qm-pop-fs-display: 17px;  /* vitals stat — anchor of the surface */
+
+  /* Tracking by role. Display tightens; caps loosen. */
+  --qm-pop-tr-display: -0.25px;
+  --qm-pop-tr-body: 0;
+  --qm-pop-tr-cap: 0.7px;
+
+  /* Tabular figures everywhere a number lives — no jitter on re-render. */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "ss01", "cv11";
+
+  /* Accent tint scale — color-mix derives shades from --qm-accent so the
+   * Tweaks panel's accent picker (QM-218) propagates everywhere automatically.
+   * Per PRODUCT.md principle 2 (committed accent: 30-60% of surface), these
+   * carry hover states, hairlines, and the brand-band spine. */
+  --qm-accent-soft: color-mix(in oklch, var(--qm-accent, #1f6feb) 8%, transparent);
+  --qm-accent-medium: color-mix(in oklch, var(--qm-accent, #1f6feb) 14%, transparent);
+  --qm-accent-strong: color-mix(in oklch, var(--qm-accent, #1f6feb) 28%, transparent);
+  --qm-accent-fg: #fff;
+
+  /* Motion: ease-out-quart / quint per the design laws (no bounce, no
+   * elastic). Three durations only — anything longer hurts perceived
+   * snappiness in a tool that opens 5-15x/day. */
+  --qm-pop-mo-fast: 140ms cubic-bezier(0.25, 1, 0.5, 1);
+  --qm-pop-mo-med: 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  --qm-pop-mo-slow: 360ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* ─── Sticky header ─────────────────────────────────────────────────── */
+/* On open, slide the popup body up a hair while it fades in. Triggered
+ * once at DOM construction; re-renders inside don't replay it.
+ *
+ * `forwards` (not `both`) means the body's natural opacity:1 / transform:0
+ * applies before the animation starts. Playwright disables animations for
+ * visual snapshots and pauses them at frame 0; with `both` that leaves the
+ * body invisible and breaks CI screenshots. With `forwards`, the snapshot
+ * captures the static end-state and the live popup still animates in. */
+@keyframes qm-pop-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+body { animation: qm-pop-enter var(--qm-pop-mo-med) forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  body { animation: none; }
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+[data-qm-density="compact"] body,
+body[data-qm-density="compact"] {
+  --qm-pop-pad-x: 14px;
+  --qm-pop-pad-tight: 6px;
+  --qm-pop-pad-comfy: 9px;
+  --qm-pop-pad-loose: 12px;
+}
+
+/* ─── 1 · Brand band ────────────────────────────────────────────────── */
 .qm-popup-header {
   position: sticky;
   top: 0;
@@ -19,40 +101,101 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--qm-border, #d0d7de);
-  background: var(--qm-surface-1, #f6f8fa);
-  gap: 8px;
+  padding: var(--qm-pop-pad-tight) var(--qm-pop-pad-x);
+  /* Accent-tinted surface + accent hairline as the visual spine. */
+  background:
+    linear-gradient(180deg, var(--qm-accent-soft), transparent),
+    var(--qm-surface-1, #f6f8fa);
+  border-bottom: 1.5px solid var(--qm-accent, #1f6feb);
+  gap: 10px;
+  overflow: hidden;
+}
+/* Refine pass 8 (overdrive): a thin accent scan line sweeps L→R across
+ * the brand band's bottom edge whenever the popup is refreshing. JS adds
+ * .qm-popup-syncing on the body during loadAndRender; this rule paints
+ * the line as a pseudo-element so it doesn't flow with content. */
+.qm-popup-header::after {
+  content: "";
+  position: absolute;
+  left: -40%;
+  bottom: 0;
+  width: 40%;
+  height: 1.5px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--qm-accent, #1f6feb),
+    transparent
+  );
+  opacity: 0;
+  pointer-events: none;
+}
+body.qm-popup-syncing .qm-popup-header::after {
+  opacity: 1;
+  animation: qm-pop-scan 1.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes qm-pop-scan {
+  0%   { left: -40%; }
+  100% { left: 100%; }
 }
 .qm-popup-brand {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   min-width: 0;
 }
 .qm-popup-brand-slot {
   display: inline-flex;
   align-items: center;
-  width: 18px;
-  height: 18px;
-  color: var(--qm-accent, #1f6feb);
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: var(--qm-accent, #1f6feb);
+  color: var(--qm-accent-fg, #fff);
+  box-shadow:
+    0 0 0 1px var(--qm-accent-strong),
+    0 6px 14px -8px var(--qm-accent, #1f6feb);
 }
-.qm-popup-brand-slot svg { width: 18px; height: 18px; }
+.qm-popup-brand-slot svg { width: 16px; height: 16px; }
+/* Refine pass 8 (overdrive): the brand mark draws itself in on first
+ * paint — a CLI/terminal vibe consistent with PRODUCT.md anchor refs
+ * (Vercel CLI dashboards, Stripe docs). Stroked paths animate dasharray
+ * → 0; the filled circles fade in after, on a stagger. */
+.qm-popup-brand-slot path {
+  stroke-dasharray: 50;
+  stroke-dashoffset: 50;
+  animation: qm-pop-brand-draw 700ms cubic-bezier(0.16, 1, 0.3, 1) 80ms forwards;
+}
+.qm-popup-brand-slot circle {
+  opacity: 0;
+  animation: qm-pop-brand-pop 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.qm-popup-brand-slot circle:nth-of-type(1) { animation-delay: 580ms; }
+.qm-popup-brand-slot circle:nth-of-type(2) { animation-delay: 700ms; }
+.qm-popup-brand-slot circle:nth-of-type(3) { animation-delay: 820ms; }
+@keyframes qm-pop-brand-draw { to { stroke-dashoffset: 0; } }
+@keyframes qm-pop-brand-pop {
+  from { opacity: 0; transform: scale(0.6); transform-origin: center; }
+  to   { opacity: 1; transform: scale(1); }
+}
 .qm-popup-header .qm-wordmark {
-  font-size: 12.5px;
+  font-size: var(--qm-pop-fs-body);
   font-weight: 700;
-  letter-spacing: 0.2px;
+  letter-spacing: -0.1px;
   white-space: nowrap;
 }
 .qm-popup-header .qm-tag {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 9px;
+  font-size: var(--qm-pop-fs-cap);
   font-weight: 700;
-  letter-spacing: 1px;
+  letter-spacing: var(--qm-pop-tr-cap);
   color: var(--qm-fg-subtle, #57606a);
-  background: var(--qm-surface-2, #eaeef2);
-  padding: 1px 5px;
+  background: transparent;
+  border: 1px solid var(--qm-border, #d0d7de);
+  padding: 0 5px;
   border-radius: 3px;
+  text-transform: uppercase;
 }
 .qm-popup-header-actions {
   display: flex;
@@ -60,46 +203,98 @@ body {
   gap: 4px;
 }
 .qm-popup-header-actions .qm-button-sm {
-  padding: 2px 8px;
+  padding: 3px 9px;
   font-size: 11px;
 }
+/* Manage toggle reads as switched-on, not just labeled "Done". */
+#manageBtn[aria-pressed="true"] {
+  background: var(--qm-accent, #1f6feb);
+  color: var(--qm-accent-fg, #fff);
+  border-color: var(--qm-accent, #1f6feb);
+}
+/* Spin the refresh glyph while popup.js drives loadAndRender. JS toggles
+ * the .qm-spinning class; CSS owns the animation. */
+@keyframes qm-pop-spin { to { transform: rotate(360deg); } }
+#refreshBtn.qm-spinning {
+  animation: qm-pop-spin 700ms linear infinite;
+  color: var(--qm-accent, #1f6feb);
+}
 
-/* ─── Summary strip ─────────────────────────────────────────────────── */
+/* ─── 2 · Vitals band ──────────────────────────────────────────────── */
 .qm-popup-summary {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  font-size: 11.5px;
-  color: var(--qm-fg-subtle, #57606a);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: var(--qm-pop-pad-loose) var(--qm-pop-pad-x) var(--qm-pop-pad-comfy);
   background: var(--qm-surface, #fff);
   border-bottom: 1px solid var(--qm-border, #d0d7de);
 }
 .qm-popup-summary-stat {
-  font-weight: 600;
+  font-size: var(--qm-pop-fs-display);
+  font-weight: 700;
+  letter-spacing: var(--qm-pop-tr-display);
   color: var(--qm-fg, #1f2328);
+  line-height: 1.1;
+  /* Tighten leading-number visual weight where the label trails it. */
+  font-feature-settings: "ss01", "cv11", "tnum";
+  transition: color var(--qm-pop-mo-med);
+}
+/* Editorial moment: when there's nothing to merge, the headline becomes
+ * a status, not a count of zero. Earned attention works both ways —
+ * silence is also a state worth designing. */
+.qm-popup-summary-stat.all-clear {
+  color: var(--qm-success, #1a7f37);
+}
+.qm-popup-summary-stat.all-clear::before {
+  content: "✓";
+  display: inline-block;
+  margin-right: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: color-mix(in oklch, var(--qm-success, #1a7f37) 15%, transparent);
+  color: var(--qm-success, #1a7f37);
+  text-align: center;
+  line-height: 22px;
+  font-weight: 700;
+  font-size: 14px;
+  vertical-align: -4px;
+  animation: qm-pop-clear-pop var(--qm-pop-mo-slow) both;
+}
+@keyframes qm-pop-clear-pop {
+  from { opacity: 0; transform: scale(0.5); }
+  to   { opacity: 1; transform: scale(1); }
 }
 .qm-popup-summary-sync {
+  font-size: var(--qm-pop-fs-meta);
+  font-weight: 500;
   color: var(--qm-fg-subtle, #57606a);
   font-variant-numeric: tabular-nums;
+  /* Sync timestamp is metadata; let the vitals stat carry the headline. */
 }
 
-/* ─── Status banner ─────────────────────────────────────────────────── */
+/* ─── Status banner (between vitals and stream) ─────────────────────── */
 .qm-popup-status {
   font-size: 11px;
   color: var(--qm-fg-subtle, #656d76);
-  padding: 4px 14px;
+  padding: 4px var(--qm-pop-pad-x);
   min-height: 0;
 }
 .qm-popup-status:empty { padding: 0; }
-.qm-popup-status.err { color: var(--qm-danger, #cf222e); padding: 6px 14px; }
+.qm-popup-status.err {
+  color: var(--qm-danger, #cf222e);
+  padding: 7px var(--qm-pop-pad-x);
+  background: var(--qm-danger-bg, #ffebe9);
+  border-bottom: 1px solid var(--qm-danger, #cf222e);
+}
 
-/* ─── Repo list ─────────────────────────────────────────────────────── */
+/* ─── 3 · Stream (repo list) ───────────────────────────────────────── */
 .qm-popup-list {
   list-style: none;
   padding: 0;
   margin: 0;
-  max-height: 380px;
+  max-height: 360px;
   overflow-y: auto;
 }
 .qm-popup-list li {
@@ -111,51 +306,59 @@ body {
 .qm-popup-row-link {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
+  gap: 12px;
+  padding: var(--qm-pop-pad-comfy) var(--qm-pop-pad-x);
   text-decoration: none;
   color: inherit;
 }
+.qm-popup-row-link {
+  transition: background-color var(--qm-pop-mo-fast);
+}
 .qm-popup-row-link:hover {
-  background: var(--qm-surface-1, #f6f8fa);
+  background: var(--qm-accent-soft);
+}
+.qm-popup-row-link:hover .qm-popup-row-tile {
+  transform: scale(1.06);
 }
 .qm-popup-row-tile {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  background: var(--qm-surface-2, #eaeef2);
-  color: var(--qm-accent, #1f6feb);
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  background: var(--qm-accent, #1f6feb);
+  color: var(--qm-accent-fg, #fff);
   font-weight: 700;
   font-size: 13px;
   flex: 0 0 auto;
+  transition: transform var(--qm-pop-mo-med);
 }
 .qm-popup-row-body {
   flex: 1;
   min-width: 0;
 }
 .qm-popup-row-name {
-  font-size: 12.5px;
+  font-size: var(--qm-pop-fs-body);
   line-height: 1.3;
   word-break: break-all;
 }
 .qm-popup-row-owner {
   color: var(--qm-fg-subtle, #57606a);
-  font-weight: 400;
+  font-weight: 450;
 }
 .qm-popup-row-repo {
   color: var(--qm-fg, #1f2328);
-  font-weight: 600;
+  font-weight: 650;
+  letter-spacing: -0.1px;
 }
 .qm-popup-row-stats {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 10.5px;
+  gap: 5px;
+  font-size: var(--qm-pop-fs-meta);
   color: var(--qm-fg-subtle, #656d76);
-  margin-top: 2px;
+  margin-top: 3px;
   font-variant-numeric: tabular-nums;
 }
 .qm-popup-row-stat.ready {
@@ -165,30 +368,53 @@ body {
 .qm-popup-row-stat.warn {
   color: var(--qm-warn, #9a6700);
 }
-.qm-popup-row-stat-sep { opacity: 0.5; }
+.qm-popup-row-stat-sep { opacity: 0.4; }
 
 .qm-popup-row-cta {
   flex: 0 0 auto;
   font-size: 11px;
-  padding: 3px 9px;
+  font-weight: 700;
+  letter-spacing: -0.05px;
+  padding: 5px 11px;
+  box-shadow: 0 4px 10px -6px var(--qm-accent, #1f6feb);
+  transition:
+    box-shadow var(--qm-pop-mo-med),
+    transform var(--qm-pop-mo-fast);
+}
+.qm-popup-row-link:hover .qm-popup-row-cta {
+  box-shadow: 0 8px 18px -8px var(--qm-accent, #1f6feb);
+  transform: translateY(-1px);
 }
 
 /* ─── Empty state ───────────────────────────────────────────────────── */
 .qm-popup-empty {
-  padding: 24px 16px;
+  padding: 38px var(--qm-pop-pad-x) 32px;
   text-align: center;
+  position: relative;
+}
+.qm-popup-empty::before {
+  content: "↳";
+  display: block;
+  font-size: 28px;
+  color: var(--qm-accent-strong);
+  margin-bottom: 10px;
+  font-weight: 300;
+  transform: rotate(-12deg);
 }
 .qm-popup-empty p {
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--qm-fg-subtle, #656d76);
-  margin: 0 0 12px;
+  margin: 0 0 16px;
   line-height: 1.5;
+  max-width: 240px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-/* ─── Footer ────────────────────────────────────────────────────────── */
+/* ─── 5 · Footer ────────────────────────────────────────────────────── */
 .qm-popup-footer {
   border-top: 1px solid var(--qm-border, #d0d7de);
-  padding: 8px 12px;
+  padding: var(--qm-pop-pad-tight) var(--qm-pop-pad-x);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -196,68 +422,86 @@ body {
 }
 .qm-popup-footer-pin {
   font-size: 11px;
-  padding: 2px 8px;
+  padding: 3px 9px;
 }
 .qm-popup-sponsor {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   font-size: 11px;
   color: var(--qm-fg-subtle, #57606a);
   text-decoration: none;
-  padding: 2px 6px;
+  padding: 3px 7px;
   border-radius: 4px;
 }
 .qm-popup-sponsor:hover {
   color: var(--qm-danger, #cf222e);
   background: var(--qm-surface-2, #eaeef2);
 }
+.qm-popup-sponsor:hover .qm-popup-sponsor-heart {
+  animation: qm-pop-heartbeat 600ms ease-out 0s 2;
+}
 .qm-popup-sponsor-heart {
   color: var(--qm-danger, #cf222e);
   font-size: 12px;
   line-height: 1;
+  display: inline-block;
+}
+@keyframes qm-pop-heartbeat {
+  0%   { transform: scale(1); }
+  20%  { transform: scale(1.18); }
+  35%  { transform: scale(0.96); }
+  55%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
 }
 .qm-popup-sponsor-text { font-weight: 500; }
 
-/* ─── Stale-token banner ────────────────────────────────────────────── */
+/* ─── Stale-token banner (above vitals) ─────────────────────────────── */
 .qm-popup-stale-banner {
   background: var(--qm-warn-bg, #fff8c5);
   border-bottom: 1px solid var(--qm-warn, #d4a72c);
   color: var(--qm-warn-fg, #4a3c03);
   font-size: 12px;
-  padding: 8px 12px;
+  padding: var(--qm-pop-pad-tight) var(--qm-pop-pad-x);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
 }
 .qm-popup-stale-banner button {
   font-size: 11px;
   white-space: nowrap;
 }
 
-/* ─── Manage box ────────────────────────────────────────────────────── */
+/* ─── 4 · Action band (manage box) ──────────────────────────────────── */
+@keyframes qm-pop-slide-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 .qm-popup-manage {
   border-top: 1px solid var(--qm-border, #d0d7de);
   background: var(--qm-surface-1, #f6f8fa);
-  padding: 10px 12px;
+  padding: var(--qm-pop-pad-comfy) var(--qm-pop-pad-x);
+  animation: qm-pop-slide-in var(--qm-pop-mo-med) both;
 }
 .qm-popup-manage-label {
   display: block;
-  font-size: 11px;
+  font-size: var(--qm-pop-fs-cap);
   color: var(--qm-fg-subtle, #57606a);
-  margin-bottom: 4px;
-  font-weight: 500;
+  margin-bottom: 7px;
+  font-weight: 700;
+  letter-spacing: var(--qm-pop-tr-cap);
+  text-transform: uppercase;
 }
 .qm-popup-manage-row {
   display: flex;
-  gap: 6px;
+  gap: 7px;
 }
 .qm-popup-manage-row .qm-input { flex: 1; }
 .qm-popup-manage-status {
   font-size: 11px;
   color: var(--qm-fg-subtle, #57606a);
-  margin-top: 6px;
+  margin-top: 7px;
   min-height: 1em;
 }
 .qm-popup-manage-status.ok { color: var(--qm-success, #1a7f37); }
@@ -268,12 +512,12 @@ body {
   border: 1px solid var(--qm-danger, #cf222e);
   color: var(--qm-danger, #cf222e);
   border-radius: 4px;
-  padding: 1px 6px;
+  padding: 2px 8px;
   font-size: 10px;
   cursor: pointer;
   margin-left: 6px;
   position: absolute;
-  right: 14px;
+  right: var(--qm-pop-pad-x);
   top: 50%;
   transform: translateY(-50%);
 }
@@ -286,25 +530,22 @@ body {
   background: var(--qm-danger-bg, #ffebe9);
   color: var(--qm-danger, #cf222e);
   font-size: 10px;
-  padding: 1px 6px;
+  padding: 2px 7px;
   border-radius: 10px;
-  margin: 0 14px 8px;
+  margin: 0 var(--qm-pop-pad-x) 8px;
 }
 .qm-popup-row-failed {
   opacity: 0.7;
 }
 
-/* Density: compact mode shrinks all paddings ~25%. */
-[data-qm-density="compact"] .qm-popup-row-link { padding: 7px 14px; }
-[data-qm-density="compact"] .qm-popup-row-tile { width: 24px; height: 24px; font-size: 12px; }
-[data-qm-density="compact"] .qm-popup-summary { padding: 6px 14px; }
-
-/* ─── Onboarding card ───────────────────────────────────────────────── */
+/* ─── Onboarding card (lives in stream slot) ────────────────────────── */
 .qm-onboarding {
-  margin: 12px 14px;
-  padding: 14px;
+  margin: var(--qm-pop-pad-comfy) var(--qm-pop-pad-x);
+  padding: var(--qm-pop-pad-comfy) var(--qm-pop-pad-comfy) var(--qm-pop-pad-tight);
   position: relative;
   background: linear-gradient(180deg, var(--qm-surface-1, #f6f8fa), var(--qm-surface, #fff));
+  animation: qm-pop-slide-in var(--qm-pop-mo-slow) both;
+  animation-delay: 80ms;
 }
 .qm-onboarding-dismiss {
   position: absolute;
@@ -315,56 +556,64 @@ body {
   padding: 0 6px;
 }
 .qm-onboarding-title {
-  font-size: 14px;
+  font-size: 15.5px;
   font-weight: 700;
-  margin: 0 0 4px;
+  margin: 0 0 5px;
   color: var(--qm-fg, #1f2328);
+  letter-spacing: var(--qm-pop-tr-display);
+  line-height: 1.15;
 }
 .qm-onboarding-lede {
-  font-size: 11.5px;
+  font-size: var(--qm-pop-fs-body);
   color: var(--qm-fg-subtle, #57606a);
-  margin: 0 0 10px;
-  line-height: 1.4;
+  margin: 0 0 12px;
+  line-height: 1.45;
+}
+.qm-onboarding-step-label {
+  font-size: var(--qm-pop-fs-sub);
+  font-weight: 600;
+  letter-spacing: -0.05px;
+}
+.qm-onboarding-step-note {
+  font-size: var(--qm-pop-fs-meta);
+  color: var(--qm-fg-subtle, #57606a);
+  margin-top: 1px;
 }
 .qm-onboarding-steps {
   list-style: none;
   padding: 0;
-  margin: 0 0 12px;
+  margin: 0 0 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
 }
 .qm-onboarding-step {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 8px;
+  gap: 11px;
+  padding: 8px 10px;
   background: var(--qm-surface, #fff);
   border: 1px solid var(--qm-border-muted, #eaeef2);
-  border-radius: 6px;
+  border-radius: 7px;
 }
 .qm-onboarding-glyph {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 5px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
   background: var(--qm-accent, #1f6feb);
   color: #fff;
   font-weight: 700;
   font-size: 11px;
   flex: 0 0 auto;
 }
-.qm-onboarding-step-label {
-  font-size: 12px;
-  font-weight: 600;
-}
-.qm-onboarding-step-note {
-  font-size: 10.5px;
-  color: var(--qm-fg-subtle, #57606a);
-}
 .qm-onboarding-cta {
   width: 100%;
-  font-size: 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: -0.05px;
+  padding: 9px 14px;
+  box-shadow: 0 6px 16px -8px var(--qm-accent, #1f6feb);
 }

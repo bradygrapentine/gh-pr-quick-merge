@@ -67,8 +67,14 @@ function renderSummary(entries) {
   const repoCount = entries.length;
   const mergeable = entries.reduce((n, e) => n + (e.mergeableCount || 0), 0);
   const stat = $("summaryStat");
+  // Refine pass 7 — editorial moment: a different headline when the merge
+  // queue is empty, with .all-clear flipping the color + ✓ glyph in CSS.
+  stat.classList.remove("all-clear");
   if (repoCount === 0) {
     stat.textContent = "No pinned repos";
+  } else if (mergeable === 0) {
+    stat.textContent = `All clear across ${repoCount} repo${repoCount === 1 ? "" : "s"}`;
+    stat.classList.add("all-clear");
   } else {
     stat.textContent = `${mergeable} mergeable across ${repoCount} repo${repoCount === 1 ? "" : "s"}`;
   }
@@ -270,7 +276,20 @@ async function loadAndRender() {
   hideEmptyState();
   setStatus("Loading…");
   state.rowErrors.clear();
+  // Spin the refresh glyph while the fetch is in flight (refine pass 6)
+  // and run the brand-band scan line (refine pass 8 / overdrive).
+  const refreshBtn = $("refreshBtn");
+  if (refreshBtn) refreshBtn.classList.add("qm-spinning");
+  document.body.classList.add("qm-popup-syncing");
+  try {
+    return await _loadAndRenderInner();
+  } finally {
+    if (refreshBtn) refreshBtn.classList.remove("qm-spinning");
+    document.body.classList.remove("qm-popup-syncing");
+  }
+}
 
+async function _loadAndRenderInner() {
   const [{ pinnedRepos }, { token }, localData] = await Promise.all([
     chrome.storage.sync.get("pinnedRepos"),
     chrome.storage.local.get("token"),
