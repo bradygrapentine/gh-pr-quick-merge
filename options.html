@@ -390,6 +390,24 @@
           </div>
           <div class="status" id="templatesStatus"></div>
         </div>
+
+        <div class="section">
+          <h2>Per-repo template binding</h2>
+          <div class="hint">
+            Pick a saved template for each repo. The merge buttons on that
+            repo's PRs will use it by default; the global <code>*</code> binding
+            still applies to anything not listed.
+          </div>
+          <ul id="repoTemplateBindingsList" class="qm-defaults-list"></ul>
+          <div class="qm-defaults-add">
+            <input type="text" id="repoTemplateBindingRepo" placeholder="owner/repo" autocomplete="off" />
+            <select id="repoTemplateBindingName" aria-label="Template to bind">
+              <option value="">(no templates saved)</option>
+            </select>
+            <button id="repoTemplateBindingAdd" class="secondary" type="button">Bind</button>
+          </div>
+          <div class="status" id="repoTemplateBindingsStatus"></div>
+        </div>
       </section>
 
       <!-- ─── Stale PRs pane ─────────────────────────────────────── -->
@@ -491,6 +509,22 @@
           </div>
 
           <div class="status" id="tweaksStatus"></div>
+        </div>
+
+        <div class="section">
+          <h2>Privacy</h2>
+          <div class="hint">
+            Crash reports are <strong>opt-in</strong>. When enabled, Sentry
+            collects exception traces (sanitized — no tokens, no PR titles,
+            no URLs) so we can fix bugs faster. Off by default.
+          </div>
+          <div class="qm-form-row">
+            <label class="qm-checkbox-row" style="font-weight:400;">
+              <input type="checkbox" id="sentryConsent" />
+              <span style="margin-left:6px;">Send anonymous crash reports</span>
+            </label>
+          </div>
+          <div class="status" id="sentryConsentStatus"></div>
         </div>
       </section>
 
