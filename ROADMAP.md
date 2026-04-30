@@ -9,10 +9,10 @@ A browser extension that lets devs squash / merge / rebase PRs directly from the
 ## Map
 
 ```
-v0.1 ── v0.2 ── v0.3 ── v0.4 ── v1.0 ── v1.1 ──── v1.2 ──────── v2.0 ─────── Post-1.0
-shipped shipped shipped shipped launch  Design    PR-page       GitLab port  Teams + GH Marketplace
-                                │       Refresh   safety        (Epic 9)
-                                │       (Epic 8)  (Epic 10)
+v0.1 ── v0.2 ── v0.3 ── v0.4 ── v1.0 ── v1.1 ──── v1.2 ───── v1.3 ──────── v2.0 ─────── Post-1.0
+shipped shipped shipped shipped launch  Design    PR-page    List metadata GitLab port  Teams + GH Marketplace
+                                │       Refresh   safety     + filters     (Epic 9)
+                                │       (Epic 8)  (Epic 10)  (Epic 11)
                                 ├─ Epic 4 distribution shipped (PR #18)
                                 ├─ Epic 5 Sentry sanitiser shipped (PR #21);
                                 │   SDK vendoring follow-up open
@@ -37,6 +37,7 @@ The path from v0.2 to v1.0 is broken into **6 Epics**. Each Epic decomposes into
 | 8 | v1.1 Design Refresh | v1.1 | extension UI | QM-200..220 |
 | 9 | GitLab port (multi-host architecture) | v2.0 | extension | QM-300..330 |
 | 10 | PR-page safety: always-visible rebase + inline approve | v1.2 | extension | QM-400..410 |
+| 11 | PR-list metadata badges + quick-filter bar | v1.3 | extension | QM-500..513 |
 
 **Scope simplification (2026-04-29):** v1.0 ships **donation-funded** via GitHub Sponsors instead of a paid Pro tier. The license-server / Stripe / ed25519 / state-machine path (Epic 3) is deferred — plans remain on disk as scaffolding if a paid tier becomes warranted later. Epics 4/5/6 are slimmed to remove license-server-coupled stories. Epic 7 is new.
 
@@ -213,6 +214,20 @@ First sponsor at any tier covers the floor. Everything else is funding developme
 **Estimate:** ~3 eng-days. Single-track, single-PR squash-merge — file-touch overlap on `content.js` makes parallelisation a net loss.
 
 **Story range:** QM-400..410 (11 stories; QM-401 already shipped in PR #41).
+
+---
+
+## v1.3 — PR-list metadata + filters  (Epic 11)
+
+**Targets:** make the `/pulls` list scan-friendly. Per-row CI / size / comments badges, a Mine / Ready / Stale / Small filter bar above the list, and Dependabot / Drafts noise toggles. Detailed plan: [`plans/v1.3-epic-11-pr-list-metadata.md`](./plans/v1.3-epic-11-pr-list-metadata.md).
+
+**Theme:** v1.0–v1.2 added single-PR ergonomics (one-click merge, PR-page rebase). v1.3 takes the wide-angle view — when you have 30 open PRs, which 3 are actually mergeable? Filters answer the question; badges show the why.
+
+**Estimate:** ~6 eng-days. Splits cleanly into 4 PRs by track (A row badges, B filter bar, C noise toggles, D tests + visual).
+
+**Story range:** QM-500..513 (14 stories).
+
+**Source:** intent originates in `github_power_suite_docs_updated/` — `features_v1.md` §Metadata + §Interaction, `ui_ux.md` §Components, `data_model.md`.
 
 ---
 

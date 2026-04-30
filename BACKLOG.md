@@ -27,7 +27,8 @@ _Last sync: 2026-04-29 (v1.0 polish)_
 - Ready: 12 (v1.0 launch follow-ups + 8 v1.1 candidates — see §1)
 - Epic 8 (v1.1 Design Refresh): 21 stories (QM-200..220) — handoff received 2026-04-29; reference at `~/projects/handoff_pr_quick_merge_design/`
 - Epic 9 (v2.0 GitLab port): 31 stories (QM-300..330) — scoped 2026-04-29; plan at `plans/v2-gitlab-port.md`. Requires v1.0 launched + v1.1 design merged before Phase 0 begins.
-- Epic 10 (v1.2 PR-page safety): 11 stories (QM-400..410) — scoped 2026-04-30; plan at `plans/v1.2-epic-10-pr-page-safety.md`. Single-track, single-PR squash; QM-401 prep already shipped in PR #41.
+- Epic 10 (v1.2 PR-page safety): 11 stories (QM-400..410) — scoped 2026-04-30; plan at `plans/v1.2-epic-10-pr-page-safety.md`. Shipped in PR #46 (2026-04-30); doc-alignment tightening in PR #47.
+- Epic 11 (v1.3 PR-list metadata + filters): 14 stories (QM-500..513) — scoped 2026-04-30; plan at `plans/v1.3-epic-11-pr-list-metadata.md`. Splits into 4 PRs along clean file boundaries (Track A row badges, B filter bar, C noise toggles, D tests + visual).
 - Blocked-on-human: 2 (QM-104 CWS submit; QM-108 AMO submit)
 - Deferred: 22 (Epic 3 license server + QM-165 BMaC)
 - In progress: 0
@@ -245,6 +246,30 @@ The design files at `~/projects/handoff_pr_quick_merge_design/` are **React + Ba
 | QM-408 | Inline Approve action | S | QM-402, QM-407 | Single-click → confirmation toast (no modal — review approval is reversible). Hides on self-PR. |
 | QM-409 | Playwright e2e — `pr-page-rebase.spec.ts` | M | QM-400..408 | Mount, click, modal, confirm, soft-nav, not-applicable. Logged-in + logged-out fixtures. |
 | QM-410 | Visual regression baselines — `pr-page.spec.ts` | S | QM-409 | Idle, hover, modal, success toast, fallback, dark-mode. Baselines per platform. |
+
+### Epic 11 — v1.3 PR-list metadata + quick-filter bar (NEW — scoped 2026-04-30)
+
+**Plan:** [`plans/v1.3-epic-11-pr-list-metadata.md`](./plans/v1.3-epic-11-pr-list-metadata.md)
+**Source of intent:** `github_power_suite_docs_updated/features_v1.md`, `ui_ux.md`, `data_model.md`. Surfaces CI / size / comments badges per row, plus a Mine / Ready / Stale / Small filter bar above the PR list with Dependabot / Drafts noise toggles.
+**Estimate:** ~6 eng-days. Splits cleanly into 4 PRs by track (A badges, B filter, C noise, D tests + visual).
+**Dependencies:** Epic 8 row-widget primitives ✅; Epic 10 viewer cache ✅; existing `lib/stale-pr.js` ✅.
+
+| ID | Title | Est | Deps | Notes |
+|----|-------|-----|------|-------|
+| QM-500 | CI status badge — combined-status / check-runs roll-up | M | — | Single GraphQL fetch piggy-backed on `fetchPrState`; coloured dot per state. |
+| QM-501 | PR size badge (XS/S/M/L/XL) | S | — | Pure-fn classifier on `additions + deletions`; no extra fetch. |
+| QM-502 | Comments indicator + jump-to-comments | S | — | Anchor → `#issue-comment-area`; hidden when count is 0. |
+| QM-503 | Ready-to-merge highlight | S | QM-500 | Subtle 2px green left-edge when `mergeable_state === 'clean'` AND `behind_by === 0`. |
+| QM-504 | Filter bar mount + chip UI (Mine / Ready / Stale / Small) | M | — | Persists in `chrome.storage.sync.qm_filters`. |
+| QM-505 | `Mine` predicate | S | QM-504 | Reuses Epic 10 viewer cache. |
+| QM-506 | `Ready` predicate | XS | QM-504 | Same gate as QM-503. |
+| QM-507 | `Stale` predicate | XS | QM-504 | Wires `lib/stale-pr.js#isStale`. |
+| QM-508 | `Small` predicate | XS | QM-501, QM-504 | Size class ∈ {XS, S}. |
+| QM-509 | Dependabot noise toggle | S | QM-504 | Configurable allow-list `qm_noise_authors` (defaults: dependabot[bot], renovate[bot], github-actions[bot]). |
+| QM-510 | Drafts noise toggle | XS | QM-504 | Filters `pr.draft === true`. |
+| QM-511 | Unit suite — badges + filters + size classifier | M | QM-500..510 | ≥95% line coverage on all three modules. |
+| QM-512 | Playwright e2e — `filter-bar.spec.ts` | M | QM-504..510 | Chip toggle, persistence, dependabot exclusion. Gated on `E2E_GH_TOKEN`. |
+| QM-513 | Visual baselines — `list-badges.spec.ts` | S | QM-500..510 | All four badges; ready highlight; idle / two-active / noise-on filter bar. |
 
 ### Historical — Epics 1, 2, 4, 5, 6, 7 (mostly shipped — see §7)
 
