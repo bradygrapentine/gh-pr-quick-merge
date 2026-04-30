@@ -385,15 +385,88 @@ async function injectRow(row) {
   });
 
   const status = makeStatus();
-  const squash = makeButton("Squash", "squash");
-  const merge = makeButton("Merge", "merge");
-  const rebase = makeButton("Rebase", "rebase");
-
   container.appendChild(checkbox);
   container.appendChild(status);
-  container.appendChild(squash);
-  container.appendChild(merge);
-  container.appendChild(rebase);
+
+  // QM-206..210 — single compact pill widget replaces the 3-button stack.
+  // The widget owns its own status pill + button enabling + optimistic
+  // spinner; the legacy `status` span still exists for paths that pre-date
+  // the widget (auth toast, stale badge etc.) — `setRowState` becomes a
+  // no-op on the widget's `.qm-button` elements.
+  const widgetApi = window.QM_ROW_WIDGET;
+  let rowWidget = null;
+  if (widgetApi && widgetApi.makeRowWidget) {
+    rowWidget = widgetApi.makeRowWidget({
+      pr,
+      prState: null,
+      getDefaultMethod: () => state.repoDefaults[`${pr.owner}/${pr.repo}`] || "squash",
+      getShortcutHint: () => null, // QM-209 toggled in a follow-up; read state.shortcutMode
+      onMethodChange: () => { /* no-op; cached for the next click */ },
+      onMerge: async (method) => {
+        const current = state.cache.get(prKey(pr));
+        if (!current?.head_sha) {
+          toast("PR state not ready, try again", "warn");
+          throw new Error("not ready");
+        }
+        const ok = confirm(`${method.toUpperCase()} ${pr.owner}/${pr.repo} #${pr.num}?`);
+        if (!ok) throw new Error("cancelled");
+
+        let rebaseSpinner = null;
+        const onRebaseStart = () => {
+          rebaseSpinner = document.createElement("span");
+          rebaseSpinner.className = "qm-rebasing";
+          rebaseSpinner.textContent = "Rebasing…";
+          container.insertBefore(rebaseSpinner, status.nextSibling);
+        };
+        const onRebaseEnd = () => {
+          if (rebaseSpinner && rebaseSpinner.parentNode) rebaseSpinner.parentNode.removeChild(rebaseSpinner);
+          rebaseSpinner = null;
+        };
+
+        try {
+          const sync = await chrome.storage.sync.get(["autoRebaseThreshold", "updateBranchStrategy"]);
+          const threshold = Number(sync && sync.autoRebaseThreshold);
+          const strategy = sync && sync.updateBranchStrategy === "rebase" ? "rebase" : "merge";
+          const behindBy = Number(current.behind_by) || 0;
+
+          if (window.QM_AUTO_REBASE && Number.isFinite(threshold) && threshold > 0) {
+            await window.QM_AUTO_REBASE.rebaseThenMerge({
+              owner: pr.owner,
+              repo: pr.repo,
+              pullNumber: pr.num,
+              expectedHeadSha: current.head_sha,
+              behindBy,
+              autoRebaseThreshold: threshold,
+              mergeStrategy: strategy,
+              token,
+              api: API_HELPERS,
+              mergeFn: () => doMerge({ pr, kind: method, token, headSha: current.head_sha }),
+              onRebaseStart,
+              onRebaseEnd,
+            });
+          } else {
+            await doMerge({ pr, kind: method, token, headSha: current.head_sha });
+          }
+          toast(`Merged ${prKey(pr)}`, "ok");
+          row.style.opacity = "0.5";
+        } catch (err) {
+          onRebaseEnd();
+          toast(`Failed: ${err.message || err}`, "error");
+          throw err;
+        }
+      },
+    });
+    container.appendChild(rowWidget.root);
+  } else {
+    // Fallback for environments where qm-row-widget didn't load — preserves
+    // the v1.0 three-button behavior so the extension never goes blank.
+    const squash = makeButton("Squash", "squash");
+    const merge = makeButton("Merge", "merge");
+    const rebase = makeButton("Rebase", "rebase");
+    container.appendChild(squash);
+    container.appendChild(merge);
+    container.appendChild(rebase);
+  }
 
   applyRepoDefaultClass(container, pr);
 
@@ -425,6 +498,7 @@ async function injectRow(row) {
     ? { mergeable: null, mergeable_state: null, head_sha: null, listMode: true }
     : await fetchPrState(pr, token);
   setRowState(container, prState);
+  if (rowWidget) rowWidget.setState(prState);
   applyStaleBadge(container, prState, pr);
   if (state.listMode) {
     const note = document.createElement("span");
@@ -440,77 +514,44 @@ async function injectRow(row) {
       state.cache.delete(prKey(pr));
       const refreshed = await fetchPrState(pr, token);
       setRowState(container, refreshed);
+      if (rowWidget) rowWidget.setState(refreshed);
     }, 3000);
   }
 
-  container.addEventListener("click", async (e) => {
-    const btn = e.target.closest(".qm-btn");
-    if (!btn) return;
-    e.preventDefault();
-    e.stopPropagation();
-    if (btn.disabled) return;
+  // Fallback click path — only fires when the widget isn't loaded and the
+  // legacy 3-button stack is in the DOM. The widget self-handles its own
+  // clicks via the onMerge callback constructed above.
+  if (!rowWidget) {
+    container.addEventListener("click", async (e) => {
+      const btn = e.target.closest(".qm-btn");
+      if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (btn.disabled) return;
 
-    const kind = btn.dataset.qmKind;
-    const current = state.cache.get(prKey(pr));
-    if (!current?.head_sha) {
-      toast("PR state not ready, try again", "warn");
-      return;
-    }
-
-    const ok = confirm(`${kind.toUpperCase()} ${pr.owner}/${pr.repo} #${pr.num}?`);
-    if (!ok) return;
-
-    setButtonsDisabled(container, true);
-    status.textContent = "⏳";
-
-    let rebaseSpinner = null;
-    const onRebaseStart = () => {
-      rebaseSpinner = document.createElement("span");
-      rebaseSpinner.className = "qm-rebasing";
-      rebaseSpinner.textContent = "Rebasing…";
-      container.insertBefore(rebaseSpinner, status.nextSibling);
-    };
-    const onRebaseEnd = () => {
-      if (rebaseSpinner && rebaseSpinner.parentNode) rebaseSpinner.parentNode.removeChild(rebaseSpinner);
-      rebaseSpinner = null;
-    };
-
-    try {
-      const sync = await chrome.storage.sync.get(["autoRebaseThreshold", "updateBranchStrategy"]);
-      const threshold = Number(sync && sync.autoRebaseThreshold);
-      const strategy = sync && sync.updateBranchStrategy === "rebase" ? "rebase" : "merge";
-      const behindBy = Number(current.behind_by) || 0;
-
-      if (window.QM_AUTO_REBASE && Number.isFinite(threshold) && threshold > 0) {
-        await window.QM_AUTO_REBASE.rebaseThenMerge({
-          owner: pr.owner,
-          repo: pr.repo,
-          pullNumber: pr.num,
-          expectedHeadSha: current.head_sha,
-          behindBy,
-          autoRebaseThreshold: threshold,
-          mergeStrategy: strategy,
-          token,
-          api: API_HELPERS,
-          mergeFn: () => doMerge({ pr, kind, token, headSha: current.head_sha }),
-          onRebaseStart,
-          onRebaseEnd,
-        });
-      } else {
-        await doMerge({ pr, kind, token, headSha: current.head_sha });
+      const kind = btn.dataset.qmKind;
+      const current = state.cache.get(prKey(pr));
+      if (!current?.head_sha) {
+        toast("PR state not ready, try again", "warn");
+        return;
       }
-      status.textContent = "✓";
-      status.dataset.kind = "merged";
-      toast(`Merged ${prKey(pr)}`, "ok");
-      row.style.opacity = "0.5";
-    } catch (err) {
-      onRebaseEnd();
-      status.textContent = "✕";
-      status.dataset.kind = "error";
-      toast(`Failed: ${err.message}`, "error");
-      setButtonsDisabled(container, false);
-    }
-  });
+      const ok = confirm(`${kind.toUpperCase()} ${pr.owner}/${pr.repo} #${pr.num}?`);
+      if (!ok) return;
+
+      setButtonsDisabled(container, true);
+      status.textContent = "⏳";
+      try {
+        await doMerge({ pr, kind, token, headSha: current.head_sha });
+        status.textContent = "✓";
+        toast(`Merged ${prKey(pr)}`, "ok");
+        row.style.opacity = "0.5";
+      } catch (err) {
+        status.textContent = "✕";
+        toast(`Failed: ${err.message}`, "error");
+        setButtonsDisabled(container, false);
+      }
+    });
+  }
 
   injectRowActions({ row, container, pr, prData: prState, token, status });
 }
