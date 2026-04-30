@@ -454,6 +454,28 @@
   --qm-rw-pad-y: 4px;
   --qm-rw-status-pad-x: 8px;
   --qm-rw-gap: 6px;
+  /* Per-state shadow — peripheral vision can read 'ready' / 'blocked' from
+   * the row's tint alone before focusing on the pill itself. */
+  --qm-rw-state-glow: transparent;
+}
+.qm-row-widget:has(.qm-row-widget-status[data-state="ready"]) {
+  --qm-rw-state-glow: color-mix(in oklch, var(--qm-success) 30%, transparent);
+}
+.qm-row-widget:has(.qm-row-widget-status[data-state="behind"]) {
+  --qm-rw-state-glow: color-mix(in oklch, var(--qm-warn) 30%, transparent);
+}
+.qm-row-widget:has(.qm-row-widget-status[data-state="blocked"]) {
+  --qm-rw-state-glow: color-mix(in oklch, var(--qm-danger) 30%, transparent);
+}
+.qm-row-widget {
+  box-shadow:
+    var(--qm-shadow-1),
+    0 0 0 0 var(--qm-rw-state-glow);
+}
+.qm-row-widget:hover {
+  box-shadow:
+    var(--qm-shadow-1),
+    0 4px 14px -6px var(--qm-rw-state-glow);
 }
 .qm-row-widget-status {
   display: inline-flex;
@@ -471,15 +493,18 @@
 }
 .qm-row-widget-status[data-kind="success"] {
   color: var(--qm-success);
-  background: color-mix(in oklch, var(--qm-success) 12%, var(--qm-surface));
+  background: color-mix(in oklch, var(--qm-success) 16%, var(--qm-surface));
+  border-right-color: color-mix(in oklch, var(--qm-success) 25%, var(--qm-border));
 }
 .qm-row-widget-status[data-kind="warn"] {
   color: var(--qm-warn);
-  background: color-mix(in oklch, var(--qm-warn) 12%, var(--qm-surface));
+  background: color-mix(in oklch, var(--qm-warn) 16%, var(--qm-surface));
+  border-right-color: color-mix(in oklch, var(--qm-warn) 25%, var(--qm-border));
 }
 .qm-row-widget-status[data-kind="danger"] {
   color: var(--qm-danger);
-  background: color-mix(in oklch, var(--qm-danger) 12%, var(--qm-surface));
+  background: color-mix(in oklch, var(--qm-danger) 16%, var(--qm-surface));
+  border-right-color: color-mix(in oklch, var(--qm-danger) 25%, var(--qm-border));
 }
 .qm-row-widget-status[data-kind="muted"] { color: var(--qm-fg-subtle); }
 
