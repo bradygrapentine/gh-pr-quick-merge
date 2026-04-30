@@ -18,9 +18,10 @@ function makeRow() {
 }
 
 describe("buildSizeBadge", () => {
-  it("renders S · 47 for a 47-line PR", () => {
+  it("renders S for a 47-line PR (line count moved to tooltip)", () => {
     const el = buildSizeBadge({ additions: 30, deletions: 17 });
-    expect(el.textContent).toBe("S · 47");
+    expect(el.textContent).toBe("S");
+    expect(el.title).toBe("47 lines changed");
     expect(el.className).toContain("qm-row-badge-size-s");
     expect(el.getAttribute("aria-label")).toMatch(/47 lines/);
   });
@@ -73,7 +74,7 @@ describe("applyRowBadges (QM-500..503)", () => {
     applyRowBadges(container, { additions: 30, deletions: 19, comments: 2, mergeable_state: "blocked", behind_by: 1 }, pr);
     const strip = container.querySelector('[data-qm-badge="strip"]');
     expect(strip).toBeTruthy();
-    expect(strip.querySelector('[data-qm-badge="size"]').textContent).toBe("S · 49");
+    expect(strip.querySelector('[data-qm-badge="size"]').textContent).toBe("S");
     expect(strip.querySelector('[data-qm-badge="comments"]').textContent).toBe("💬 2");
     expect(strip.querySelector('[data-qm-badge="ci"]')).toBeNull(); // ciState not provided
   });
@@ -84,7 +85,7 @@ describe("applyRowBadges (QM-500..503)", () => {
     applyRowBadges(container, { additions: 100, deletions: 50, comments: 4 }, pr);
     const strips = container.querySelectorAll('[data-qm-badge="strip"]');
     expect(strips.length).toBe(1);
-    expect(strips[0].querySelector('[data-qm-badge="size"]').textContent).toBe("M · 150");
+    expect(strips[0].querySelector('[data-qm-badge="size"]').textContent).toBe("M");
     expect(strips[0].querySelector('[data-qm-badge="comments"]').textContent).toBe("💬 4");
   });
 

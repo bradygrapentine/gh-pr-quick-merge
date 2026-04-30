@@ -1172,3 +1172,73 @@
                  U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
                  U+FEFF, U+FFFD;
 }
+
+/* === UI pass 1 — visibility tweaks ======================================
+ *
+ * Iteration based on first live-test feedback:
+ *  - filter bar right-aligned and quieter
+ *  - PR-page action bar floats bottom-right when no in-page anchor found
+ *  - badges shrink-wrap; no line-count clutter
+ *  - options page muted text bumped one notch darker for legibility
+ */
+
+/* Filter bar — right-justified within its row */
+.qm-filter-bar {
+  margin-left: auto;
+}
+
+/* "More" disclosure inside the filter bar */
+.qm-filter-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.qm-filter-more-summary {
+  font-family: var(--qm-font-sans);
+  font-size: 12px;
+  color: var(--qm-fg-muted);
+  cursor: pointer;
+  list-style: none;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px dashed var(--qm-border);
+}
+.qm-filter-more-summary::-webkit-details-marker { display: none; }
+.qm-filter-more[open] .qm-filter-more-summary {
+  background: var(--qm-surface-2);
+  border-style: solid;
+}
+.qm-filter-more-tray {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 4px;
+}
+
+/* Floating PR-page action bar fallback (no in-page anchor found) */
+.qm-pr-action-bar.qm-pr-action-bar-floating {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 2147483500;
+  box-shadow: var(--qm-shadow-pop);
+  margin: 0;
+}
+
+/* Badge size pill — shrink, no line count needed inline */
+.qm-row-badge-size {
+  font-family: var(--qm-font-mono);
+  font-size: 10px;
+  padding: 0 5px;
+  letter-spacing: 0.04em;
+}
+
+/* Options page legibility bump. The handoff used --qm-fg-subtle for
+ * descriptive text, which proved hard to read against the off-white
+ * surface on most monitors. Promote one notch. */
+.qm-section-help,
+.qm-help-text,
+.qm-section-description,
+.qm-options-page .qm-fg-subtle {
+  color: var(--qm-fg-muted) !important;
+}

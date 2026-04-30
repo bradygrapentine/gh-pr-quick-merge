@@ -18,6 +18,10 @@ try {
   } catch (_) { /* dev build, no DSN */ }
   importScripts("lib/sentry-sanitize.js", "lib/sentry-init.js");
   try {
+    // The Sentry CDN bundle (browser.sentry-cdn.com) references `window`,
+    // which doesn't exist in an MV3 service worker. Alias before import
+    // so the IIFE evaluates against `self` instead of throwing.
+    if (typeof self.window === "undefined") self.window = self;
     importScripts("lib/vendor/sentry.min.js");
   } catch (_) {
     // No vendored bundle in this build — sanitizer is loaded for tests; SDK is a no-op.

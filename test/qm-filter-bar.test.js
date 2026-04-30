@@ -20,8 +20,10 @@ describe("buildBar", () => {
     const bar = buildBar({});
     const chips = bar.querySelectorAll("[data-qm-filter]");
     expect(chips.length).toBe(CHIPS.length);
+    // Primary chips first (Mine / Ready / Hide bots), secondary inside
+    // the "More" disclosure (Stale / Small / Hide drafts).
     expect(Array.from(chips).map((c) => c.textContent))
-      .toEqual(["Mine", "Ready", "Stale", "Small", "Hide bots", "Hide drafts"]);
+      .toEqual(["Mine", "Ready", "Hide bots", "Stale", "Small", "Hide drafts"]);
   });
   it("marks chips active when filters object says so", () => {
     const bar = buildBar({ mine: true, ready: false });

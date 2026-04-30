@@ -10,7 +10,15 @@ const _GH_SEL = (typeof window !== "undefined" && window.QM_GITHUB_SELECTORS) ||
 const ROW_SELECTOR = _GH_SEL.ROW_SELECTOR || ".js-issue-row, [data-testid='issue-pr-title-link']";
 const INJECTED_ATTR = _GH_SEL.INJECTED_ATTR || "data-qm-injected";
 const SPONSORS_URL = "https://github.com/sponsors/bradygrapentine";
-const { parsePrLink: parsePrHref, classifyMergeState, mergeMethodFromKind } = window.QM_HELPERS;
+// pr-helpers.js exposes parsePrLink / classifyMergeState /
+// mergeMethodFromKind as top-level `function`s. Each of those becomes a
+// lexical binding in the content-script isolated world. Destructuring
+// any of those names directly into a `const` here would collide.
+// Rebind into qm-prefixed locals.
+const _QM_HELPERS = window.QM_HELPERS;
+const parsePrHref = _QM_HELPERS.parsePrLink;
+const qmClassifyMergeState = _QM_HELPERS.classifyMergeState;
+const qmMergeMethodFromKind = _QM_HELPERS.mergeMethodFromKind;
 const TEMPLATES = window.QM_TEMPLATES || {};
 const SHORTCUTS = window.QM_SHORTCUTS || {};
 const STALE = window.QM_STALE_PR || {};
@@ -181,7 +189,7 @@ function ghHeaders(token) {
 // QM-304 — parsePrLink + findPrAnchor delegate to lib/hosts/github/selectors.js
 // when present; inline implementations remain as the fallback so a missing
 // selectors lib doesn't blank the extension.
-function parsePrLink(anchor) {
+function qmParsePrLink(anchor) {
   if (!anchor) return null;
   if (_GH_SEL.parsePrLink) return _GH_SEL.parsePrLink(anchor);
   return parsePrHref(anchor.getAttribute("href") || anchor.href);
@@ -225,7 +233,7 @@ function setRowState(container, prState) {
     return;
   }
   const { mergeable_state } = prState;
-  const klass = classifyMergeState(prState);
+  const klass = qmClassifyMergeState(prState);
   const ready = klass === "ready";
   const blocked = klass === "blocked";
   // In list mode the GitHub list endpoint doesn't return mergeable_state,
@@ -402,7 +410,7 @@ function buildMergeBody(method, pr, prData) {
 }
 
 async function doMerge({ pr, kind, token, headSha }) {
-  const method = mergeMethodFromKind(kind);
+  const method = qmMergeMethodFromKind(kind);
   const cached = state.cache.get(prKey(pr)) || { head_sha: headSha };
   const res = await fetch(`${API}/repos/${pr.owner}/${pr.repo}/pulls/${pr.num}/merge`, {
     method: "PUT",
@@ -443,7 +451,7 @@ function toast(message, kind = "info") {
 async function injectRow(row) {
   if (row.hasAttribute(INJECTED_ATTR)) return;
   const anchor = findPrAnchor(row);
-  const pr = parsePrLink(anchor);
+  const pr = qmParsePrLink(anchor);
   if (!pr) return;
   row.setAttribute(INJECTED_ATTR, "1");
 
@@ -1579,6 +1587,7 @@ async function refreshPrPageActionBar() {
         viewer,
         writePermDenied: prPageState.writePermDenied,
         nativeControlPresent,
+        repoDefault: state.repoDefaults[`${parts.owner}/${parts.repo}`] || state.repoDefaults["*"] || "",
         handlers: {
           onRebaseClick: () => onPrPageRebaseClick(parts, prState),
           onApproveClick: () => onPrPageApproveClick(parts, prState),
