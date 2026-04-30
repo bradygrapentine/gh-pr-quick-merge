@@ -57,6 +57,8 @@
         "lib/qm-toast.js",
         "lib/qm-row-widget.js",
         "lib/qm-pr-page-actions.js",
+        "lib/qm-size-classify.js",
+        "lib/qm-row-badges.js",
         "content.js"
       ],
       "css": ["theme.css", "styles.css"],

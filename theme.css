@@ -944,3 +944,69 @@
   outline: 2px solid var(--qm-fg);
   outline-offset: 2px;
 }
+
+/* === Row badges (Epic 11 Track A — QM-500..503) ==========================
+ *
+ * Mounted at the start of `.qm-container` on each PR row. Compact and
+ * inline so they don't push GitHub's existing row content around.
+ */
+.qm-row-badge-strip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 8px;
+  font-family: var(--qm-font-sans);
+  font-size: 11px;
+  vertical-align: middle;
+}
+.qm-row-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--qm-border);
+  background: var(--qm-surface);
+  color: var(--qm-fg-muted);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.qm-row-badge-ci {
+  font-size: 13px;
+  line-height: 1;
+  padding: 0 6px;
+  border: none;
+  background: transparent;
+}
+.qm-row-badge-ci-success { color: var(--qm-success); }
+.qm-row-badge-ci-failure { color: var(--qm-danger); }
+.qm-row-badge-ci-pending { color: var(--qm-warn); }
+
+.qm-row-badge-size {
+  font-family: var(--qm-font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  font-weight: 500;
+}
+.qm-row-badge-size-xs,
+.qm-row-badge-size-s {
+  border-color: color-mix(in oklch, var(--qm-success) 30%, var(--qm-border));
+  color: var(--qm-success);
+}
+.qm-row-badge-size-m { color: var(--qm-fg-muted); }
+.qm-row-badge-size-l,
+.qm-row-badge-size-xl {
+  border-color: color-mix(in oklch, var(--qm-warn) 30%, var(--qm-border));
+  color: var(--qm-warn);
+}
+
+.qm-row-badge-comments:hover {
+  background: var(--qm-surface-2);
+  color: var(--qm-fg);
+}
+
+/* Ready-to-merge row highlight (QM-503). Subtle green edge, no
+ * background flood — keeps GitHub's own row coloring visible. */
+.js-issue-row[data-qm-ready="true"] {
+  box-shadow: inset 3px 0 0 var(--qm-success);
+}
