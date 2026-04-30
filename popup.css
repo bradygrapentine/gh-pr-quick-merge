@@ -89,11 +89,17 @@ body[data-qm-density="compact"] {
 .qm-popup-brand-slot {
   display: inline-flex;
   align-items: center;
-  width: 18px;
-  height: 18px;
-  color: var(--qm-accent, #1f6feb);
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: var(--qm-accent, #1f6feb);
+  color: var(--qm-accent-fg, #fff);
+  box-shadow:
+    0 0 0 1px var(--qm-accent-strong),
+    0 6px 14px -8px var(--qm-accent, #1f6feb);
 }
-.qm-popup-brand-slot svg { width: 18px; height: 18px; }
+.qm-popup-brand-slot svg { width: 16px; height: 16px; }
 .qm-popup-header .qm-wordmark {
   font-size: var(--qm-pop-fs-body);
   font-weight: 700;
@@ -119,6 +125,12 @@ body[data-qm-density="compact"] {
 .qm-popup-header-actions .qm-button-sm {
   padding: 3px 9px;
   font-size: 11px;
+}
+/* Manage toggle reads as switched-on, not just labeled "Done". */
+#manageBtn[aria-pressed="true"] {
+  background: var(--qm-accent, #1f6feb);
+  color: var(--qm-accent-fg, #fff);
+  border-color: var(--qm-accent, #1f6feb);
 }
 
 /* ─── 2 · Vitals band ──────────────────────────────────────────────── */
@@ -243,7 +255,10 @@ body[data-qm-density="compact"] {
 .qm-popup-row-cta {
   flex: 0 0 auto;
   font-size: 11px;
-  padding: 4px 10px;
+  font-weight: 700;
+  letter-spacing: -0.05px;
+  padding: 5px 11px;
+  box-shadow: 0 4px 10px -6px var(--qm-accent, #1f6feb);
 }
 
 /* ─── Empty state ───────────────────────────────────────────────────── */
@@ -442,5 +457,9 @@ body[data-qm-density="compact"] {
 }
 .qm-onboarding-cta {
   width: 100%;
-  font-size: 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: -0.05px;
+  padding: 9px 14px;
+  box-shadow: 0 6px 16px -8px var(--qm-accent, #1f6feb);
 }
