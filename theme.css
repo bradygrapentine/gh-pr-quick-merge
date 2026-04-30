@@ -56,8 +56,10 @@
   --qm-color-squash: oklch(58% 0.18 280); /* purple — same as --qm-accent */
   --qm-color-close: var(--qm-danger);
 
-  /* Type stacks — fall back through system fonts so we don't ship .woff2
-   * yet (deferred to a follow-up; AMO source-disclosure + CSP review). */
+  /* Type stacks. QM-205 vendors Inter Tight + JetBrains Mono as variable
+   * .woff2 (latin subset, ~85KB total), declared via @font-face at the
+   * bottom of this file. System fallbacks remain so a missing font file
+   * or pre-build dev run still renders cleanly. */
   --qm-font-sans: "Inter Tight", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --qm-font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 
@@ -1129,4 +1131,44 @@
   background: color-mix(in oklch, var(--qm-color-rebase) 14%, var(--qm-surface));
   border-color: color-mix(in oklch, var(--qm-color-rebase) 50%, var(--qm-border));
   color: color-mix(in oklch, var(--qm-color-rebase) 60%, #000);
+}
+
+/* === Vendored fonts (QM-205) ============================================
+ *
+ * Variable .woff2 latin-subset only. Both fonts SIL OFL 1.1 — see
+ * fonts/OFL.txt for the upstream license bundled with the extension.
+ *
+ * MV3 default CSP allows font-src 'self'. The chrome-extension:// URL
+ * resolves locally with no network round-trip. For content-script-
+ * injected CSS that runs against github.com, fonts/* is exposed via
+ * manifest.web_accessible_resources matched against github.com.
+ *
+ * Each face declares the full 100..900 weight range; CSS callers using
+ * font-weight: 450/650 etc. interpolate the variable axis instead of
+ * snapping to the nearest static weight.
+ */
+@font-face {
+  font-family: "Inter Tight";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("fonts/inter-tight-variable-latin.woff2") format("woff2-variations"),
+       url("fonts/inter-tight-variable-latin.woff2") format("woff2");
+  /* Latin subset matching Google Fonts' "latin" range. */
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+                 U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F,
+                 U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+                 U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url("fonts/jetbrains-mono-variable-latin.woff2") format("woff2-variations"),
+       url("fonts/jetbrains-mono-variable-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+                 U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F,
+                 U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+                 U+FEFF, U+FFFD;
 }
