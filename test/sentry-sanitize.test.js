@@ -1,23 +1,5 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { readFileSync } from "node:fs";
-import path from "node:path";
-
-const SRC = readFileSync(path.resolve(__dirname, "../lib/sentry-sanitize.js"), "utf8");
-
-let scope;
-let sanitize;
-
-function load() {
-  scope = { self: undefined };
-  scope.self = scope;
-  // eslint-disable-next-line no-new-func
-  new Function("self", "globalThis", `${SRC}`)(scope, scope);
-  sanitize = scope.QM_SENTRY_SANITIZE;
-}
-
-beforeEach(() => {
-  load();
-});
+import { describe, it, expect } from "vitest";
+import sanitize from "../lib/sentry-sanitize.js";
 
 describe("sentry-sanitize.redactString", () => {
   it("redacts a classic GitHub PAT", () => {

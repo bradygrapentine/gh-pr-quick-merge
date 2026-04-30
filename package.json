@@ -1,11 +1,12 @@
 {
   "name": "gh-pr-quick-merge",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.4.0",
   "description": "Squash, merge, or rebase pull requests directly from the GitHub Pull Requests list — no need to open each PR.",
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test --project=e2e",
     "test:e2e:visual": "playwright test --project=visual",
     "test:perf": "playwright test --project=perf",
@@ -15,6 +16,7 @@
   "devDependencies": {
     "@playwright/test": "^1.49.0",
     "@types/node": "^20.0.0",
+    "@vitest/coverage-v8": "^4.1.5",
     "happy-dom": "^20.9.0",
     "vitest": "latest"
   }

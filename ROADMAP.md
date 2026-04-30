@@ -2,7 +2,7 @@
 
 A browser extension that lets devs squash / merge / rebase PRs directly from the GitHub PR list, no PR-page round-trip. Free core; paid Pro tier for power-user automation.
 
-**Current release:** [v0.2.0](https://github.com/bradygrapentine/gh-pr-quick-merge/releases/tag/v0.2.0) (2026-04-29) — first public release.
+**Current release:** [v0.2.0](https://github.com/bradygrapentine/gh-pr-quick-merge/releases/tag/v0.2.0) (2026-04-29). **Branch state: v0.4.0** — all v0.3 and v0.4 backlog merged to `main`; v1.0 launch is gated on Sentry SDK vendoring + store submissions + repo branch-protection. See [`docs/v1-launch-checklist.md`](./docs/v1-launch-checklist.md).
 
 ---
 
@@ -10,7 +10,13 @@ A browser extension that lets devs squash / merge / rebase PRs directly from the
 
 ```
 v0.1 ── v0.2 ── v0.3 ── v0.4 ── v1.0 ── Post-1.0
-shipped shipped Epic 1   Epic 2 Epics 3–6 Teams + GH Marketplace
+shipped shipped shipped shipped launch  Teams + GH Marketplace
+                                ├─ Epic 4 distribution shipped (PR #18)
+                                ├─ Epic 5 Sentry sanitiser shipped (PR #21);
+                                │   SDK vendoring follow-up open
+                                ├─ Epic 6 quality scaffold shipped (PR #19);
+                                │   E2E green requires E2E_GH_TOKEN secret
+                                └─ Epic 7 donations shipped (PR #20)
 ```
 
 The path from v0.2 to v1.0 is broken into **6 Epics**. Each Epic decomposes into Features, which decompose into individual Stories (`QM-NNN`) tracked in `BACKLOG.md`. Per-Feature implementation plans live in `plans/`.
@@ -60,7 +66,7 @@ PAT auth, per-row Squash/Merge/Rebase buttons, mergeability check, MutationObser
 
 ---
 
-## v0.3 — Power-user features  (Epic 1)
+## v0.3 — Power-user features  (Epic 1)  ✅ shipped (PRs #16, #22)
 
 **Targets:** 2k WAU · ≥30% of active users have customized at least one setting · D7 retention ≥40%
 
@@ -80,7 +86,7 @@ PAT auth, per-row Squash/Merge/Rebase buttons, mergeability check, MutationObser
 
 ---
 
-## v0.4 — "Everything you wish the GitHub PR list did"  (Epic 2)
+## v0.4 — "Everything you wish the GitHub PR list did"  (Epic 2)  ✅ shipped (PRs #23–#25)
 
 **Targets:** 4k WAU · "wow" momentum that powers Show-HN-readiness · Chrome Web Store featured-pick eligibility
 
