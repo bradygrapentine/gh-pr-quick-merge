@@ -4,13 +4,11 @@ on:
   schedule:
     - cron: '0 4 * * *'   # 04:00 UTC nightly
   workflow_dispatch:
+  # Run on every PR — branch protection requires the e2e check, so a
+  # paths filter would silently block merges for any PR that doesn't
+  # touch test/e2e/** (which was every recent feature PR). The job is
+  # ~1 min on cache hit; not worth the gating risk.
   pull_request:
-    paths:
-      - 'test/e2e/**'
-      - 'playwright.config.ts'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.github/workflows/e2e.yml'
 
 permissions:
   contents: read
