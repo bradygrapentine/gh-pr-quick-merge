@@ -437,6 +437,10 @@
  * instead of just a divider line, tokenised the spatial scale so density
  * propagates predictably, and tightened the asymmetric padding.
  */
+@keyframes qm-row-widget-enter {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 .qm-row-widget {
   position: relative;
   display: inline-flex;
@@ -449,6 +453,10 @@
   box-shadow: var(--qm-shadow-1);
   font-family: var(--qm-font-sans);
   overflow: hidden;
+  /* Each widget eases into its row on inject — the PR list goes from
+   * GitHub's default chrome to extension-augmented in one consistent
+   * sweep rather than a snap. Animation runs once at insert. */
+  animation: qm-row-widget-enter 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
   /* Internal spatial scale; one knob to tighten the whole widget. */
   --qm-rw-pad-x: 9px;
   --qm-rw-pad-y: 4px;
@@ -644,8 +652,13 @@
   .qm-row-widget-status,
   .qm-row-widget-main,
   .qm-row-widget-caret { transition: none !important; }
+  .qm-row-widget,
   .qm-row-widget-spinner,
-  .qm-row-widget-menu { animation: none !important; }
+  .qm-row-widget-menu,
+  .qm-row-widget-menuitem[data-active="true"]::after,
+  .qm-row-widget-success,
+  .qm-row-widget-success::before,
+  .qm-row-widget-caret svg { animation: none !important; transition: none !important; }
 }
 .qm-row-widget-menu {
   position: absolute;
@@ -680,9 +693,33 @@
 }
 .qm-row-widget-menuitem:hover { background: var(--qm-surface-2); }
 .qm-row-widget-menuitem[data-active="true"] {
-  background: var(--qm-primary-soft);
-  color: var(--qm-primary);
-  font-weight: 600;
+  background: color-mix(in oklch, var(--qm-accent) 12%, var(--qm-surface));
+  color: var(--qm-accent);
+  font-weight: 700;
+  position: relative;
+  overflow: hidden;
+}
+/* Accent sweep across the active item once when the menu opens. */
+.qm-row-widget-menuitem[data-active="true"]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -50%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklch, var(--qm-accent) 25%, transparent),
+    transparent
+  );
+  pointer-events: none;
+  animation: qm-row-widget-active-sweep 700ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
+}
+@keyframes qm-row-widget-active-sweep {
+  from { left: -50%; opacity: 0; }
+  20%  { opacity: 1; }
+  to   { left: 100%; opacity: 0; }
 }
 .qm-row-widget-menutag {
   font-family: var(--qm-font-mono);
