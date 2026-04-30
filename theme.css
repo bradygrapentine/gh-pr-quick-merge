@@ -425,65 +425,174 @@
 
 /* === Row widget (QM-206..210) ===
  *
- * Compact pill: status badge + main "Merge" button + caret. Replaces the
- * v0.2 three-button stack injected on every github.com/pulls row.
+ * Two-cell pill scanned at >100ms intervals on a 30-row PR list:
+ *
+ *   [ STATUS CELL ]│[  Merge   ▾  ]
+ *
+ * The left cell (status) and right cell (action) are visually distinct —
+ * status sits on a colored tint matching the state kind, action sits on
+ * the surface. State is read by glance, action is read by intent.
+ *
+ * Refine pass 1 — layout: separated the two cells via background change
+ * instead of just a divider line, tokenised the spatial scale so density
+ * propagates predictably, and tightened the asymmetric padding.
  */
+@keyframes qm-row-widget-enter {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 .qm-row-widget {
   position: relative;
   display: inline-flex;
-  align-items: center;
+  align-items: stretch;
   gap: 0;
-  padding: 3px;
+  padding: 0;
   background: var(--qm-surface);
   border: 1px solid var(--qm-border);
-  border-radius: 8px;
+  border-radius: 7px;
   box-shadow: var(--qm-shadow-1);
   font-family: var(--qm-font-sans);
+  overflow: hidden;
+  /* Each widget eases into its row on inject — the PR list goes from
+   * GitHub's default chrome to extension-augmented in one consistent
+   * sweep rather than a snap. Animation runs once at insert. */
+  animation: qm-row-widget-enter 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* Internal spatial scale; one knob to tighten the whole widget. */
+  --qm-rw-pad-x: 9px;
+  --qm-rw-pad-y: 4px;
+  --qm-rw-status-pad-x: 8px;
+  --qm-rw-gap: 6px;
+  /* Per-state shadow — peripheral vision can read 'ready' / 'blocked' from
+   * the row's tint alone before focusing on the pill itself. */
+  --qm-rw-state-glow: transparent;
+  /* Motion. ease-out-quint per the design laws. */
+  --qm-rw-mo-fast: 120ms cubic-bezier(0.22, 1, 0.36, 1);
+  --qm-rw-mo-med: 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: box-shadow var(--qm-rw-mo-med);
+}
+.qm-row-widget:has(.qm-row-widget-status[data-state="ready"]) {
+  --qm-rw-state-glow: color-mix(in oklch, var(--qm-success) 30%, transparent);
+}
+.qm-row-widget:has(.qm-row-widget-status[data-state="behind"]) {
+  --qm-rw-state-glow: color-mix(in oklch, var(--qm-warn) 30%, transparent);
+}
+.qm-row-widget:has(.qm-row-widget-status[data-state="blocked"]) {
+  --qm-rw-state-glow: color-mix(in oklch, var(--qm-danger) 30%, transparent);
+}
+.qm-row-widget {
+  box-shadow:
+    var(--qm-shadow-1),
+    0 0 0 0 var(--qm-rw-state-glow);
+}
+.qm-row-widget:hover {
+  box-shadow:
+    var(--qm-shadow-1),
+    0 4px 14px -6px var(--qm-rw-state-glow);
 }
 .qm-row-widget-status {
+  display: inline-flex;
+  align-items: center;
   font-family: var(--qm-font-mono);
   font-size: 9.5px;
   font-weight: 700;
-  letter-spacing: 0.5px;
-  padding: 0 8px 0 6px;
-  margin-right: 2px;
-  border-right: 1px solid var(--qm-border);
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  padding: 0 var(--qm-rw-status-pad-x);
+  background: var(--qm-surface-1);
   color: var(--qm-fg-muted);
+  border-right: 1px solid var(--qm-border);
+  font-variant-numeric: tabular-nums;
+  transition:
+    background-color var(--qm-rw-mo-med),
+    color var(--qm-rw-mo-med);
 }
-.qm-row-widget-status[data-kind="success"] { color: var(--qm-success); }
-.qm-row-widget-status[data-kind="warn"]    { color: var(--qm-warn); }
-.qm-row-widget-status[data-kind="danger"]  { color: var(--qm-danger); }
-.qm-row-widget-status[data-kind="muted"]   { color: var(--qm-fg-subtle); }
+.qm-row-widget-status[data-kind="success"] {
+  color: var(--qm-success);
+  background: color-mix(in oklch, var(--qm-success) 16%, var(--qm-surface));
+  border-right-color: color-mix(in oklch, var(--qm-success) 25%, var(--qm-border));
+}
+.qm-row-widget-status[data-kind="warn"] {
+  color: var(--qm-warn);
+  background: color-mix(in oklch, var(--qm-warn) 16%, var(--qm-surface));
+  border-right-color: color-mix(in oklch, var(--qm-warn) 25%, var(--qm-border));
+}
+.qm-row-widget-status[data-kind="danger"] {
+  color: var(--qm-danger);
+  background: color-mix(in oklch, var(--qm-danger) 16%, var(--qm-surface));
+  border-right-color: color-mix(in oklch, var(--qm-danger) 25%, var(--qm-border));
+}
+.qm-row-widget-status[data-kind="muted"] { color: var(--qm-fg-subtle); }
 
 .qm-row-widget-main {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 8px;
-  border-radius: 4px 0 0 4px;
-  border-right-width: 0;
+  gap: var(--qm-rw-gap);
+  padding: var(--qm-rw-pad-y) var(--qm-rw-pad-x);
+  border-radius: 0;
+  border: 0;
   font-size: 11.5px;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: -0.1px;
+  /* Action cell is saturated accent — committed strategy. The status cell
+   * stays semantic (success/warn/danger) so the row reads
+   * STATE × ACTION, not STATE × NEUTRAL_CHROME. */
+  background: var(--qm-accent) !important;
+  color: var(--qm-accent-fg, #fff) !important;
+  transition:
+    background-color var(--qm-rw-mo-fast),
+    color var(--qm-rw-mo-fast);
+}
+.qm-row-widget-main:hover:not(:disabled) {
+  background: color-mix(in oklch, var(--qm-accent) 92%, black) !important;
+}
+.qm-row-widget-main:disabled {
+  background: var(--qm-surface-1) !important;
+  color: var(--qm-fg-muted) !important;
+  cursor: not-allowed;
 }
 .qm-row-widget-caret {
-  padding: 4px 5px;
-  border-radius: 0 4px 4px 0;
+  padding: var(--qm-rw-pad-y) 6px;
+  border-radius: 0;
+  border: 0;
+  border-left: 1px solid color-mix(in oklch, white 30%, transparent);
+  background: var(--qm-accent) !important;
+  color: var(--qm-accent-fg, #fff) !important;
+  transition: background-color var(--qm-rw-mo-fast);
+}
+.qm-row-widget-caret:hover:not(:disabled) {
+  background: color-mix(in oklch, var(--qm-accent) 92%, black) !important;
+}
+/* Caret nudges open when hovered or when its menu is showing — small
+ * affordance hint that it's a picker, not a duplicate button. */
+.qm-row-widget-caret svg {
+  transition: transform var(--qm-rw-mo-med);
+}
+.qm-row-widget-caret:hover svg,
+.qm-row-widget-caret[aria-expanded="true"] svg {
+  transform: translateY(1px) scale(1.05);
+}
+.qm-row-widget-caret:disabled {
+  background: var(--qm-surface-1) !important;
+  color: var(--qm-fg-muted) !important;
+  border-left-color: var(--qm-border);
+  cursor: not-allowed;
 }
 .qm-row-widget-default-dot {
   display: inline-block;
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: var(--qm-primary-soft);
-  border: 1px solid currentColor;
+  background: var(--qm-accent-fg, #fff);
+  box-shadow: 0 0 0 1.5px color-mix(in oklch, var(--qm-accent) 50%, white);
 }
 .qm-row-widget-shortcut {
   font-family: var(--qm-font-mono);
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.78);
-  margin-left: 4px;
+  color: rgba(255, 255, 255, 0.62);
+  margin-left: 5px;
+  letter-spacing: 0.2px;
 }
 .qm-row-widget:not(:hover) .qm-row-widget-shortcut { display: none; }
 
@@ -500,12 +609,57 @@
   animation: qm-row-widget-spin 0.8s linear infinite;
 }
 @keyframes qm-row-widget-spin { to { transform: rotate(360deg); } }
+/* After a successful merge: bg pulses through success-green, the label
+ * scales briefly, and a subtle outer glow announces the win. */
+@keyframes qm-row-widget-merged-pulse {
+  0%   { box-shadow: 0 0 0 0 color-mix(in oklch, var(--qm-success) 60%, transparent); }
+  60%  { box-shadow: 0 0 0 8px color-mix(in oklch, var(--qm-success) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+@keyframes qm-row-widget-merged-text {
+  0%   { transform: scale(0.85); opacity: 0; letter-spacing: 0.5px; }
+  60%  { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; letter-spacing: -0.1px; }
+}
 .qm-row-widget-success {
   background: var(--qm-success) !important;
   pointer-events: none;
+  animation: qm-row-widget-merged-pulse 700ms ease-out both;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+.qm-row-widget-success::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, white 30%, transparent 32%),
+    white;
+  animation: qm-row-widget-merged-text 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* Caret menu (QM-207) */
+@keyframes qm-row-widget-menu-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qm-row-widget,
+  .qm-row-widget-status,
+  .qm-row-widget-main,
+  .qm-row-widget-caret { transition: none !important; }
+  .qm-row-widget,
+  .qm-row-widget-spinner,
+  .qm-row-widget-menu,
+  .qm-row-widget-menuitem[data-active="true"]::after,
+  .qm-row-widget-success,
+  .qm-row-widget-success::before,
+  .qm-row-widget-caret svg { animation: none !important; transition: none !important; }
+}
 .qm-row-widget-menu {
   position: absolute;
   top: calc(100% + 4px);
@@ -516,6 +670,8 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  transform-origin: top right;
+  animation: qm-row-widget-menu-in var(--qm-rw-mo-med) both;
 }
 .qm-row-widget-menuitem {
   appearance: none;
@@ -524,6 +680,8 @@
   text-align: left;
   font-family: var(--qm-font-sans);
   font-size: 12px;
+  font-weight: 550;
+  letter-spacing: -0.05px;
   color: var(--qm-fg);
   padding: 6px 8px;
   border-radius: 4px;
@@ -535,18 +693,41 @@
 }
 .qm-row-widget-menuitem:hover { background: var(--qm-surface-2); }
 .qm-row-widget-menuitem[data-active="true"] {
-  background: var(--qm-primary-soft);
-  color: var(--qm-primary);
-  font-weight: 600;
+  background: color-mix(in oklch, var(--qm-accent) 12%, var(--qm-surface));
+  color: var(--qm-accent);
+  font-weight: 700;
+  position: relative;
+  overflow: hidden;
+}
+/* Accent sweep across the active item once when the menu opens. */
+.qm-row-widget-menuitem[data-active="true"]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -50%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklch, var(--qm-accent) 25%, transparent),
+    transparent
+  );
+  pointer-events: none;
+  animation: qm-row-widget-active-sweep 700ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
+}
+@keyframes qm-row-widget-active-sweep {
+  from { left: -50%; opacity: 0; }
+  20%  { opacity: 1; }
+  to   { left: 100%; opacity: 0; }
 }
 .qm-row-widget-menutag {
   font-family: var(--qm-font-mono);
   font-size: 9.5px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.6px;
   color: var(--qm-fg-subtle);
   background: var(--qm-surface-2);
-  border: 1px solid var(--qm-border);
   border-radius: 3px;
-  padding: 1px 4px;
+  padding: 1px 5px;
 }
