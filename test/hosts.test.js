@@ -178,3 +178,30 @@ describe("hosts/github/selectors — isPullRequestPage (QM-400)", () => {
     }
   });
 });
+
+describe("hosts/github/selectors — hasNativeUpdateBranchControl", () => {
+  it("returns false on a page with no native control", () => {
+    const root = document.createElement("div");
+    root.innerHTML = '<button>Other</button>';
+    expect(githubSelectors.hasNativeUpdateBranchControl(root)).toBe(false);
+  });
+  it("matches the React data-attribute variant", () => {
+    const root = document.createElement("div");
+    root.innerHTML = '<button data-update-branch-pr>Update branch</button>';
+    expect(githubSelectors.hasNativeUpdateBranchControl(root)).toBe(true);
+  });
+  it("matches the legacy form action", () => {
+    const root = document.createElement("div");
+    root.innerHTML = '<form action="/octocat/hello-world/update_branch"></form>';
+    expect(githubSelectors.hasNativeUpdateBranchControl(root)).toBe(true);
+  });
+  it("matches the legacy js-update-branch button class", () => {
+    const root = document.createElement("div");
+    root.innerHTML = '<button class="js-update-branch">Update</button>';
+    expect(githubSelectors.hasNativeUpdateBranchControl(root)).toBe(true);
+  });
+  it("returns false on a non-element argument", () => {
+    expect(githubSelectors.hasNativeUpdateBranchControl(null)).toBe(false);
+    expect(githubSelectors.hasNativeUpdateBranchControl({})).toBe(false);
+  });
+});
