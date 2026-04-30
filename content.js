@@ -628,18 +628,28 @@ function injectRowActions(ctx) {
           api: API_HELPERS,
         });
         toast(`Update queued for ${queueKey}`, "ok");
-        // GitHub processes asynchronously — refresh after ~3s.
-        setTimeout(async () => {
+        // QM-176 — poll /pulls/:n until behind_by hits 0 (or max attempts).
+        // Replaces the v0.4 fixed setTimeout(3s) which was too short on busy
+        // bases and too long on idle ones.
+        const POLL_INTERVAL_MS = 1500;
+        const POLL_MAX_ATTEMPTS = 8; // ~12s ceiling
+        let lastBehind = prData.behind_by;
+        for (let attempt = 0; attempt < POLL_MAX_ATTEMPTS; attempt++) {
+          await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
           state.cache.delete(prKey(pr));
           const refreshed = await fetchPrState(pr, token);
           setRowState(container, refreshed);
-          if (refreshed && Number(refreshed.behind_by) === 0) {
+          const behind = refreshed && Number(refreshed.behind_by);
+          if (refreshed && behind === 0) {
             updateBtn.remove();
-          } else {
-            updateBtn.disabled = false;
-            updateBtn.textContent = `Update (${(refreshed && refreshed.behind_by) || prData.behind_by})`;
+            return;
           }
-        }, 3000);
+          if (Number.isFinite(behind)) lastBehind = behind;
+          updateBtn.textContent = `Update (${lastBehind})`;
+        }
+        // Polling timed out — leave the button enabled so the user can retry.
+        updateBtn.disabled = false;
+        updateBtn.title = "Update still pending after 12s — retry or check on GitHub";
       } catch (err) {
         updateBtn.disabled = false;
         updateBtn.textContent = orig;
@@ -864,10 +874,12 @@ async function onBulkClose() {
   }
   const total = state.selected.size;
   const threshold = (BULK_OPS.DEFAULT_CONFIRM_THRESHOLD || 5);
-  const msg = total >= threshold
-    ? `You're about to close ${total} pull requests. This cannot be undone from the extension. Continue?`
-    : `Close ${total} pull request${total === 1 ? "" : "s"}?`;
-  if (!confirm(msg)) return;
+  const items = Array.from(state.selected.values());
+  // QM-171 — typed confirmation at threshold; quick-confirm under it.
+  const ok = total >= threshold
+    ? await confirmBulkActionTyped({ items, action: "close", confirmWord: "CLOSE" })
+    : confirm(`Close ${total} pull request${total === 1 ? "" : "s"}?`);
+  if (!ok) return;
   const token = state.token;
   if (!token) { toast("Set a token in options first", "warn"); return; }
 
@@ -899,15 +911,25 @@ async function onBulkLabel() {
     toast("No PRs selected", "warn");
     return;
   }
-  const raw = prompt("Apply which label(s)? Comma-separated:", "");
-  if (raw === null) return;
-  const labels = raw.split(",").map((s) => s.trim()).filter(Boolean);
-  if (labels.length === 0) {
-    toast("No labels entered", "warn");
-    return;
-  }
   const token = state.token;
   if (!token) { toast("Set a token in options first", "warn"); return; }
+
+  // QM-172 — use the real label-picker if it loaded, otherwise fall back to
+  // the v0.4 prompt() flow so the extension never goes blank on a missing lib.
+  let labels;
+  const picker = window.QM_LABEL_PICKER;
+  if (picker && typeof picker.pickLabels === "function") {
+    const repoSlugs = Array.from(new Set(
+      Array.from(state.selected.values()).map((s) => `${s.pr.owner}/${s.pr.repo}`),
+    ));
+    labels = await picker.pickLabels({ repos: repoSlugs, token });
+    if (!labels) return; // cancelled
+  } else {
+    const raw = prompt("Apply which label(s)? Comma-separated:", "");
+    if (raw === null) return;
+    labels = raw.split(",").map((s) => s.trim()).filter(Boolean);
+    if (labels.length === 0) { toast("No labels entered", "warn"); return; }
+  }
 
   const byRepo = _groupSelectedByRepo();
   for (const [repoKey, items] of byRepo) {
@@ -956,9 +978,20 @@ function syncBulkBarFromDefaults() {
   }
 }
 
-function confirmBulkMergeTyped(items, method) {
+/**
+ * Generic typed-confirmation modal. Used by bulk merge (QM-058), bulk close
+ * (QM-171), and bulk label (QM-171).
+ *
+ * @param {object} opts
+ * @param {Array<{pr:object}>} opts.items
+ * @param {string} opts.action — verb shown in title + button (e.g. "merge", "close", "label")
+ * @param {string} [opts.confirmWord] — uppercase word the user must type; defaults to action.toUpperCase()
+ * @returns {Promise<boolean>}
+ */
+function confirmBulkActionTyped({ items, action, confirmWord }) {
   return new Promise((resolve) => {
-    const expected = `MERGE ${items.length}`;
+    const word = (confirmWord || action || "MERGE").toUpperCase();
+    const expected = `${word} ${items.length}`;
     const modal = document.createElement("div");
     modal.className = "qm-typed-modal";
 
@@ -966,10 +999,10 @@ function confirmBulkMergeTyped(items, method) {
     card.className = "qm-typed-card";
 
     const heading = document.createElement("h2");
-    heading.textContent = `Confirm bulk ${method}`;
+    heading.textContent = `Confirm bulk ${action}`;
 
     const lede = document.createElement("p");
-    lede.textContent = `You are about to ${method} ${items.length} pull requests:`;
+    lede.textContent = `You are about to ${action} ${items.length} pull request${items.length === 1 ? "" : "s"}:`;
 
     const list = document.createElement("ul");
     list.className = "qm-typed-list";
@@ -997,7 +1030,7 @@ function confirmBulkMergeTyped(items, method) {
 
     const confirmBtn = document.createElement("button");
     confirmBtn.className = "qm-btn qm-typed-go";
-    confirmBtn.textContent = `${method.toUpperCase()} ${items.length}`;
+    confirmBtn.textContent = expected;
     confirmBtn.disabled = true;
 
     actions.appendChild(cancelBtn);
@@ -1040,7 +1073,7 @@ async function onBulkMerge() {
   if (!items.length) return;
   const method = document.querySelector(".qm-bulk-method").value;
   const ok = items.length >= 3
-    ? await confirmBulkMergeTyped(items, method)
+    ? await confirmBulkActionTyped({ items, action: method, confirmWord: method })
     : confirm(`${method.toUpperCase()} ${items.length} PR${items.length > 1 ? "s" : ""}?`);
   if (!ok) return;
   const token = getToken();

@@ -352,6 +352,7 @@ async function saveTemplate() {
     $("templateName").value = "";
     $("templateBody").value = "";
     renderTemplates();
+    renderRepoTemplateBindings(); // refresh dropdown options
   } catch (e) {
     setStatus("templatesStatus", `Failed: ${e.message || e}`, "err");
   }
@@ -361,6 +362,103 @@ function clearTemplateForm() {
   $("templateName").value = "";
   $("templateBody").value = "";
   setStatus("templatesStatus", "");
+}
+
+// QM-175 — per-repo template bindings.
+const REPO_TEMPLATE_BINDINGS_KEY = "qm_repo_template_bindings";
+
+async function _readRepoTemplateBindings() {
+  const data = await chrome.storage.sync.get(REPO_TEMPLATE_BINDINGS_KEY);
+  const m = data && data[REPO_TEMPLATE_BINDINGS_KEY];
+  return m && typeof m === "object" ? m : {};
+}
+
+async function _writeRepoTemplateBindings(map) {
+  await chrome.storage.sync.set({ [REPO_TEMPLATE_BINDINGS_KEY]: map });
+}
+
+async function renderRepoTemplateBindings() {
+  const list = $("repoTemplateBindingsList");
+  const sel = $("repoTemplateBindingName");
+  if (!list || !sel || !window.QM_TEMPLATES) return;
+  const [bindings, templates] = await Promise.all([
+    _readRepoTemplateBindings(),
+    window.QM_TEMPLATES.listTemplates(syncStorageStore),
+  ]);
+  const names = Object.keys(templates).sort();
+
+  // Refresh the dropdown options.
+  sel.innerHTML = "";
+  if (names.length === 0) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "(no templates saved)";
+    opt.disabled = true;
+    sel.appendChild(opt);
+  } else {
+    for (const n of names) {
+      const opt = document.createElement("option");
+      opt.value = n;
+      opt.textContent = n;
+      sel.appendChild(opt);
+    }
+  }
+
+  // Refresh the bindings list.
+  list.innerHTML = "";
+  const repoSlugs = Object.keys(bindings).sort();
+  if (repoSlugs.length === 0) {
+    const li = document.createElement("li");
+    li.className = "qm-d-empty";
+    li.textContent = "No per-repo bindings yet.";
+    list.appendChild(li);
+    return;
+  }
+  for (const repo of repoSlugs) {
+    const name = bindings[repo];
+    const li = document.createElement("li");
+    const repoEl = document.createElement("span");
+    repoEl.className = "qm-d-repo";
+    repoEl.textContent = repo;
+    const methodEl = document.createElement("span");
+    methodEl.className = "qm-d-method";
+    methodEl.textContent = name + (templates[name] ? "" : " (missing)");
+    if (!templates[name]) methodEl.style.color = "var(--qm-danger, #cf222e)";
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "qm-d-remove";
+    removeBtn.textContent = "Remove";
+    removeBtn.addEventListener("click", async () => {
+      const next = { ...(await _readRepoTemplateBindings()) };
+      delete next[repo];
+      await _writeRepoTemplateBindings(next);
+      setStatus("repoTemplateBindingsStatus", `Removed binding for ${repo}.`, "ok");
+      renderRepoTemplateBindings();
+    });
+    li.appendChild(repoEl);
+    li.appendChild(methodEl);
+    li.appendChild(removeBtn);
+    list.appendChild(li);
+  }
+}
+
+async function addRepoTemplateBinding() {
+  const repo = $("repoTemplateBindingRepo").value.trim();
+  const name = $("repoTemplateBindingName").value;
+  if (!/^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(repo)) {
+    setStatus("repoTemplateBindingsStatus", "Use the format owner/repo.", "err");
+    return;
+  }
+  if (!name) {
+    setStatus("repoTemplateBindingsStatus", "Save a template first, then bind it.", "err");
+    return;
+  }
+  const bindings = await _readRepoTemplateBindings();
+  bindings[repo] = name;
+  await _writeRepoTemplateBindings(bindings);
+  setStatus("repoTemplateBindingsStatus", `Bound ${repo} → ${name}.`, "ok");
+  $("repoTemplateBindingRepo").value = "";
+  renderRepoTemplateBindings();
 }
 
 // ---------------------------------------------------------------------------
@@ -709,9 +807,11 @@ document.addEventListener("DOMContentLoaded", () => {
   if ($("exportBtn")) $("exportBtn").addEventListener("click", exportSettings);
   if ($("importBtn")) $("importBtn").addEventListener("click", triggerImport);
   if ($("importFileInput")) $("importFileInput").addEventListener("change", onImportFile);
+  if ($("repoTemplateBindingAdd")) $("repoTemplateBindingAdd").addEventListener("click", addRepoTemplateBinding);
 
   renderDefaults();
   renderTemplates();
+  renderRepoTemplateBindings();
   renderShortcuts();
   loadStaleThreshold();
   loadUpdateBranchStrategy();

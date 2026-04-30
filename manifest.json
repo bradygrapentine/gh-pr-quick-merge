@@ -47,6 +47,7 @@
         "lib/auto-rebase.js",
         "lib/merge-queue.js",
         "lib/bulk-ops.js",
+        "lib/label-picker.js",
         "lib/list-mode.js",
         "lib/qm-brand.js",
         "lib/qm-theme.js",

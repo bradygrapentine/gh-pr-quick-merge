@@ -147,6 +147,26 @@
     _renderAccentSwatches(prefsCtl);
   }
 
+  async function _wireSentryConsent() {
+    const cb = $("sentryConsent");
+    if (!cb || !chrome.storage) return;
+    try {
+      const { qm_sentry_consent } = await chrome.storage.sync.get("qm_sentry_consent");
+      cb.checked = !!qm_sentry_consent;
+    } catch (_e) { /* default off */ }
+    cb.addEventListener("change", async () => {
+      try {
+        await chrome.storage.sync.set({ qm_sentry_consent: cb.checked });
+        _setStatus("sentryConsentStatus",
+          cb.checked ? "Crash reports enabled — takes effect on next reload."
+                     : "Crash reports disabled.",
+          "ok");
+      } catch (e) {
+        _setStatus("sentryConsentStatus", `Failed: ${e.message || e}`, "err");
+      }
+    });
+  }
+
   async function _wireShortcutMode() {
     const sel = $("shortcutModeSelect");
     if (!sel || !chrome.storage) return;
@@ -182,5 +202,6 @@
     const ctls = await _bootstrapPrefs();
     _wireTweaks(ctls);
     _wireShortcutMode();
+    _wireSentryConsent();
   });
 })();

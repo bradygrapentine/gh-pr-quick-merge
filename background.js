@@ -23,7 +23,9 @@ try {
     // No vendored bundle in this build — sanitizer is loaded for tests; SDK is a no-op.
   }
   if (self.QM_SENTRY_INIT && typeof self.QM_SENTRY_INIT.boot === "function") {
-    self.QM_SENTRY_INIT.boot({ release: chrome.runtime.getManifest && chrome.runtime.getManifest().version });
+    Promise.resolve(self.QM_SENTRY_INIT.boot({
+      release: chrome.runtime.getManifest && chrome.runtime.getManifest().version,
+    })).catch((e) => console.warn("[QM] Sentry boot rejected:", (e && e.message) || e));
   }
 } catch (e) {
   // Never let Sentry bootstrap failures take down the service worker.
