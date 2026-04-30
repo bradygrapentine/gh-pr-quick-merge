@@ -9,10 +9,10 @@ A browser extension that lets devs squash / merge / rebase PRs directly from the
 ## Map
 
 ```
-v0.1 ── v0.2 ── v0.3 ── v0.4 ── v1.0 ── v1.1 ──── Post-1.0
-shipped shipped shipped shipped launch  Design   Teams + GH Marketplace
-                                │       Refresh
-                                │       (Epic 8 — handoff received)
+v0.1 ── v0.2 ── v0.3 ── v0.4 ── v1.0 ── v1.1 ──── v2.0 ─────── Post-1.0
+shipped shipped shipped shipped launch  Design    GitLab port  Teams + GH Marketplace
+                                │       Refresh   (Epic 9)
+                                │       (Epic 8)
                                 ├─ Epic 4 distribution shipped (PR #18)
                                 ├─ Epic 5 Sentry sanitiser shipped (PR #21);
                                 │   SDK vendoring follow-up open
@@ -35,6 +35,7 @@ The path from v0.2 to v1.0 is broken into **6 Epics**. Each Epic decomposes into
 | 6 | Quality & release ops (slimmed) | v1.0 | extension | QM-141..160 |
 | 7 | Donation infrastructure | v1.0 | extension + GH Sponsors | QM-161..170 |
 | 8 | v1.1 Design Refresh | v1.1 | extension UI | QM-200..220 |
+| 9 | GitLab port (multi-host architecture) | v2.0 | extension | QM-300..330 |
 
 **Scope simplification (2026-04-29):** v1.0 ships **donation-funded** via GitHub Sponsors instead of a paid Pro tier. The license-server / Stripe / ed25519 / state-machine path (Epic 3) is deferred — plans remain on disk as scaffolding if a paid tier becomes warranted later. Epics 4/5/6 are slimmed to remove license-server-coupled stories. Epic 7 is new.
 
@@ -199,6 +200,40 @@ First sponsor at any tier covers the floor. Everything else is funding developme
 **Constraint:** the extension is plain JS + DOM (no React, no bundler). The handoff is React-based; rebuild against the existing stack.
 
 **Estimate:** L overall (~10–14 eng-days). F8.1 blocks everything; F8.3 / F8.4 / F8.5 parallelise after foundation lands.
+
+---
+
+## v2.0 — GitLab port  (Epic 9)
+
+**Targets:** the same one-click merge ergonomic on `gitlab.com` and self-hosted GitLab instances. Single extension, single install, host-aware adapter layer. Detailed plan: [`plans/v2-gitlab-port.md`](./plans/v2-gitlab-port.md).
+
+**Theme:** Refactor the GitHub-specific surfaces into a `HostAdapter` interface; ship a sibling GitLab adapter; wire host detection into `content.js`; surface multi-host state in popup, options, and the auth flow. Self-hosted GitLab instances are first-class via runtime `chrome.permissions.request`.
+
+**Key concept mapping:**
+
+| Concept | GitHub | GitLab |
+|---|---|---|
+| Code-review unit | Pull Request | Merge Request |
+| Squash | separate `merge_method` param | `squash=true` boolean param |
+| Rebase | separate `update-branch` endpoint | dedicated `PUT /merge_requests/:iid/rebase` endpoint |
+| Project ID | `{owner}/{repo}` | numeric `id` OR url-encoded `{namespace}/{project}` |
+| Allowed merge methods | enforced by branch-protection rules | enforced by project-level `merge_method` setting |
+| Sponsor | GitHub Sponsors | Open Collective / direct (no native) |
+
+**Phases (per `plans/v2-gitlab-port.md`):**
+
+- **Phase 0 — Refactor for multi-host** (~5 days, QM-300..305): host-adapter interface, move GitHub code under `lib/hosts/github/`, token storage migration, regression sweep.
+- **Phase 1 — GitLab adapter** (~6 days, QM-306..312): `lib/hosts/gitlab/api.js`, selectors, `fetchMrState`, `doMerge` with squash-as-param, `updateBranch` via rebase endpoint, bulk close/label.
+- **Phase 2 — Host detection + UI** (~3 days, QM-313..317): manifest matches, host-aware injection, popup + options surfacing.
+- **Phase 3 — Self-hosted GitLab** (~3 days, QM-318..321): `chrome.permissions.request` flow, per-host token slots, runbook + SECURITY updates.
+- **Phase 4 — Distribution + launch** (~3 days, QM-322..325): rename ("Quick Merge"?), store-listing refresh, launch posts, privacy-policy update.
+- **Phase 5 — Quality + ops** (~2 days, QM-326..330): GitLab Playwright suite, contract tests for both adapters against the same `HostAdapter` test set.
+
+**Estimate:** XL (~20 eng-days, parallelisable to ~12 calendar days).
+
+**Out of scope:** Bitbucket / Gitea / Forgejo (audience too small relative to maintenance burden), GitLab CI integration, merge trains, project-level merge-method config UI.
+
+**Open questions** (decide before Phase 4): product rename (PR Quick Merge → Quick Merge?), beta-channel vs all-users launch, Sentry per-host tagging.
 
 ---
 
