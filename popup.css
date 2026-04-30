@@ -538,14 +538,41 @@ body.qm-popup-syncing .qm-popup-header::after {
   opacity: 0.7;
 }
 
-/* ─── Onboarding card (lives in stream slot) ────────────────────────── */
+/* ─── Onboarding card (lives in stream slot) ──────────────────────────
+ * Refine — second pass: brand-band-style accent header, glyph tile lift,
+ * staggered step-list entry, dismiss button affordance.
+ */
 .qm-onboarding {
   margin: var(--qm-pop-pad-comfy) var(--qm-pop-pad-x);
-  padding: var(--qm-pop-pad-comfy) var(--qm-pop-pad-comfy) var(--qm-pop-pad-tight);
+  padding: var(--qm-pop-pad-loose) var(--qm-pop-pad-comfy) var(--qm-pop-pad-comfy);
   position: relative;
-  background: linear-gradient(180deg, var(--qm-surface-1, #f6f8fa), var(--qm-surface, #fff));
+  background:
+    linear-gradient(180deg, var(--qm-accent-soft) 0, transparent 60%),
+    var(--qm-surface, #fff);
+  border: 1px solid var(--qm-accent-medium);
+  border-radius: 10px;
+  box-shadow:
+    0 1px 0 var(--qm-accent-soft),
+    0 16px 32px -16px var(--qm-accent-medium);
   animation: qm-pop-slide-in var(--qm-pop-mo-slow) both;
   animation-delay: 80ms;
+  overflow: hidden;
+}
+.qm-onboarding::before {
+  /* Accent hairline along the top edge — same spine treatment as the
+   * popup brand band, miniaturized. */
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--qm-accent, #1f6feb),
+    color-mix(in oklch, var(--qm-accent) 50%, transparent),
+    var(--qm-accent, #1f6feb)
+  );
 }
 .qm-onboarding-dismiss {
   position: absolute;
@@ -554,6 +581,12 @@ body.qm-popup-syncing .qm-popup-header::after {
   font-size: 16px;
   line-height: 1;
   padding: 0 6px;
+  opacity: 0.55;
+  transition: opacity var(--qm-pop-mo-fast), transform var(--qm-pop-mo-fast);
+}
+.qm-onboarding-dismiss:hover {
+  opacity: 1;
+  transform: rotate(90deg);
 }
 .qm-onboarding-title {
   font-size: 15.5px;
@@ -591,23 +624,40 @@ body.qm-popup-syncing .qm-popup-header::after {
   display: flex;
   align-items: center;
   gap: 11px;
-  padding: 8px 10px;
+  padding: 9px 10px;
   background: var(--qm-surface, #fff);
   border: 1px solid var(--qm-border-muted, #eaeef2);
   border-radius: 7px;
+  animation: qm-pop-slide-in var(--qm-pop-mo-med) both;
+  transition: border-color var(--qm-pop-mo-fast), background-color var(--qm-pop-mo-fast);
+}
+.qm-onboarding-step:nth-child(1) { animation-delay: 180ms; }
+.qm-onboarding-step:nth-child(2) { animation-delay: 260ms; }
+.qm-onboarding-step:nth-child(3) { animation-delay: 340ms; }
+.qm-onboarding-step:hover {
+  border-color: var(--qm-accent-medium);
+  background: var(--qm-accent-soft);
 }
 .qm-onboarding-glyph {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
   background: var(--qm-accent, #1f6feb);
-  color: #fff;
+  color: var(--qm-accent-fg, #fff);
   font-weight: 700;
-  font-size: 11px;
+  font-size: 12px;
   flex: 0 0 auto;
+  box-shadow:
+    0 0 0 1px var(--qm-accent-strong),
+    0 4px 10px -6px var(--qm-accent, #1f6feb);
+}
+@media (prefers-reduced-motion: reduce) {
+  .qm-onboarding,
+  .qm-onboarding-step,
+  .qm-onboarding-dismiss { animation: none !important; transition: none !important; }
 }
 .qm-onboarding-cta {
   width: 100%;
