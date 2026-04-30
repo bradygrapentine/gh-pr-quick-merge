@@ -16,8 +16,7 @@
     "https://github.com/login/oauth/access_token"
   ],
   "background": {
-    "service_worker": "background.js",
-    "scripts": ["background.js"]
+    "service_worker": "background.js"
   },
   "action": {
     "default_popup": "popup.html",
