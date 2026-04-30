@@ -24,7 +24,8 @@ The backlog is organized by **Epic** (matching `ROADMAP.md`). Each Epic decompos
 
 _Last sync: 2026-04-29 (v1.0 polish)_
 
-- Ready: 8 (v1.0 launch follow-ups + 2 v1.1 candidates — see §1)
+- Ready: 12 (v1.0 launch follow-ups + 8 v1.1 candidates — see §1)
+- Epic 8 (v1.1 Design Refresh): 21 stories (QM-200..220) — handoff received 2026-04-29; reference at `~/projects/handoff_pr_quick_merge_design/`
 - Blocked-on-human: 2 (QM-104 CWS submit; QM-108 AMO submit)
 - Deferred: 22 (Epic 3 license server + QM-165 BMaC)
 - In progress: 0
@@ -62,6 +63,97 @@ _Last sync: 2026-04-29 (v1.0 polish)_
 | QM-176 | Update-branch poll-instead-of-fixed-3-s wait | Per `plans/v0.4-row-actions.md` §Risks. After clicking Update, poll `/pulls/:n` until `behind_by === 0` instead of a fixed 3-s refresh. |
 | QM-177 | Anonymous opt-in install/usage telemetry (PostHog) | Was deferred from v1.0 per Epic 5 slim; revisit if growth signal is needed for prioritisation. |
 | QM-178 | Safari port assessment | Effort vs. revenue tradeoff. Reserved per Post-1.0 roadmap. |
+
+### Epic 8 — v1.1 Design Refresh (NEW — handoff received 2026-04-29)
+
+**Source:** `~/projects/handoff_pr_quick_merge_design/` — high-fidelity design from a Claude Design session. README, `styles.css`, and `components/*.jsx` document tokens, primitives, and target surfaces.
+
+**Theme:** Replace inline-styled, ad-hoc surfaces with a coherent token-driven design system. Light + dark themes. Refresh every visible surface (row widget, popup, options, bulk bar) and add three net-new surfaces (onboarding, toast stack, Pro/Sponsor upsell). Keep all v0.2-v1.0 functionality; this is a pure visual / interaction-pattern refresh, not a re-architecture.
+
+**Constraint:** the current extension is plain JS + DOM (no React, no bundler). Recreate the designs against that stack — DOM construction in `content.js` / `popup.js` / `options.js`, CSS in `styles.css` / `popup.css` / a new `theme.css`. Inline SVG icons (no external assets).
+
+**Estimate:** L overall (~10–14 eng-days). Foundation (F8.1) blocks everything else; surfaces (F8.3 / F8.4 / F8.5) parallelise after foundation lands.
+
+#### F8.1 — Design system foundation
+
+| ID | Title | Est | Deps | Notes |
+|----|-------|-----|------|-------|
+| QM-200 | Adopt design tokens — `theme.css` (or extend `styles.css`) with the full `--qm-*` variable set | M | — | Tokens enumerated in handoff `styles.css` lines 1–69. Both light + dark blocks. |
+| QM-201 | Brand mark + wordmark components | S | QM-200 | Inline-SVG glyph, `qm-mark` + `qm-wordmark` CSS classes, "EXT" / "SETTINGS" / "WELCOME" tag variants. |
+| QM-202 | Button primitives (`qm-button` + `-primary` / `-accent` / `-ghost` / `-sm` / `-lg`) | S | QM-200 | Replace inline `<button style="…">` usage across `popup.html`, `options.html`, content.js template strings, donation modal, bulk bar. |
+| QM-203 | Input + card + kbd + badge + dot primitives | S | QM-200 | `qm-input`, `qm-card`, `qm-kbd`, `qm-badge` (`-success` / `-warn` / `-danger` / `-pro`), `qm-dot`. CSS only; usage migration tracked per surface. |
+| QM-204 | Theme system — light / dark switch | M | QM-200 | `[data-theme="dark"]` token swap. Auto-detect: read `prefers-color-scheme` AND GitHub's own theme on `github.com`; user override in options. Persist `theme` to `chrome.storage.sync`. |
+| QM-205 | Vendor Inter Tight + JetBrains Mono | S | QM-200 | Bundled `.woff2` files under `fonts/`; `@font-face` declarations; CSP-friendly (no remote loads). Fall back to `system-ui` / `ui-monospace`. **Verify against MV3 CSP and AMO source disclosure.** |
+
+#### F8.2 — Injected row widget
+
+| ID | Title | Est | Deps | Notes |
+|----|-------|-----|------|-------|
+| QM-206 | Compact pill widget replaces the 3-button stack | M | QM-202 | Reference: `gh-pr-list.jsx` `QMRowWidget`. Status pill (READY/BEHIND/BLOCKED/DRAFT in font-mono 9.5px), divider, main "Merge" button + caret. |
+| QM-207 | Caret menu for merge method (squash/merge/rebase) | S | QM-206 | Click caret → dropdown with the three methods + per-repo default highlighted. Replaces the always-visible 3-button row. |
+| QM-208 | Per-repo default indicator dot on widget button | S | QM-206, QM-207 | Existing `applyRepoDefaultClass` becomes a small dot badge instead of a button-border highlight. |
+| QM-209 | Hover-only keyboard shortcut hint ("▶ press S to squash") | S | QM-206 | Gated on `chrome.storage.sync.qm_shortcut_mode === "active"`. Per design, only renders on the focused row. |
+| QM-210 | Optimistic UI for single-PR merge | S | QM-206, QM-217 | Inline spinner → "Merged ✓" swap on success; revert + error toast on failure. Replaces the current emoji-status-text pattern. |
+
+#### F8.3 — Popup surface
+
+| ID | Title | Est | Deps | Notes |
+|----|-------|-----|------|-------|
+| QM-211 | Rebuild popup to design spec | M | QM-200..205 | Sticky header (mark + wordmark + EXT tag + Settings ghost button), summary strip (`N mergeable across M repos · synced 2s ago`), repo rows (avatar tile, owner/repo split typography, `N ready · M open · K stale`), inline `Merge N` primary button, footer (Pin a repo + Sponsor link). 360×540 dims. |
+
+#### F8.4 — Options page
+
+| ID | Title | Est | Deps | Notes |
+|----|-------|-----|------|-------|
+| QM-212 | Side-nav + pane layout | M | QM-200..205 | Reference: `options.jsx` `OptionsSurface`. 720×720; nav: Sign in / Repo defaults / Shortcuts / Templates / Pinned repos / About. Each pane re-uses existing options.js logic, just re-laid-out. |
+| QM-213 | About pane | S | QM-212 | Version, license, privacy-policy link, Sponsor CTA, security disclosure link. |
+| QM-218 | Tweaks panel — accent color picker, density, font-family | M | QM-204, QM-205 | New "Appearance" section in options. Persist to `chrome.storage.sync.qm_visual_prefs`. Live-preview applies via the same `--qm-*` variables. |
+| QM-219 | Persist visual prefs across surfaces | S | QM-218 | All surfaces (popup, content row widget, options) read `qm_visual_prefs` and apply on load + on `chrome.storage.onChanged`. |
+
+#### F8.5 — Bulk merge bar
+
+| ID | Title | Est | Deps | Notes |
+|----|-------|-----|------|-------|
+| QM-214 | Dark-pill bulk bar + per-row in-flight progress | M | QM-202, QM-217 | Reference: `extras.jsx` `BulkMergeBar`. Idle: count badge + repo list + method select + Merge N button. Mid-flight: per-row queued/running/ok status with Pause. Replaces current `ensureBulkBar` HTML. |
+
+#### F8.6 — Onboarding (NEW surface)
+
+| ID | Title | Est | Deps | Notes |
+|----|-------|-----|------|-------|
+| QM-215 | First-run onboarding card | M | QM-200..205, QM-211 | Reference: `extras.jsx` `OnboardingCard`. Trigger: open popup with no `clientId` AND no `token` AND `chrome.storage.local.onboardingDismissed !== true`. 3-step explainer (Squash / Merge / Rebase glyphs) + "Continue — connect GitHub" CTA that opens options to the Sign-in pane. Dismiss writes `onboardingDismissed: true`. **Closes QM-174.** |
+
+#### F8.7 — Pro / Sponsor upsell
+
+| ID | Title | Est | Deps | Notes |
+|----|-------|-----|------|-------|
+| QM-216 | Replace donation modal with the design's accent-gradient card | S | QM-202, QM-203 | Reference: `extras.jsx` `ProUpsell`. The current `showProGate` modal becomes this card (donation-funded variant: subtle treatment that links to GitHub Sponsors). The "$4 / mo" line is conditional on a future paid tier — for v1.1 ship the subtle Sponsor variant. |
+
+#### F8.8 — Toast system
+
+| ID | Title | Est | Deps | Notes |
+|----|-------|-----|------|-------|
+| QM-217 | Custom toast system — dark fg-color toasts with colored side bar | S | QM-200, QM-203 | Reference: `extras.jsx` `Toast` / `ToastStack`. Variants: ok / warn / err / info. Auto-dismiss 4 s; max 3 stacked. Replaces the existing `toast()` in `content.js`. Used by QM-210 + QM-214 + bulk-ops feedback. |
+
+#### F8.9 — Visual regression baselines
+
+| ID | Title | Est | Deps | Notes |
+|----|-------|-----|------|-------|
+| QM-220 | Re-snapshot all Playwright visual specs after F8.1–F8.7 land | S | F8.1–F8.7 | `test/e2e/visual/popup.spec.ts`, `options.spec.ts`, `modals.spec.ts` all need fresh baselines. Per `docs/snapshot-update.md`: human reviewer signs off on each diff. |
+
+#### Epic 8 handoff reference
+
+The design files at `~/projects/handoff_pr_quick_merge_design/` are **React + Babel-standalone design references**, not production code. They render in a browser via `PR Quick Merge.html` for live iteration. When implementing a story, mirror the visuals + interaction states; rebuild the markup against this repo's vanilla-JS / DOM stack rather than introducing React.
+
+| Surface | File to consult |
+|---|---|
+| Tokens, primitives | `styles.css` |
+| Brand mark, icons, status dots | `components/primitives.jsx` |
+| Row widget | `components/gh-pr-list.jsx` |
+| Popup | `components/popup.jsx` |
+| Options | `components/options.jsx` |
+| Bulk bar, onboarding, Pro upsell, toast | `components/extras.jsx` |
+| Tweaks / theme controls | `tweaks-panel.jsx` |
+| All-up canvas | `design-canvas.jsx` + `PR Quick Merge.html` |
 
 ### Historical — Epics 1, 2, 4, 5, 6, 7 (mostly shipped — see §7)
 

@@ -9,8 +9,10 @@ A browser extension that lets devs squash / merge / rebase PRs directly from the
 ## Map
 
 ```
-v0.1 ── v0.2 ── v0.3 ── v0.4 ── v1.0 ── Post-1.0
-shipped shipped shipped shipped launch  Teams + GH Marketplace
+v0.1 ── v0.2 ── v0.3 ── v0.4 ── v1.0 ── v1.1 ──── Post-1.0
+shipped shipped shipped shipped launch  Design   Teams + GH Marketplace
+                                │       Refresh
+                                │       (Epic 8 — handoff received)
                                 ├─ Epic 4 distribution shipped (PR #18)
                                 ├─ Epic 5 Sentry sanitiser shipped (PR #21);
                                 │   SDK vendoring follow-up open
@@ -32,6 +34,7 @@ The path from v0.2 to v1.0 is broken into **6 Epics**. Each Epic decomposes into
 | 5 | Crash reporting (slimmed) | v1.0 | extension | QM-121..140 |
 | 6 | Quality & release ops (slimmed) | v1.0 | extension | QM-141..160 |
 | 7 | Donation infrastructure | v1.0 | extension + GH Sponsors | QM-161..170 |
+| 8 | v1.1 Design Refresh | v1.1 | extension UI | QM-200..220 |
 
 **Scope simplification (2026-04-29):** v1.0 ships **donation-funded** via GitHub Sponsors instead of a paid Pro tier. The license-server / Stripe / ed25519 / state-machine path (Epic 3) is deferred — plans remain on disk as scaffolding if a paid tier becomes warranted later. Epics 4/5/6 are slimmed to remove license-server-coupled stories. Epic 7 is new.
 
@@ -172,6 +175,30 @@ _Removed:_ license API perf, kill-switch, old-version metrics endpoint, SLO dash
 | **Total** | **~$1.25/mo recurring** |
 
 First sponsor at any tier covers the floor. Everything else is funding development time.
+
+---
+
+## v1.1 — Design Refresh  (Epic 8)
+
+**Targets:** every visible surface (row widget, popup, options, bulk bar) refreshed against the high-fidelity design in `~/projects/handoff_pr_quick_merge_design/`. Three net-new surfaces shipped: first-run onboarding card, custom toast stack, accent-gradient Pro/Sponsor upsell.
+
+**Theme:** Replace inline-styled, ad-hoc visuals with a coherent token-driven design system. Light + dark themes. Same functionality as v1.0 — pure visual / interaction-pattern refresh, not a re-architecture.
+
+**Features (detail in `BACKLOG.md` Epic 8):**
+
+- **F8.1 Design system foundation** — `--qm-*` token system, brand mark, button / input / card / kbd / badge / dot primitives, theme switcher, vendored Inter Tight + JetBrains Mono.
+- **F8.2 Injected row widget** — compact pill (status pill + split-button merge action + caret menu), per-repo-default dot, hover keyboard hint, optimistic UI.
+- **F8.3 Popup** — sticky header, summary strip, repo rows with status dot + ready-count + chevron, footer.
+- **F8.4 Options** — side-nav + pane layout (Sign in / Repo defaults / Shortcuts / Templates / Pinned repos / About), tweaks panel for accent / density / fonts.
+- **F8.5 Bulk merge bar** — dark-pill design with per-row in-flight progress + Pause.
+- **F8.6 Onboarding card** — first-run modal with 3-step explainer + Connect-GitHub CTA.
+- **F8.7 Pro / Sponsor upsell** — accent-gradient card replaces the donation modal.
+- **F8.8 Toast system** — dark fg-color toasts with colored side bar; 4 variants.
+- **F8.9 Visual regression baselines** — re-snapshot all Playwright visual specs.
+
+**Constraint:** the extension is plain JS + DOM (no React, no bundler). The handoff is React-based; rebuild against the existing stack.
+
+**Estimate:** L overall (~10–14 eng-days). F8.1 blocks everything; F8.3 / F8.4 / F8.5 parallelise after foundation lands.
 
 ---
 
