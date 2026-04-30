@@ -3,8 +3,12 @@
  */
 
 const API = "https://api.github.com";
-const ROW_SELECTOR = ".js-issue-row, [data-testid='issue-pr-title-link']";
-const INJECTED_ATTR = "data-qm-injected";
+// QM-304 — selectors live in lib/hosts/github/selectors.js so the GitLab
+// adapter (Phase 1) has a parallel file. Fall back to the inline values if
+// the lib didn't load (defensive — older zips may be in flight).
+const _GH_SEL = (typeof window !== "undefined" && window.QM_GITHUB_SELECTORS) || {};
+const ROW_SELECTOR = _GH_SEL.ROW_SELECTOR || ".js-issue-row, [data-testid='issue-pr-title-link']";
+const INJECTED_ATTR = _GH_SEL.INJECTED_ATTR || "data-qm-injected";
 const SPONSORS_URL = "https://github.com/sponsors/bradygrapentine";
 const { parsePrLink: parsePrHref, classifyMergeState, mergeMethodFromKind } = window.QM_HELPERS;
 const TEMPLATES = window.QM_TEMPLATES || {};
@@ -174,12 +178,17 @@ function ghHeaders(token) {
   };
 }
 
+// QM-304 — parsePrLink + findPrAnchor delegate to lib/hosts/github/selectors.js
+// when present; inline implementations remain as the fallback so a missing
+// selectors lib doesn't blank the extension.
 function parsePrLink(anchor) {
   if (!anchor) return null;
+  if (_GH_SEL.parsePrLink) return _GH_SEL.parsePrLink(anchor);
   return parsePrHref(anchor.getAttribute("href") || anchor.href);
 }
 
 function findPrAnchor(row) {
+  if (_GH_SEL.findPrAnchor) return _GH_SEL.findPrAnchor(row);
   return (
     row.querySelector("a[data-hovercard-type='pull_request']") ||
     row.querySelector("a[id^='issue_'][href*='/pull/']") ||

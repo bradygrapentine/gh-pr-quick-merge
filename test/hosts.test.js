@@ -1,0 +1,143 @@
+/**
+ * @vitest-environment happy-dom
+ */
+import { describe, it, expect } from "vitest";
+import api from "../lib/hosts/index.js";
+import githubApi from "../lib/hosts/github/api.js";
+import githubSelectors from "../lib/hosts/github/selectors.js";
+
+const { detect, assertHostAdapterShape, REGISTRY, INTERFACE_VERSION } = api;
+
+describe("hosts/index — detect", () => {
+  it("identifies github.com as 'github'", () => {
+    expect(detect({ hostname: "github.com" })).toBe("github");
+    expect(detect("https://github.com/foo/bar/pulls")).toBe("github");
+  });
+
+  it("identifies gitlab.com as 'gitlab'", () => {
+    expect(detect({ hostname: "gitlab.com" })).toBe("gitlab");
+    expect(detect("https://gitlab.com/group/proj/-/merge_requests")).toBe("gitlab");
+  });
+
+  it("returns null for unrecognized hostnames", () => {
+    expect(detect({ hostname: "example.com" })).toBeNull();
+    expect(detect("https://bitbucket.org/foo/bar")).toBeNull();
+  });
+
+  it("returns null on malformed input", () => {
+    expect(detect(null)).toBeNull();
+    expect(detect(undefined)).toBeNull();
+    expect(detect("not-a-url")).toBeNull();
+    expect(detect({})).toBeNull();
+  });
+
+  it("does not partial-match (subdomains must register explicitly)", () => {
+    // example: gist.github.com isn't a PR list page, so must NOT resolve.
+    expect(detect({ hostname: "gist.github.com" })).toBeNull();
+    expect(detect({ hostname: "raw.githubusercontent.com" })).toBeNull();
+  });
+});
+
+describe("hosts/index — REGISTRY", () => {
+  it("exposes a stable hostId per entry", () => {
+    expect(REGISTRY.github.hostId).toBe("github");
+    expect(REGISTRY.gitlab.hostId).toBe("gitlab");
+  });
+
+  it("INTERFACE_VERSION is a positive integer", () => {
+    expect(typeof INTERFACE_VERSION).toBe("number");
+    expect(INTERFACE_VERSION).toBeGreaterThan(0);
+  });
+});
+
+describe("hosts/index — assertHostAdapterShape", () => {
+  function validAdapter(overrides = {}) {
+    return {
+      hostId: "test",
+      hostMatches: ["test.example"],
+      api: { apiGet: () => {}, apiPost: () => {}, apiPut: () => {} },
+      findPrAnchor: () => null,
+      parsePrLink: () => null,
+      ROW_SELECTOR: ".row",
+      INJECTED_ATTR: "data-x",
+      ...overrides,
+    };
+  }
+
+  it("accepts a fully populated adapter", () => {
+    expect(assertHostAdapterShape(validAdapter())).toBe(true);
+  });
+
+  it("rejects missing required keys with a descriptive error", () => {
+    const a = validAdapter();
+    delete a.hostId;
+    expect(() => assertHostAdapterShape(a)).toThrow(/hostId/);
+  });
+
+  it("rejects empty hostMatches", () => {
+    expect(() => assertHostAdapterShape(validAdapter({ hostMatches: [] }))).toThrow(/hostMatches/);
+  });
+
+  it("rejects non-function api methods", () => {
+    expect(() => assertHostAdapterShape(validAdapter({ api: { apiGet: 1, apiPost: () => {}, apiPut: () => {} } })))
+      .toThrow(/apiGet/);
+  });
+
+  it("rejects null candidate", () => {
+    expect(() => assertHostAdapterShape(null)).toThrow(/object/);
+  });
+});
+
+describe("hosts/github/api — re-exposes the same shape as lib/api.js", () => {
+  it("has apiGet/apiPost/apiPut/apiDelete + GitHubApiError", () => {
+    expect(typeof githubApi.apiGet).toBe("function");
+    expect(typeof githubApi.apiPost).toBe("function");
+    expect(typeof githubApi.apiPut).toBe("function");
+    expect(typeof githubApi.apiDelete).toBe("function");
+    expect(githubApi.GitHubApiError).toBeDefined();
+    expect(githubApi.API_BASE).toBe("https://api.github.com");
+  });
+});
+
+describe("hosts/github/selectors — extracted from content.js", () => {
+  it("ROW_SELECTOR + INJECTED_ATTR are the canonical strings", () => {
+    expect(githubSelectors.ROW_SELECTOR).toBe(".js-issue-row, [data-testid='issue-pr-title-link']");
+    expect(githubSelectors.INJECTED_ATTR).toBe("data-qm-injected");
+  });
+
+  it("findPrAnchor finds the data-hovercard variant first", () => {
+    const row = document.createElement("div");
+    row.innerHTML = `
+      <a href="/foo/bar/pull/9">Plain</a>
+      <a id="issue_5" href="/foo/bar/pull/5">Legacy</a>
+      <a data-hovercard-type="pull_request" href="/foo/bar/pull/1">Modern</a>
+    `;
+    const a = githubSelectors.findPrAnchor(row);
+    expect(a.getAttribute("href")).toBe("/foo/bar/pull/1");
+  });
+
+  it("findPrAnchor falls through to legacy id selector", () => {
+    const row = document.createElement("div");
+    row.innerHTML = `<a id="issue_5" href="/foo/bar/pull/5">x</a>`;
+    expect(githubSelectors.findPrAnchor(row).id).toBe("issue_5");
+  });
+
+  it("findPrAnchor returns null when nothing matches", () => {
+    const row = document.createElement("div");
+    row.innerHTML = `<a href="/foo/bar/issues/3">issue not pr</a>`;
+    expect(githubSelectors.findPrAnchor(row)).toBeNull();
+  });
+
+  it("findPrAnchor handles a null row safely", () => {
+    expect(githubSelectors.findPrAnchor(null)).toBeNull();
+  });
+
+  it("parsePrLink delegates through QM_HELPERS", async () => {
+    // Load the helpers module so window.QM_HELPERS is populated.
+    await import("../lib/pr-helpers.js");
+    const a = document.createElement("a");
+    a.setAttribute("href", "/octocat/hello-world/pull/42");
+    const out = githubSelectors.parsePrLink(a);
+    expect(out).toEqual({ owner: "octocat", repo: "hello-world", num: 42 });
+  });
+});

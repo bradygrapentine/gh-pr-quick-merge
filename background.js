@@ -34,7 +34,9 @@ try {
 // attaches to `self` (the SW global). The merge-queue lib + api lib also
 // expose dual CJS / global, so importScripts is enough — no module setup.
 try {
-  importScripts("lib/api.js", "lib/merge-queue.js");
+  // QM-301 — load the canonical GitHub api impl from its new home.
+  // lib/api.js is still on disk as a no-op shim through QM-303.
+  importScripts("lib/hosts/github/api.js", "lib/merge-queue.js");
 } catch (e) {
   console.warn("[QM] merge-queue lib bootstrap skipped:", (e && e.message) || e);
 }
