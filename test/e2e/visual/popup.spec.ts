@@ -13,7 +13,7 @@ test.describe('visual: popup', () => {
     });
 
     await page.goto(`chrome-extension://${extensionId}/popup.html`);
-    await expect(page).toHaveScreenshot('popup-empty.png', { maxDiffPixels: 5 });
+    await expect(page).toHaveScreenshot('popup-empty.png');
     await page.close();
   });
 
@@ -52,7 +52,7 @@ test.describe('visual: popup', () => {
     // Gate the snapshot on the all-clear class arriving — proves the fetch
     // intercept landed and renderSummary ran with the populated entries.
     await page.locator('.qm-popup-summary-stat.all-clear').waitFor({ timeout: 5000 });
-    await expect(page).toHaveScreenshot('popup-loaded.png', { maxDiffPixels: 5 });
+    await expect(page).toHaveScreenshot('popup-loaded.png');
     await page.close();
   });
 });

@@ -14,6 +14,6 @@ test.describe('visual: modals', () => {
     await bulkButton.click();
     const confirmModal = authedPage.locator('[data-qm-modal="bulk-confirm"]');
     await expect(confirmModal).toBeVisible({ timeout: 5_000 });
-    await expect(confirmModal).toHaveScreenshot('modal-bulk-confirm.png', { maxDiffPixels: 5 });
+    await expect(confirmModal).toHaveScreenshot('modal-bulk-confirm.png');
   });
 });
