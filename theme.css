@@ -1,0 +1,424 @@
+/* PR Quick Merge — design system tokens + primitives.
+ *
+ * Source: handoff_pr_quick_merge_design/styles.css (high-fidelity design,
+ * 2026-04-29). Token names match the handoff exactly so future surfaces
+ * can be reproduced 1:1. Light theme is the default; `data-theme="dark"`
+ * on any element flips its subtree to the dark tokens.
+ *
+ * Auto-detect: lib/qm-theme.js applies `data-theme="dark"` on the root
+ * surface based on prefers-color-scheme + a user override stored at
+ * chrome.storage.sync.qm_theme. CSS-only fallback uses the
+ * @media (prefers-color-scheme: dark) block below so the default state
+ * is correct even before the JS runs.
+ */
+
+:root,
+[data-theme="light"] {
+  /* Neutrals (cool gray) */
+  --qm-bg: #fafbfc;
+  --qm-surface: #ffffff;
+  --qm-surface-2: #f6f7f9;
+  --qm-surface-3: #eef0f3;
+  --qm-border: #e1e4e8;
+  --qm-border-strong: #d0d5db;
+  --qm-fg: #0f172a;
+  --qm-fg-muted: #5b6473;
+  --qm-fg-subtle: #8b94a3;
+
+  /* Brand — refined green; primary action affordance */
+  --qm-primary: oklch(62% 0.16 150);
+  --qm-primary-hover: oklch(56% 0.16 150);
+  --qm-primary-soft: oklch(95% 0.04 150);
+  --qm-primary-fg: #ffffff;
+
+  /* Accent — violet; Pro / Sponsor */
+  --qm-accent: oklch(58% 0.18 280);
+  --qm-accent-soft: oklch(96% 0.04 280);
+  --qm-accent-fg: #ffffff;
+
+  /* Status */
+  --qm-success: oklch(62% 0.16 150);
+  --qm-warn: oklch(72% 0.15 75);
+  --qm-warn-soft: oklch(96% 0.06 75);
+  --qm-danger: oklch(58% 0.20 25);
+  --qm-danger-soft: oklch(96% 0.04 25);
+  --qm-info: oklch(58% 0.16 240);
+
+  /* Type stacks — fall back through system fonts so we don't ship .woff2
+   * yet (deferred to a follow-up; AMO source-disclosure + CSP review). */
+  --qm-font-sans: "Inter Tight", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --qm-font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --qm-r-1: 4px;
+  --qm-r-2: 6px;
+  --qm-r-3: 10px;
+  --qm-r-4: 14px;
+
+  --qm-shadow-1: 0 1px 0 rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --qm-shadow-2: 0 4px 12px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --qm-shadow-3: 0 12px 32px rgba(15, 23, 42, 0.10), 0 2px 6px rgba(15, 23, 42, 0.05);
+  --qm-shadow-pop: 0 24px 48px rgba(15, 23, 42, 0.14), 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+[data-theme="dark"] {
+  --qm-bg: #0d1117;
+  --qm-surface: #161b22;
+  --qm-surface-2: #1c2128;
+  --qm-surface-3: #22272e;
+  --qm-border: #2d333b;
+  --qm-border-strong: #3a414b;
+  --qm-fg: #e6edf3;
+  --qm-fg-muted: #9aa4b2;
+  --qm-fg-subtle: #6b7480;
+  --qm-primary-soft: oklch(28% 0.06 150);
+  --qm-accent-soft: oklch(28% 0.06 280);
+  --qm-warn-soft: oklch(28% 0.06 75);
+  --qm-danger-soft: oklch(28% 0.06 25);
+  --qm-shadow-1: 0 1px 0 rgba(0, 0, 0, 0.3);
+  --qm-shadow-2: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --qm-shadow-3: 0 12px 32px rgba(0, 0, 0, 0.4);
+  --qm-shadow-pop: 0 24px 48px rgba(0, 0, 0, 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --qm-bg: #0d1117;
+    --qm-surface: #161b22;
+    --qm-surface-2: #1c2128;
+    --qm-surface-3: #22272e;
+    --qm-border: #2d333b;
+    --qm-border-strong: #3a414b;
+    --qm-fg: #e6edf3;
+    --qm-fg-muted: #9aa4b2;
+    --qm-fg-subtle: #6b7480;
+    --qm-primary-soft: oklch(28% 0.06 150);
+    --qm-accent-soft: oklch(28% 0.06 280);
+    --qm-warn-soft: oklch(28% 0.06 75);
+    --qm-danger-soft: oklch(28% 0.06 25);
+    --qm-shadow-1: 0 1px 0 rgba(0, 0, 0, 0.3);
+    --qm-shadow-2: 0 4px 12px rgba(0, 0, 0, 0.3);
+    --qm-shadow-3: 0 12px 32px rgba(0, 0, 0, 0.4);
+    --qm-shadow-pop: 0 24px 48px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* === Brand mark === */
+.qm-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--qm-fg);
+  color: var(--qm-bg);
+  flex-shrink: 0;
+}
+.qm-mark svg { width: 14px; height: 14px; }
+
+.qm-wordmark {
+  font-family: var(--qm-font-sans);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  color: var(--qm-fg);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.qm-wordmark-tag {
+  font-family: var(--qm-font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--qm-fg-muted);
+  background: var(--qm-surface-2);
+  border: 1px solid var(--qm-border);
+  padding: 2px 5px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+/* === Buttons === */
+.qm-button {
+  appearance: none;
+  font-family: var(--qm-font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: var(--qm-r-2);
+  border: 1px solid var(--qm-border);
+  background: var(--qm-surface);
+  color: var(--qm-fg);
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, transform 80ms ease;
+  text-decoration: none;
+}
+.qm-button:hover { background: var(--qm-surface-2); }
+.qm-button:active { transform: translateY(0.5px); }
+.qm-button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+.qm-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--qm-primary-soft);
+  border-color: var(--qm-primary);
+}
+.qm-button-primary {
+  background: var(--qm-primary);
+  color: var(--qm-primary-fg);
+  border-color: transparent;
+}
+.qm-button-primary:hover { background: var(--qm-primary-hover); }
+.qm-button-accent {
+  background: var(--qm-accent);
+  color: var(--qm-accent-fg);
+  border-color: transparent;
+}
+.qm-button-ghost {
+  background: transparent;
+  border-color: transparent;
+}
+.qm-button-ghost:hover { background: var(--qm-surface-2); }
+.qm-button-sm { padding: 4px 8px; font-size: 11.5px; }
+.qm-button-lg { padding: 10px 16px; font-size: 13px; }
+
+/* === Inputs === */
+.qm-input {
+  appearance: none;
+  width: 100%;
+  font-family: var(--qm-font-sans);
+  font-size: 13px;
+  color: var(--qm-fg);
+  background: var(--qm-surface);
+  border: 1px solid var(--qm-border);
+  border-radius: var(--qm-r-2);
+  padding: 8px 10px;
+  box-sizing: border-box;
+  transition: border-color 120ms, box-shadow 120ms;
+}
+.qm-input:focus {
+  outline: none;
+  border-color: var(--qm-primary);
+  box-shadow: 0 0 0 3px var(--qm-primary-soft);
+}
+.qm-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.qm-input-mono { font-family: var(--qm-font-mono); font-size: 12px; }
+
+/* === Card === */
+.qm-card {
+  background: var(--qm-surface);
+  border: 1px solid var(--qm-border);
+  border-radius: var(--qm-r-3);
+  box-shadow: var(--qm-shadow-1);
+}
+
+/* === Kbd === */
+.qm-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  padding: 1px 5px;
+  border: 1px solid var(--qm-border-strong);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  font-family: var(--qm-font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--qm-fg-muted);
+  background: var(--qm-surface);
+  line-height: 1.4;
+}
+
+/* === Badge === */
+.qm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--qm-font-sans);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+.qm-badge-success { background: var(--qm-primary-soft); color: var(--qm-primary); }
+.qm-badge-warn    { background: var(--qm-warn-soft);    color: var(--qm-warn); }
+.qm-badge-danger  { background: var(--qm-danger-soft);  color: var(--qm-danger); }
+.qm-badge-pro     { background: var(--qm-accent-soft);  color: var(--qm-accent); }
+
+/* === Dot === */
+.qm-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+/* === Toasts (QM-217) ===
+ *
+ * The container lives once per surface, anchored bottom-right. The toast
+ * manager (lib/qm-toast.js) appends elements to it and prunes after the
+ * dismiss window. Variant colour comes via the data-kind attribute.
+ */
+.qm-toast-stack {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 2147483640;
+  pointer-events: none;
+  font-family: var(--qm-font-sans);
+}
+.qm-toast {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  min-width: 240px;
+  max-width: 380px;
+  background: var(--qm-fg);
+  color: var(--qm-bg);
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: var(--qm-shadow-2);
+  pointer-events: auto;
+  animation: qm-toast-in 160ms ease;
+}
+.qm-toast.qm-toast-leaving {
+  animation: qm-toast-out 160ms ease forwards;
+}
+.qm-toast-bar {
+  width: 4px;
+  border-radius: 2px;
+  background: var(--qm-success);
+  flex-shrink: 0;
+}
+.qm-toast[data-kind="warn"] .qm-toast-bar { background: var(--qm-warn); }
+.qm-toast[data-kind="err"] .qm-toast-bar  { background: var(--qm-danger); }
+.qm-toast[data-kind="info"] .qm-toast-bar { background: var(--qm-accent); }
+.qm-toast-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.qm-toast-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.qm-toast-sub {
+  font-family: var(--qm-font-mono);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.3;
+  word-break: break-word;
+}
+.qm-toast-close {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  align-self: flex-start;
+}
+.qm-toast-close:hover { color: var(--qm-bg); }
+
+@keyframes qm-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes qm-toast-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(8px); }
+}
+
+/* === Pro / Sponsor upsell card (QM-216) ===
+ *
+ * Replaces the legacy `.qm-pro-modal` markup. Subtle treatment by default —
+ * the v1.0 product is donation-funded so the primary CTA is "Sponsor on
+ * GitHub" with no monthly-price line. If a paid tier ever ships, set
+ * data-treatment="paid" to swap copy + show the price block.
+ */
+.qm-sponsor-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2147483641;
+  font-family: var(--qm-font-sans);
+}
+.qm-sponsor-card {
+  position: relative;
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  padding: 28px;
+  border-radius: var(--qm-r-4);
+  background: var(--qm-surface);
+  border: 1px solid var(--qm-border);
+  box-shadow: var(--qm-shadow-3);
+  color: var(--qm-fg);
+  overflow: hidden;
+}
+.qm-sponsor-card::before {
+  content: "";
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: var(--qm-accent-soft);
+  opacity: 0.6;
+  pointer-events: none;
+}
+.qm-sponsor-content { position: relative; z-index: 1; }
+.qm-sponsor-title {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin: 14px 0 6px;
+}
+.qm-sponsor-lede {
+  font-size: 13px;
+  color: var(--qm-fg-muted);
+  line-height: 1.55;
+  margin: 0 0 18px;
+}
+.qm-sponsor-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.qm-sponsor-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.qm-sponsor-list .qm-sponsor-check { color: var(--qm-accent); }
+.qm-sponsor-actions {
+  display: flex;
+  gap: 8px;
+}
+.qm-sponsor-footnote {
+  font-size: 11px;
+  color: var(--qm-fg-subtle);
+  text-align: center;
+  margin-top: 10px;
+}
+.qm-sponsor-footnote a { color: var(--qm-fg-muted); text-decoration: underline; }

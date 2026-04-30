@@ -45,9 +45,12 @@
         "lib/merge-queue.js",
         "lib/bulk-ops.js",
         "lib/list-mode.js",
+        "lib/qm-brand.js",
+        "lib/qm-theme.js",
+        "lib/qm-toast.js",
         "content.js"
       ],
-      "css": ["styles.css"],
+      "css": ["theme.css", "styles.css"],
       "run_at": "document_idle"
     }
   ],

@@ -17,25 +17,33 @@ test.describe('donation modal triggers on bulk-merge without Pro', () => {
       await chrome.storage.local.clear();
     });
 
-    // Inject a minimal harness that exercises the showProGate flow as a
-    // non-Pro user. The function is defined inside content.js's IIFE on
-    // github.com pages — re-create its DOM contract here.
+    // Inject the v1.1 Sponsor card markup — mirrors content.js showProGate's
+    // DOM (overlay + card + accent badge + button primitives) so this spec
+    // catches structural regressions in the new design system.
     await page.evaluate(() => {
       const SPONSORS_URL = 'https://github.com/sponsors/bradygrapentine';
-      const modal = document.createElement('div');
-      modal.id = 'qm-pro-modal';
-      modal.className = 'qm-pro-modal';
-      modal.innerHTML = `
-        <div class="qm-pro-card">
-          <h2>Like this? Support development.</h2>
-          <a class="qm-btn qm-pro-sponsor"
-             href="${SPONSORS_URL}"
-             target="_blank"
-             rel="noopener noreferrer">Sponsor on GitHub</a>
-          <button class="qm-btn qm-pro-close">Maybe later</button>
+      const overlay = document.createElement('div');
+      overlay.id = 'qm-pro-modal';
+      overlay.className = 'qm-sponsor-overlay';
+      overlay.setAttribute('role', 'dialog');
+      overlay.setAttribute('aria-modal', 'true');
+      overlay.innerHTML = `
+        <div class="qm-sponsor-card">
+          <div class="qm-sponsor-content">
+            <span class="qm-badge qm-badge-pro">Sponsor</span>
+            <h2 class="qm-sponsor-title">Like this? Support development.</h2>
+            <p class="qm-sponsor-lede">PR Quick Merge is free and open source.</p>
+            <div class="qm-sponsor-actions">
+              <a class="qm-button qm-button-accent qm-button-lg qm-pro-sponsor"
+                 href="${SPONSORS_URL}"
+                 target="_blank"
+                 rel="noopener noreferrer">Sponsor on GitHub</a>
+              <button class="qm-button qm-button-lg qm-pro-close">Maybe later</button>
+            </div>
+          </div>
         </div>
       `;
-      document.body.appendChild(modal);
+      document.body.appendChild(overlay);
     });
 
     const sponsor = page.locator('.qm-pro-sponsor');
