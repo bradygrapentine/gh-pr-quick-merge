@@ -870,6 +870,16 @@
   color: #ffffff;
   border-color: color-mix(in oklch, var(--qm-color-approve) 70%, #000);
 }
+.qm-pr-action-merge {
+  background: var(--qm-color-merge);
+  color: #ffffff;
+  border-color: color-mix(in oklch, var(--qm-color-merge) 70%, #000);
+}
+.qm-pr-action-squash {
+  background: var(--qm-color-squash);
+  color: #ffffff;
+  border-color: color-mix(in oklch, var(--qm-color-squash) 70%, #000);
+}
 .qm-pr-action-disabled,
 .qm-pr-action[disabled] {
   background: var(--qm-surface-2);
@@ -934,10 +944,21 @@
   color: var(--qm-fg);
   border: 1px solid var(--qm-border);
 }
-.qm-pr-modal-confirm {
+.qm-pr-modal-confirm,
+.qm-pr-modal-confirm-rebase {
   background: var(--qm-color-rebase);
   color: #1a1a1a;
   border: 1px solid color-mix(in oklch, var(--qm-color-rebase) 70%, #000);
+}
+.qm-pr-modal-confirm-merge {
+  background: var(--qm-color-merge);
+  color: #ffffff;
+  border: 1px solid color-mix(in oklch, var(--qm-color-merge) 70%, #000);
+}
+.qm-pr-modal-confirm-squash {
+  background: var(--qm-color-squash);
+  color: #ffffff;
+  border: 1px solid color-mix(in oklch, var(--qm-color-squash) 70%, #000);
 }
 .qm-pr-modal-confirm:focus-visible,
 .qm-pr-modal-cancel:focus-visible {

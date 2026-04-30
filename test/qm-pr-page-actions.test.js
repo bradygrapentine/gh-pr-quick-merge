@@ -8,10 +8,12 @@ const {
   parsePrPagePath,
   decideRebaseUi,
   decideApproveUi,
+  decideMergeUi,
   submitReview,
   ensurePrPageActionBar,
   removePrPageActionBar,
   buildActionBar,
+  showActionConfirmModal,
   showRebaseConfirmModal,
   closeRebaseConfirmModal,
   BAR_ID,
@@ -155,8 +157,10 @@ describe("ensurePrPageActionBar mount/teardown (QM-402, QM-405)", () => {
       handlers: {},
     });
     expect(document.getElementById(BAR_ID)).toBeTruthy();
+    // Transition to a state that hides every action: a clean draft has
+    // no rebase, no merge/squash, and viewer-less context = no approve.
     ensurePrPageActionBar({
-      state: { behind_by: 0, mergeable_state: "clean" },
+      state: { behind_by: 0, mergeable_state: "clean", draft: true },
       viewer: null,
       handlers: {},
     });
@@ -232,5 +236,107 @@ describe("showRebaseConfirmModal (QM-403 a11y)", () => {
     showRebaseConfirmModal();
     const body = document.querySelector(".qm-pr-modal-body");
     expect(body.textContent).toBe("This may update the branch and retrigger CI. Continue?");
+  });
+});
+
+describe("decideMergeUi (PR-page merge button)", () => {
+  it.each([
+    [{ mergeable_state: "clean", behind_by: 0, draft: false }, "show", "ready"],
+    [{ mergeable_state: "clean", behind_by: 0, draft: true }, "hide", "draft"],
+    [{ mergeable_state: "clean", behind_by: 2, draft: false }, "hide", "behind"],
+    [{ mergeable_state: "blocked", behind_by: 0, draft: false }, "hide", "blocked"],
+    [{ mergeable_state: "dirty", behind_by: 0, draft: false }, "hide", "dirty"],
+    [{ mergeable_state: "behind", behind_by: 1 }, "hide", "explicit behind"],
+    [null, "hide", "null"],
+    [undefined, "hide", "undefined"],
+  ])("decideMergeUi(%j) -> %s (%s)", (state, expected) => {
+    expect(decideMergeUi(state)).toBe(expected);
+  });
+});
+
+describe("buildActionBar — merge + squash buttons", () => {
+  it("renders Merge + Squash & Merge in the documented order", () => {
+    const bar = buildActionBar({
+      rebaseMode: "hide",
+      showApprove: true,
+      showMerge: true,
+      showSquash: true,
+    });
+    const buttons = Array.from(bar.querySelectorAll("[data-qm-action]")).map((b) => b.dataset.qmAction);
+    // doc layout: [Approve] [Rebase] [Merge] [Squash & Merge]
+    expect(buttons).toEqual(["approve", "merge", "squash"]);
+    expect(bar.querySelector('[data-qm-action="squash"]').textContent).toBe("Squash & Merge");
+  });
+
+  it("hides merge+squash when flags are false", () => {
+    const bar = buildActionBar({ rebaseMode: "show", showApprove: false, showMerge: false, showSquash: false });
+    expect(bar.querySelector('[data-qm-action="merge"]')).toBeNull();
+    expect(bar.querySelector('[data-qm-action="squash"]')).toBeNull();
+  });
+});
+
+describe("ensurePrPageActionBar — wires merge + squash handlers", () => {
+  beforeEach(() => { document.body.innerHTML = '<div class="gh-header-actions"></div>'; });
+
+  it("Merge handler fires on click", () => {
+    const onMerge = vi.fn();
+    ensurePrPageActionBar({
+      state: { mergeable_state: "clean", behind_by: 0, draft: false, author: { login: "bob" } },
+      viewer: { login: "alice" },
+      handlers: { onMergeClick: onMerge },
+    });
+    const btn = document.querySelector('[data-qm-action="merge"]');
+    expect(btn).toBeTruthy();
+    btn.click();
+    expect(onMerge).toHaveBeenCalledTimes(1);
+  });
+
+  it("Squash handler fires on click", () => {
+    const onSquash = vi.fn();
+    ensurePrPageActionBar({
+      state: { mergeable_state: "clean", behind_by: 0, draft: false },
+      viewer: null,
+      handlers: { onSquashClick: onSquash },
+    });
+    document.querySelector('[data-qm-action="squash"]').click();
+    expect(onSquash).toHaveBeenCalledTimes(1);
+  });
+
+  it("hides bar entirely when no action is renderable", () => {
+    ensurePrPageActionBar({
+      state: { mergeable_state: "clean", behind_by: 0, draft: true, author: { login: "alice" } },
+      viewer: { login: "alice" },
+      handlers: {},
+    });
+    expect(document.getElementById(BAR_ID)).toBeNull();
+  });
+});
+
+describe("showActionConfirmModal — per-action copy", () => {
+  beforeEach(() => { document.body.innerHTML = ""; });
+
+  it("merge action uses doc-derived merge copy", async () => {
+    const promise = showActionConfirmModal({ action: "merge" });
+    expect(document.querySelector(".qm-pr-modal-title").textContent).toBe("Merge this pull request?");
+    expect(document.querySelector(".qm-pr-modal-confirm").textContent).toBe("Merge");
+    expect(document.querySelector(".qm-pr-modal-confirm").classList.contains("qm-pr-modal-confirm-merge")).toBe(true);
+    document.querySelector('[data-qm-modal-action="cancel"]').click();
+    await promise;
+  });
+
+  it("squash action uses squash copy", async () => {
+    const promise = showActionConfirmModal({ action: "squash" });
+    expect(document.querySelector(".qm-pr-modal-title").textContent).toBe("Squash and merge?");
+    expect(document.querySelector(".qm-pr-modal-confirm").textContent).toBe("Squash & merge");
+    document.querySelector('[data-qm-modal-action="cancel"]').click();
+    await promise;
+  });
+
+  it("rebase backward-compat wrapper still renders the original copy", async () => {
+    const promise = showRebaseConfirmModal();
+    expect(document.querySelector(".qm-pr-modal-body").textContent)
+      .toBe("This may update the branch and retrigger CI. Continue?");
+    document.querySelector('[data-qm-modal-action="cancel"]').click();
+    await promise;
   });
 });
