@@ -1099,37 +1099,43 @@
  * is the warning hue — same yellow as the rebase action — so users see
  * at a glance that this row will be auto-mutated by the extension.
  */
+/* Auto-rebase rendered as a regular button matching the watch button +
+ * other action buttons. Hidden checkbox handles state. */
 .qm-auto-rebase-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  margin-left: 8px;
-  padding: 1px 6px 1px 4px;
-  border-radius: 999px;
-  font-family: var(--qm-font-mono);
-  font-size: 10px;
-  letter-spacing: 0.02em;
-  color: var(--qm-fg-muted);
-  background: var(--qm-surface-2);
-  border: 1px solid var(--qm-border);
+  gap: 0;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-family: var(--qm-font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--qm-fg);
+  background: linear-gradient(180deg, var(--qm-surface) 0%, var(--qm-surface-2) 100%);
+  border: 1px solid var(--qm-border-strong);
   cursor: pointer;
   user-select: none;
+  line-height: 1;
 }
 .qm-auto-rebase-toggle:hover {
-  color: var(--qm-fg);
+  background: var(--qm-surface-2);
 }
 .qm-auto-rebase-checkbox {
-  margin: 0;
-  width: 11px;
-  height: 11px;
-  accent-color: var(--qm-color-rebase);
+  /* Visually hide; the wrapper button itself signals state. */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 .qm-auto-rebase-label {
-  text-transform: lowercase;
+  text-transform: none;
 }
 .qm-auto-rebase-toggle:has(.qm-auto-rebase-checkbox:checked) {
-  background: color-mix(in oklch, var(--qm-color-rebase) 14%, var(--qm-surface));
-  border-color: color-mix(in oklch, var(--qm-color-rebase) 50%, var(--qm-border));
+  background: linear-gradient(180deg,
+    color-mix(in oklch, var(--qm-color-rebase) 16%, var(--qm-surface)) 0%,
+    color-mix(in oklch, var(--qm-color-rebase) 22%, var(--qm-surface)) 100%);
+  border-color: color-mix(in oklch, var(--qm-color-rebase) 60%, var(--qm-border));
   color: color-mix(in oklch, var(--qm-color-rebase) 60%, #000);
 }
 
@@ -1250,7 +1256,11 @@
  */
 .qm-container-pinned {
   position: absolute !important;
-  top: 12px;
+  /* Vertically center the action cluster against the title's
+   * baseline by anchoring at row mid-height. Matches GitHub's
+   * own comments icon vertical position. */
+  top: 50%;
+  transform: translateY(-50%);
   /* Leave room for GitHub's native row icons (comments, labels,
    * assignees, milestone) which sit at the row's right edge. */
   right: 96px;
@@ -1298,19 +1308,20 @@
     0 1px 0 rgba(15, 23, 42, 0.08);
 }
 
-/* Watch / Update / auto-rebase pills: GitHub button shape, flat. */
+/* Watch / Update / auto-rebase pills: GitHub button shape, all share
+ * the same gradient + border so the action cluster reads as one unit. */
 .qm-update-btn,
 .qm-watch-btn,
-.qm-cancel-watch-btn,
-.qm-auto-rebase-toggle {
+.qm-cancel-watch-btn {
   border-radius: 6px;
-}
-.qm-auto-rebase-toggle {
-  padding: 4px 8px;
+  padding: 4px 10px;
   border: 1px solid var(--qm-border-strong);
   background: linear-gradient(180deg, var(--qm-surface) 0%, var(--qm-surface-2) 100%);
+  font-family: var(--qm-font-sans);
+  font-size: 12px;
+  font-weight: 500;
 }
-.qm-auto-rebase-label {
+.qm-auto-rebase-label-legacy {
   text-transform: none;
   font-family: var(--qm-font-sans);
   font-size: 11px;
