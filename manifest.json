@@ -47,6 +47,7 @@
         "lib/list-mode.js",
         "lib/qm-brand.js",
         "lib/qm-theme.js",
+        "lib/qm-visual-prefs.js",
         "lib/qm-toast.js",
         "lib/qm-row-widget.js",
         "content.js"
