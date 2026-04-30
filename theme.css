@@ -1010,3 +1010,54 @@
 .js-issue-row[data-qm-ready="true"] {
   box-shadow: inset 3px 0 0 var(--qm-success);
 }
+
+/* === Filter bar (Epic 11 Track B — QM-504..508) ==========================
+ *
+ * Mounted above the /pulls list. Chip toggles persist in
+ * chrome.storage.sync.qm_filters; the active state is denoted both
+ * visually and via aria-pressed for screen readers.
+ */
+.qm-filter-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0;
+  padding: 6px 8px;
+  background: var(--qm-surface);
+  border: 1px solid var(--qm-border);
+  border-radius: var(--qm-r-2);
+  font-family: var(--qm-font-sans);
+}
+.qm-filter-chip {
+  appearance: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--qm-border);
+  background: var(--qm-surface);
+  color: var(--qm-fg-muted);
+  cursor: pointer;
+  transition: background 100ms, color 100ms, border-color 100ms;
+}
+.qm-filter-chip:hover {
+  background: var(--qm-surface-2);
+  color: var(--qm-fg);
+}
+.qm-filter-chip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--qm-primary-soft);
+  border-color: var(--qm-primary);
+}
+.qm-filter-chip-active {
+  background: var(--qm-primary-soft);
+  color: var(--qm-primary);
+  border-color: color-mix(in oklch, var(--qm-primary) 40%, var(--qm-border));
+}
+
+/* Rows hidden by an active filter — keeps them in the DOM so injection
+ * state is preserved when the user toggles the filter back off. */
+.js-issue-row[data-qm-hidden-by-filter="true"] {
+  display: none;
+}

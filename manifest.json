@@ -59,6 +59,8 @@
         "lib/qm-pr-page-actions.js",
         "lib/qm-size-classify.js",
         "lib/qm-row-badges.js",
+        "lib/qm-filters.js",
+        "lib/qm-filter-bar.js",
         "content.js"
       ],
       "css": ["theme.css", "styles.css"],
