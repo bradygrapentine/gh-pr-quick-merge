@@ -1400,10 +1400,17 @@ async function refreshPrPageActionBar() {
         fetchViewer(token),
       ]);
       if (!SELECTORS.isPullRequestPage()) return; // navigated away mid-fetch
+      // DOM-probe GitHub's own merge-status panel — a positive signal
+      // that overrides API-state staleness, per
+      // dom_injection.md §PR Page Rebase Button Injection.
+      const nativeControlPresent = typeof SELECTORS.hasNativeUpdateBranchControl === "function"
+        ? SELECTORS.hasNativeUpdateBranchControl()
+        : false;
       PR_ACTIONS.ensurePrPageActionBar({
         state: prState || {},
         viewer,
         writePermDenied: prPageState.writePermDenied,
+        nativeControlPresent,
         handlers: {
           onRebaseClick: () => onPrPageRebaseClick(parts, prState),
           onApproveClick: () => onPrPageApproveClick(parts, prState),
@@ -1436,19 +1443,24 @@ async function onPrPageRebaseClick(parts, prState) {
       token: state.token,
       api: API_HELPERS,
     });
-    toast(`Update queued for ${parts.owner}/${parts.repo}#${parts.num}`, "ok");
-    // Refresh in-place so the bar re-renders against fresh state.
+    // Doc-verbatim success copy from
+    // github_power_suite_docs_updated/pr_page_rebase_button.md §Safety Copy.
+    toast("Branch update started. CI may rerun.", "ok");
     setTimeout(refreshPrPageActionBar, 1500);
   } catch (e) {
+    // Doc-verbatim failure copy. Conflict (422) and forbidden (403) get
+    // the same shared message so users see consistent guidance — the
+    // panel-link fallback is what differentiates them.
+    const failCopy = "Could not update branch. Open GitHub's merge panel for details.";
     if (e && e.name === "UpdateConflictError") {
-      toast("Branch changed since fetch — refreshing", "warn");
+      toast(failCopy, "warn");
       setTimeout(refreshPrPageActionBar, 250);
     } else if (e && e.name === "UpdateForbiddenError") {
       prPageState.writePermDenied = true;
-      toast("No write permission — opening merge panel link", "err");
+      toast(failCopy, "err");
       refreshPrPageActionBar();
     } else {
-      toast(`Update failed: ${e && e.message ? e.message : "unknown"}`, "err");
+      toast(failCopy, "err");
     }
   }
 }
