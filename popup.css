@@ -1,14 +1,12 @@
 /* PR Quick Merge — popup
  *
- * Refine pass 1: layout. Introduces an explicit spatial scale and rebuilds
- * the popup as five distinct bands with deliberate rhythm — not the uniform
- * 8-14px padding the v1.1 design refresh shipped with. Bands, top to bottom:
- *   1. Brand band      tight     — sticky, identity carrier
- *   2. Vitals band     loose     — biggest type on the surface; the "what"
- *   3. Stream          medium    — repo rows; scannable
- *   4. Action band     comfy     — manage / pin
- *   5. Footer          tight     — secondary chrome
+ * Refine passes:
+ *  1 layout    — five-band rhythm + tokenized spatial scale
+ *  2 typeset   — typographic scale 10.5/12/13.5/15.5/17 with weight + tracking
+ *                contrast doing the heavy hierarchy lift (size deltas alone
+ *                are too narrow for a 360px surface)
  *
+ * Bands, top to bottom: brand · vitals · stream · action · footer.
  * Per PRODUCT.md principle 4 ("density is intentional"), comfortable is the
  * default; data-qm-density="compact" pulls everything 25-30% tighter.
  */
@@ -31,6 +29,23 @@ body {
   --qm-pop-pad-comfy: 13px;
   --qm-pop-pad-loose: 18px;
   --qm-pop-band-gap: 14px;
+
+  /* Typographic scale (px). Five steps; ratio ≈1.13 — flat by necessity at
+   * 360px width, so contrast comes from weight + tracking + color, not size. */
+  --qm-pop-fs-cap: 9.5px;     /* uppercase micro-labels, tag chips */
+  --qm-pop-fs-meta: 10.5px;   /* sync timestamp, row stats, tertiary copy */
+  --qm-pop-fs-body: 12px;     /* row owner/repo, button text */
+  --qm-pop-fs-sub: 13.5px;    /* onboarding step labels */
+  --qm-pop-fs-display: 17px;  /* vitals stat — anchor of the surface */
+
+  /* Tracking by role. Display tightens; caps loosen. */
+  --qm-pop-tr-display: -0.25px;
+  --qm-pop-tr-body: 0;
+  --qm-pop-tr-cap: 0.7px;
+
+  /* Tabular figures everywhere a number lives — no jitter on re-render. */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "ss01", "cv11";
 }
 [data-qm-density="compact"] body,
 body[data-qm-density="compact"] {
@@ -68,20 +83,21 @@ body[data-qm-density="compact"] {
 }
 .qm-popup-brand-slot svg { width: 18px; height: 18px; }
 .qm-popup-header .qm-wordmark {
-  font-size: 12.5px;
+  font-size: var(--qm-pop-fs-body);
   font-weight: 700;
-  letter-spacing: 0.2px;
+  letter-spacing: -0.1px;
   white-space: nowrap;
 }
 .qm-popup-header .qm-tag {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 9px;
+  font-size: var(--qm-pop-fs-cap);
   font-weight: 700;
-  letter-spacing: 1px;
+  letter-spacing: var(--qm-pop-tr-cap);
   color: var(--qm-fg-subtle, #57606a);
   background: var(--qm-surface-2, #eaeef2);
-  padding: 1px 5px;
+  padding: 1px 6px;
   border-radius: 3px;
+  text-transform: uppercase;
 }
 .qm-popup-header-actions {
   display: flex;
@@ -104,14 +120,16 @@ body[data-qm-density="compact"] {
   border-bottom: 1px solid var(--qm-border, #d0d7de);
 }
 .qm-popup-summary-stat {
-  font-size: 15.5px;
+  font-size: var(--qm-pop-fs-display);
   font-weight: 700;
-  letter-spacing: -0.1px;
+  letter-spacing: var(--qm-pop-tr-display);
   color: var(--qm-fg, #1f2328);
-  line-height: 1.15;
+  line-height: 1.1;
+  /* Tighten leading-number visual weight where the label trails it. */
+  font-feature-settings: "ss01", "cv11", "tnum";
 }
 .qm-popup-summary-sync {
-  font-size: 10.5px;
+  font-size: var(--qm-pop-fs-meta);
   font-weight: 500;
   color: var(--qm-fg-subtle, #57606a);
   font-variant-numeric: tabular-nums;
@@ -175,23 +193,24 @@ body[data-qm-density="compact"] {
   min-width: 0;
 }
 .qm-popup-row-name {
-  font-size: 12.5px;
+  font-size: var(--qm-pop-fs-body);
   line-height: 1.3;
   word-break: break-all;
 }
 .qm-popup-row-owner {
   color: var(--qm-fg-subtle, #57606a);
-  font-weight: 400;
+  font-weight: 450;
 }
 .qm-popup-row-repo {
   color: var(--qm-fg, #1f2328);
-  font-weight: 600;
+  font-weight: 650;
+  letter-spacing: -0.1px;
 }
 .qm-popup-row-stats {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 10.5px;
+  font-size: var(--qm-pop-fs-meta);
   color: var(--qm-fg-subtle, #656d76);
   margin-top: 3px;
   font-variant-numeric: tabular-nums;
@@ -282,11 +301,11 @@ body[data-qm-density="compact"] {
 }
 .qm-popup-manage-label {
   display: block;
-  font-size: 11px;
+  font-size: var(--qm-pop-fs-cap);
   color: var(--qm-fg-subtle, #57606a);
-  margin-bottom: 6px;
-  font-weight: 500;
-  letter-spacing: 0.2px;
+  margin-bottom: 7px;
+  font-weight: 700;
+  letter-spacing: var(--qm-pop-tr-cap);
   text-transform: uppercase;
 }
 .qm-popup-manage-row {
@@ -350,17 +369,28 @@ body[data-qm-density="compact"] {
   padding: 0 6px;
 }
 .qm-onboarding-title {
-  font-size: 14.5px;
+  font-size: 15.5px;
   font-weight: 700;
-  margin: 0 0 4px;
+  margin: 0 0 5px;
   color: var(--qm-fg, #1f2328);
-  letter-spacing: -0.1px;
+  letter-spacing: var(--qm-pop-tr-display);
+  line-height: 1.15;
 }
 .qm-onboarding-lede {
-  font-size: 11.5px;
+  font-size: var(--qm-pop-fs-body);
   color: var(--qm-fg-subtle, #57606a);
   margin: 0 0 12px;
   line-height: 1.45;
+}
+.qm-onboarding-step-label {
+  font-size: var(--qm-pop-fs-sub);
+  font-weight: 600;
+  letter-spacing: -0.05px;
+}
+.qm-onboarding-step-note {
+  font-size: var(--qm-pop-fs-meta);
+  color: var(--qm-fg-subtle, #57606a);
+  margin-top: 1px;
 }
 .qm-onboarding-steps {
   list-style: none;
@@ -391,14 +421,6 @@ body[data-qm-density="compact"] {
   font-weight: 700;
   font-size: 11px;
   flex: 0 0 auto;
-}
-.qm-onboarding-step-label {
-  font-size: 12px;
-  font-weight: 600;
-}
-.qm-onboarding-step-note {
-  font-size: 10.5px;
-  color: var(--qm-fg-subtle, #57606a);
 }
 .qm-onboarding-cta {
   width: 100%;
