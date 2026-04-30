@@ -182,6 +182,33 @@ body[data-qm-density="compact"] {
   line-height: 1.1;
   /* Tighten leading-number visual weight where the label trails it. */
   font-feature-settings: "ss01", "cv11", "tnum";
+  transition: color var(--qm-pop-mo-med);
+}
+/* Editorial moment: when there's nothing to merge, the headline becomes
+ * a status, not a count of zero. Earned attention works both ways —
+ * silence is also a state worth designing. */
+.qm-popup-summary-stat.all-clear {
+  color: var(--qm-success, #1a7f37);
+}
+.qm-popup-summary-stat.all-clear::before {
+  content: "✓";
+  display: inline-block;
+  margin-right: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: color-mix(in oklch, var(--qm-success, #1a7f37) 15%, transparent);
+  color: var(--qm-success, #1a7f37);
+  text-align: center;
+  line-height: 22px;
+  font-weight: 700;
+  font-size: 14px;
+  vertical-align: -4px;
+  animation: qm-pop-clear-pop var(--qm-pop-mo-slow) both;
+}
+@keyframes qm-pop-clear-pop {
+  from { opacity: 0; transform: scale(0.5); }
+  to   { opacity: 1; transform: scale(1); }
 }
 .qm-popup-summary-sync {
   font-size: var(--qm-pop-fs-meta);
@@ -305,14 +332,27 @@ body[data-qm-density="compact"] {
 
 /* ─── Empty state ───────────────────────────────────────────────────── */
 .qm-popup-empty {
-  padding: 32px var(--qm-pop-pad-x) 28px;
+  padding: 38px var(--qm-pop-pad-x) 32px;
   text-align: center;
+  position: relative;
+}
+.qm-popup-empty::before {
+  content: "↳";
+  display: block;
+  font-size: 28px;
+  color: var(--qm-accent-strong);
+  margin-bottom: 10px;
+  font-weight: 300;
+  transform: rotate(-12deg);
 }
 .qm-popup-empty p {
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--qm-fg-subtle, #656d76);
-  margin: 0 0 14px;
+  margin: 0 0 16px;
   line-height: 1.5;
+  max-width: 240px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* ─── 5 · Footer ────────────────────────────────────────────────────── */
@@ -342,10 +382,21 @@ body[data-qm-density="compact"] {
   color: var(--qm-danger, #cf222e);
   background: var(--qm-surface-2, #eaeef2);
 }
+.qm-popup-sponsor:hover .qm-popup-sponsor-heart {
+  animation: qm-pop-heartbeat 600ms ease-out 0s 2;
+}
 .qm-popup-sponsor-heart {
   color: var(--qm-danger, #cf222e);
   font-size: 12px;
   line-height: 1;
+  display: inline-block;
+}
+@keyframes qm-pop-heartbeat {
+  0%   { transform: scale(1); }
+  20%  { transform: scale(1.18); }
+  35%  { transform: scale(0.96); }
+  55%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
 }
 .qm-popup-sponsor-text { font-weight: 500; }
 
