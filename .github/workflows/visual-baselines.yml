@@ -1,0 +1,64 @@
+name: Visual Baselines (regen)
+
+# QM-220 — generate fresh Linux Playwright snapshots and upload them as
+# an artifact. Run this whenever the row layout / popup / options page
+# UI changes intentionally and the committed baselines no longer match.
+#
+# Usage (from a local clone, with gh CLI):
+#   gh workflow run visual-baselines.yml --ref <branch>
+#   gh run watch
+#   gh run download <run-id> -n linux-visual-baselines
+#   cp -R linux-visual-baselines/* test/e2e/visual/
+#   git add test/e2e/visual && git commit -m "ci(visual): regen baselines"
+#
+# Manual-trigger only — never runs on push / pull_request, so it can't
+# silently overwrite real regressions.
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Why are you regenerating baselines? (audit trail)"
+        required: true
+        default: "post-UI-change baseline refresh"
+
+permissions:
+  contents: read
+
+jobs:
+  regen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Regenerate visual baselines
+        env:
+          E2E_GH_TOKEN: ${{ secrets.E2E_GH_TOKEN }}
+        run: npx playwright test --project=visual --update-snapshots
+
+      - name: Upload regenerated baselines
+        uses: actions/upload-artifact@v7
+        with:
+          name: linux-visual-baselines
+          # The --update-snapshots flag writes the new pngs alongside
+          # the spec files. Capture only the *-snapshots/ dirs so the
+          # artifact is small and obvious.
+          path: test/e2e/visual/**/*-snapshots/**/*.png
+          retention-days: 30
+
+      - name: Audit log
+        run: |
+          echo "::notice title=Baseline regen reason::${{ inputs.reason }}"
+          echo "::notice title=Artifact::linux-visual-baselines (test/e2e/visual/**/*-snapshots/)"
