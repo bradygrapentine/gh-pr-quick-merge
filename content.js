@@ -1105,7 +1105,14 @@ function confirmBulkActionTyped({ items, action, confirmWord }) {
     }
 
     const prompt = document.createElement("p");
-    prompt.innerHTML = `Type <code>${expected}</code> to confirm:`;
+    // Build via DOM instead of innerHTML — `expected` is user-derived
+    // and AMO's web-ext linter rightly flags innerHTML assignment
+    // even if `expected` looks safe today.
+    prompt.appendChild(document.createTextNode("Type "));
+    const promptCode = document.createElement("code");
+    promptCode.textContent = expected;
+    prompt.appendChild(promptCode);
+    prompt.appendChild(document.createTextNode(" to confirm:"));
 
     const input = document.createElement("input");
     input.type = "text";
