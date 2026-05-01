@@ -1378,17 +1378,14 @@
 }
 @media (max-width: 900px) {
   .qm-container.qm-container-pinned {
-    /* On narrow widths fall back to inline-after-title so the cluster
-     * isn't cramped against GitHub's row icons. Symmetric vertical
-     * gap; left indent matches the PR title's text-start (PR icon +
-     * size badge + spacing ≈ 80px) so the cluster aligns under the
-     * title rather than flush against the row's left edge. */
+    /* Stacked layout: flush-left under the row, full width. */
     position: static !important;
     transform: none !important;
     margin-top: 12px;
     margin-bottom: 12px;
-    margin-left: 80px;
-    max-width: calc(100% - 80px);
+    margin-left: 0;
+    max-width: 100%;
+    justify-content: flex-start;
   }
 }
 
