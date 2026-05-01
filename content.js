@@ -482,8 +482,11 @@ async function injectRow(row) {
   // but no DOM element is mounted.
   const checkbox = { checked: false, disabled: true, addEventListener: () => {} };
 
+  // Status indicator (✓/×) removed in UI pass 14 — state lives in
+  // the merge button's color now. Keep the element constructed so
+  // setRowState() callers don't NPE; just don't mount it.
   const status = makeStatus();
-  container.appendChild(status);
+  status.style.display = "none";
 
   // QM-206..210 — single compact pill widget replaces the 3-button stack.
   // The widget owns its own status pill + button enabling + optimistic

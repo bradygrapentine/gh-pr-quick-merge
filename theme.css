@@ -1427,3 +1427,48 @@
   0%, 100% { opacity: 1; }
   50%      { opacity: 0.7; }
 }
+
+/* === UI pass 14 — finish hiding status, force state colors over disabled */
+
+/* Status pill: hide unconditionally. Earlier passes left a regular
+ * `display: inline-flex` rule that beat the inline display:none. */
+.qm-row-widget-status,
+.qm-row-widget-status[data-state],
+.qm-status,
+[data-qm-state-icon] {
+  display: none !important;
+}
+
+/* State colors apply even when the merge button is disabled — disabled
+ * dims at 0.45 opacity but the underlying background still reads as
+ * the right hue, signalling WHY it's disabled. */
+.qm-row-widget-main[data-state="blocked"]:disabled,
+.qm-row-widget[data-state="blocked"] .qm-row-widget-caret:disabled {
+  background: var(--qm-danger) !important;
+  color: #ffffff !important;
+  opacity: 0.85 !important;
+  cursor: not-allowed;
+}
+.qm-row-widget-main[data-state="behind"]:disabled,
+.qm-row-widget[data-state="behind"] .qm-row-widget-caret:disabled {
+  background: var(--qm-color-rebase) !important;
+  color: #1a1a1a !important;
+  opacity: 0.85 !important;
+}
+.qm-row-widget-main[data-state="draft"]:disabled,
+.qm-row-widget[data-state="draft"] .qm-row-widget-caret:disabled {
+  background: var(--qm-surface-3) !important;
+  color: var(--qm-fg-muted) !important;
+  opacity: 1 !important;
+}
+
+/* `ready` state already inherits qm-button-primary green — no override
+ * needed there; the user's blue rendering of "Merge" was actually
+ * accent-blue which means data-state isn't 'ready' yet (state hadn't
+ * computed). Force ready = primary green explicitly so it's not
+ * confused with an accent-themed primary. */
+.qm-row-widget-main[data-state="ready"],
+.qm-row-widget[data-state="ready"] .qm-row-widget-caret {
+  background: var(--qm-primary) !important;
+  color: var(--qm-primary-fg) !important;
+}
