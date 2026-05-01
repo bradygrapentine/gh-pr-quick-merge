@@ -1,7 +1,7 @@
 {
   "name": "gh-pr-quick-merge",
   "private": true,
-  "version": "0.4.0",
+  "version": "1.1.0",
   "description": "Squash, merge, or rebase pull requests directly from the GitHub Pull Requests list — no need to open each PR.",
   "scripts": {
     "test": "vitest run",

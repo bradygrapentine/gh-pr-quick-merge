@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "GitHub PR Quick Merge — Merge from List",
   "short_name": "PR Quick Merge",
-  "version": "0.4.0",
+  "version": "1.1.0",
   "description": "Squash, merge, or rebase pull requests directly from the GitHub Pull Requests list — no need to open each PR.",
   "author": "Brady Grapentine",
   "homepage_url": "https://github.com/bradygrapentine/gh-pr-quick-merge",
