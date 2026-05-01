@@ -35,7 +35,11 @@ if [ -n "${SENTRY_DSN:-}" ]; then
   echo "✓ wrote lib/sentry-dsn.js (release ${RELEASE_VERSION}, env ${SENTRY_ENV_VALUE})"
 else
   echo "→ SENTRY_DSN not set; skipping Sentry vendoring (dev build)"
-  rm -f lib/sentry-dsn.js
+  # Drop both the DSN shim AND the vendored bundle. Otherwise a previous
+  # production build leaves lib/vendor/sentry.min.js on disk and web-ext
+  # bundles it into the next zip, which means a "Sentry-less" build
+  # actually still ships the vendored SDK and AMO will demand source.
+  rm -f lib/sentry-dsn.js lib/vendor/sentry.min.js
 fi
 
 mkdir -p dist
@@ -49,6 +53,13 @@ npx --yes web-ext@8 build \
     "test/**" \
     "scripts/**" \
     "plans/**" \
+    "docs/**" \
+    "worktrees/**" \
+    ".worktrees/**" \
+    "coverage/**" \
+    "playwright-report/**" \
+    "test-results/**" \
+    ".playwright-user-data/**" \
     "*.md" \
     "*.log" \
     ".github/**" \
@@ -56,6 +67,7 @@ npx --yes web-ext@8 build \
     ".memsearch/**" \
     "package*.json" \
     "vitest.config.*" \
+    "playwright.config.*" \
     ".gitignore" \
     "dist/**"
 
