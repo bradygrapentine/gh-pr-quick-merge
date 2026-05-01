@@ -6,8 +6,54 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-- QM-022 — wire `lib/templates` and `lib/shortcuts` into `content.js` (repo-defaults already wired in 0.2.0)
-- v0.3 cluster — per-row "Update branch", merge-when-green, bulk close/label, stale-PR badge integration
+_Empty — v1.1.0 absorbed the v0.3 / v0.4 / v1.0 / v1.1 candidates._
+
+## [1.1.0] — 2026-05-01
+
+Major release folding in three completed epics (Epic 8 v1.1 Design Refresh, Epic 10 v1.2 PR-page safety, Epic 11 v1.3 PR-list metadata + filters) plus the v1.0 launch-finish track and a v2.0 GitLab-port scaffold.
+
+### Features
+
+- **Design refresh (Epic 8):** new theme tokens + primitives, redesigned row widget (compact pill + caret + optimistic UI), redesigned popup, options side-nav, bulk bar, onboarding, toast, sponsor card, label picker.
+- **Auto-Merge toggle:** single checkbox-style button that flips between Auto-Merge / 🟡 watching / ✅ merged / ❌ retry; clicking the watching state stops the watch (no separate Cancel pill).
+- **Resolve Conflicts pill:** danger-tinted link surfaces on PRs whose `mergeable_state === "dirty"`, opening GitHub's web conflict editor.
+- **Faster watcher:** merge-queue alarm 1 min → 30 s (Chrome MV3 minimum); watched PRs land within one refresh cycle.
+- **PR-page safety (Epic 10):** always-visible rebase + inline approve on the PR detail page; fallback Merge / Squash buttons.
+- **Filter bar + row metadata (Epic 11):** quick-filter chips (Mine / Ready / Hide bots / Stale / Small) with `<details>` "More" disclosure; row size + CI badges mounted inline with the title.
+- **Auto-Rebase opt-in:** per-PR sticky checkbox; threshold-driven rebase before merge.
+- **Onboarding privacy link:** beneath the connect-CTA, points at the GitHub Pages-hosted privacy policy.
+- **Options page:** Sentry crash-report consent toggle wired to `chrome.storage.sync.qm_sentry_consent` (off by default; opt-in only); typed bulk-confirm dialog; per-repo template bindings; update-branch strategy + auto-rebase threshold; repo-name autocomplete.
+- **GraphQL CI rollup:** single round-trip per row for CI status (was N requests).
+- **HostAdapter scaffold:** `lib/hosts/index.js` + `lib/hosts/github/*` seam for the v2.0 GitLab port (ADR 0001 — keep with single consumer).
+
+### Fixes
+
+- **Manifest MV3 load:** drop `background.scripts` (Chrome MV3 rejects); alias `self.window = self` before importing the vendored Sentry CDN bundle that hard-references `window`.
+- **Cross-platform lockfile:** `npm ci` fails on Linux when the lockfile is generated on macOS without the optional Linux deps (`@emnapi/core`, `@emnapi/runtime`); regenerate from a clean state.
+- **innerHTML → DOM construction:** brand mark, caret chevron, sponsor-card badge, typed-confirm prompt, and bulk-bar shell now use `createElementNS` / `createElement` to satisfy AMO's `UNSAFE_VAR_ASSIGNMENT` linter.
+
+### Infra & ops
+
+- **Branch protection:** required checks `test`, `manifest-lint`, `e2e` enforced on `main`; `lock_branch` off; admin-bypass off.
+- **Dependabot:** weekly npm + github-actions updates with grouped minor/patch; vulnerability alerts + automated security fixes enabled.
+- **Sentry vendoring:** `@sentry/browser` 8.55.2 vendored via pinned-SHA `scripts/vendor-sentry.sh`; `SENTRY_DSN` injected at build via `scripts/package.sh`; sanitizer scrubs PII before upload; off by default.
+- **Visual baselines:** Linux Playwright baselines committed; manual-trigger regen workflow at `.github/workflows/visual-baselines.yml`.
+- **GitHub Pages privacy policy:** `docs/privacy-policy.md` published to `bradygrapentine.github.io/gh-pr-quick-merge/privacy-policy.html`; linked from options page + onboarding.
+- **Coverage gate:** Vitest coverage threshold; E2E + perf specs gated.
+- **CI workflows:** `e2e` runs on every PR (paths filter would silently block merges); `web-ext` Firefox AMO lint informational pending dual manifest (Phase 5).
+
+### Docs
+
+- ROADMAP.md / BACKLOG.md updated for v1.1 ship.
+- `docs/adr/0001-hostadapter.md` + `docs/adr/README.md` (new ADR index).
+- `docs/plans/v1.1-blockers-plan.md` + Opus adversarial review.
+- `docs/status-2026-05-01.md` project audit.
+- `plans/v2-gitlab-port.md` Epic 9 scaffold (31 stories).
+- Runbooks + privacy policy + sponsor copy.
+
+### Breaking
+
+_None._ All v0.2 storage keys + APIs preserved. Existing tokens, templates, shortcuts, and per-repo defaults migrate cleanly.
 
 ## [0.2.0] — 2026-04-29
 
