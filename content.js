@@ -677,7 +677,7 @@ async function injectRow(row) {
 
 /* QM-045 / v0.4 extension point. Called once per row after the standard merge
  * buttons + click handler are wired. Subsequent waves (v0.4 row-actions) add
- * Update / Cancel-watch / queue-status / rebasing-spinner UI here.
+ * Update / Auto-Merge toggle / rebasing-spinner UI here.
  *
  * Contract: container is mounted in the row, prData reflects the just-fetched
  * PR state (may be null on auth-less or errored rows — guard accordingly).
@@ -691,6 +691,18 @@ function injectRowActions(ctx) {
   const queueLib = window.QM_MERGE_QUEUE;
   const updateLib = window.QM_UPDATE_BRANCH;
   const queueKey = queueLib ? queueLib.makeKey({ owner: pr.owner, repo: pr.repo, pullNumber: pr.num }) : `${pr.owner}/${pr.repo}#${pr.num}`;
+
+  // Resolve Conflicts — opens GitHub's web conflict editor for PRs whose
+  // mergeable_state is "dirty" (conflicting). One-click escape hatch when
+  // the PR can't be merged or auto-rebased.
+  if (prData && prData.mergeable_state === "dirty") {
+    const resolveBtn = document.createElement("a");
+    resolveBtn.className = "qm-btn qm-resolve-btn";
+    resolveBtn.textContent = "Resolve Conflicts";
+    resolveBtn.href = `https://github.com/${pr.owner}/${pr.repo}/pull/${pr.num}/conflicts`;
+    resolveBtn.title = "Open GitHub's web conflict editor";
+    container.appendChild(resolveBtn);
+  }
 
   // QM-052 — Update button when the PR is behind base.
   if (token && prData && Number(prData.behind_by) > 0 && updateLib) {
@@ -751,50 +763,47 @@ function injectRowActions(ctx) {
     container.appendChild(updateBtn);
   }
 
-  // QM-056 / QM-057 — merge-queue badge + Watch / Cancel button.
+  // QM-056 / QM-057 — merge-queue toggle. Single button that flips between
+  // "Auto-Merge" (idle) and "🟡 watching" (queued); clicking the watching
+  // state stops the watch — checkbox-style, no separate Cancel pill.
   if (queueLib && token) {
-    const badge = document.createElement("span");
-    badge.className = "qm-queue-badge";
-    badge.dataset.qmKey = queueKey;
-
     const watchBtn = document.createElement("button");
     watchBtn.type = "button";
     watchBtn.className = "qm-btn qm-watch-btn";
     watchBtn.dataset.qmKey = queueKey;
-
-    const cancelBtn = document.createElement("button");
-    cancelBtn.type = "button";
-    cancelBtn.className = "qm-btn qm-cancel-watch-btn";
-    cancelBtn.textContent = "Cancel";
-    cancelBtn.dataset.qmKey = queueKey;
+    let currentStatus = null; // null | "watching" | "merged" | "failed"
 
     function renderQueueState(entry) {
-      // entry is the merge-queue record or null.
       if (!entry) {
-        badge.textContent = "";
-        badge.dataset.kind = "";
+        currentStatus = null;
         watchBtn.textContent = "Auto-Merge";
         watchBtn.title = "Once CI is green, automatically merge this PR";
+        watchBtn.dataset.kind = "";
+        watchBtn.setAttribute("aria-pressed", "false");
         watchBtn.style.display = "";
-        cancelBtn.style.display = "none";
         return;
       }
       if (entry.status === "watching") {
-        badge.textContent = "🟡 watching";
-        badge.dataset.kind = "watching";
-        watchBtn.style.display = "none";
-        cancelBtn.style.display = "";
-      } else if (entry.status === "merged") {
-        badge.textContent = "✅ merged";
-        badge.dataset.kind = "merged";
-        watchBtn.style.display = "none";
-        cancelBtn.style.display = "none";
-      } else {
-        badge.textContent = "❌ failed";
-        badge.dataset.kind = "failed";
-        watchBtn.textContent = "Retry watch";
+        currentStatus = "watching";
+        watchBtn.textContent = "🟡 watching";
+        watchBtn.title = "Watching for green CI — click to stop";
+        watchBtn.dataset.kind = "watching";
+        watchBtn.setAttribute("aria-pressed", "true");
         watchBtn.style.display = "";
-        cancelBtn.style.display = "none";
+      } else if (entry.status === "merged") {
+        currentStatus = "merged";
+        watchBtn.textContent = "✅ merged";
+        watchBtn.title = "Merged by Auto-Merge";
+        watchBtn.dataset.kind = "merged";
+        watchBtn.setAttribute("aria-pressed", "false");
+        watchBtn.style.display = "";
+      } else {
+        currentStatus = "failed";
+        watchBtn.textContent = "❌ retry";
+        watchBtn.title = "Auto-Merge failed — click to retry";
+        watchBtn.dataset.kind = "failed";
+        watchBtn.setAttribute("aria-pressed", "false");
+        watchBtn.style.display = "";
       }
     }
 
@@ -802,23 +811,19 @@ function injectRowActions(ctx) {
       e.preventDefault();
       e.stopPropagation();
       try {
-        await queueLib.enqueue({ owner: pr.owner, repo: pr.repo, pullNumber: pr.num }, chrome.storage.local);
-        toast(`Watching ${queueKey} — will merge when green`, "ok");
+        if (currentStatus === "watching") {
+          await queueLib.dequeue(queueKey, chrome.storage.local);
+          toast(`Stopped watching ${queueKey}`, "ok");
+        } else {
+          await queueLib.enqueue({ owner: pr.owner, repo: pr.repo, pullNumber: pr.num }, chrome.storage.local);
+          toast(`Watching ${queueKey} — will merge when green`, "ok");
+        }
       } catch (err) {
-        toast(`Watch failed: ${err.message || err}`, "error");
+        toast(`Watch toggle failed: ${err.message || err}`, "error");
       }
     });
 
-    cancelBtn.addEventListener("click", async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      await queueLib.dequeue(queueKey, chrome.storage.local);
-      toast(`Stopped watching ${queueKey}`, "ok");
-    });
-
-    container.appendChild(badge);
     container.appendChild(watchBtn);
-    container.appendChild(cancelBtn);
 
     // Initial render from current queue state.
     queueLib.list(chrome.storage.local).then((entries) => {

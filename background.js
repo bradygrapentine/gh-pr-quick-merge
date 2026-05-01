@@ -53,12 +53,12 @@ const MERGE_QUEUE_ALARM = "qm-merge-queue-poller";
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.alarms.create(TOKEN_CHECK_ALARM, { periodInMinutes: 60 * 24 });
-  chrome.alarms.create(MERGE_QUEUE_ALARM, { periodInMinutes: 1 });
+  chrome.alarms.create(MERGE_QUEUE_ALARM, { periodInMinutes: 0.5 });
 });
 
 if (chrome.runtime.onStartup && chrome.runtime.onStartup.addListener) {
   chrome.runtime.onStartup.addListener(() => {
-    chrome.alarms.create(MERGE_QUEUE_ALARM, { periodInMinutes: 1 });
+    chrome.alarms.create(MERGE_QUEUE_ALARM, { periodInMinutes: 0.5 });
   });
 }
 
