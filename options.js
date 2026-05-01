@@ -663,6 +663,35 @@ async function onListModeChange() {
 }
 
 // ---------------------------------------------------------------------------
+// Sentry crash-report consent (QM-169)
+//
+// Telemetry is **off by default** and only fires when the user explicitly
+// opts in. The flag lives at chrome.storage.sync.qm_sentry_consent and is
+// read by lib/sentry-init.js at SW boot — toggling here doesn't retro-init
+// an already-running SDK; it gates the next service-worker startup.
+// ---------------------------------------------------------------------------
+
+async function loadSentryConsent() {
+  const cb = $("sentryConsent");
+  if (!cb) return;
+  const data = await chrome.storage.sync.get("qm_sentry_consent");
+  cb.checked = !!(data && data.qm_sentry_consent);
+}
+
+async function onSentryConsentChange() {
+  const cb = $("sentryConsent");
+  if (!cb) return;
+  await chrome.storage.sync.set({ qm_sentry_consent: !!cb.checked });
+  setStatus(
+    "sentryConsentStatus",
+    cb.checked
+      ? "Crash reports ON. Takes effect next time the service worker restarts."
+      : "Crash reports OFF.",
+    "ok",
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Update-branch strategy (QM-053) + auto-rebase threshold (QM-069)
 // ---------------------------------------------------------------------------
 
@@ -804,6 +833,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if ($("autoRebaseThreshold")) $("autoRebaseThreshold").addEventListener("change", onAutoRebaseThresholdChange);
   if ($("repoStaleAdd")) $("repoStaleAdd").addEventListener("click", addRepoStaleOverride);
   if ($("listModeEnabled")) $("listModeEnabled").addEventListener("change", onListModeChange);
+  if ($("sentryConsent")) $("sentryConsent").addEventListener("change", onSentryConsentChange);
   if ($("exportBtn")) $("exportBtn").addEventListener("click", exportSettings);
   if ($("importBtn")) $("importBtn").addEventListener("click", triggerImport);
   if ($("importFileInput")) $("importFileInput").addEventListener("change", onImportFile);
@@ -818,4 +848,5 @@ document.addEventListener("DOMContentLoaded", () => {
   loadAutoRebaseThreshold();
   renderRepoStaleList();
   loadListMode();
+  loadSentryConsent();
 });
