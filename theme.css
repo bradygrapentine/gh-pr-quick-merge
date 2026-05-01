@@ -1362,20 +1362,68 @@
   50%      { box-shadow: 0 0 0 4px color-mix(in oklch, var(--qm-color-rebase) 0%, transparent); }
 }
 
-/* Action cluster wraps when the row is narrow rather than overflowing
- * past the row's right edge. Keeps the per-row buttons usable on
- * narrower viewports. */
+/* Action cluster wraps + has comfortable vertical gap when wrapped. */
 .qm-container.qm-container-pinned {
   flex-wrap: wrap;
-  max-width: min(60vw, 520px);
+  max-width: min(48vw, 420px);
   justify-content: flex-end;
+  gap: 6px 6px;
+  row-gap: 8px;
 }
-@media (max-width: 800px) {
+@media (max-width: 1100px) {
+  /* Earlier wrap kick-in on medium-narrow viewports. */
+  .qm-container.qm-container-pinned {
+    max-width: min(36vw, 320px);
+  }
+}
+@media (max-width: 900px) {
   .qm-container.qm-container-pinned {
     /* On narrow widths fall back to inline-after-title so the cluster
      * isn't cramped against GitHub's row icons. */
     position: static !important;
     transform: none !important;
-    margin-top: 6px;
+    margin-top: 8px;
+    margin-bottom: 4px;
+    max-width: 100%;
   }
+}
+
+/* === UI pass 13 — merge button color encodes state =====================
+ *
+ * Status pill removed; the merge button itself shows state via color:
+ *   ready    → primary green   (default)
+ *   blocked  → danger red
+ *   behind   → warn yellow
+ *   draft    → muted grey
+ *   pending  → muted grey + breathing animation
+ * Color overrides apply to .qm-row-widget-main + .qm-row-widget-caret
+ * so the pair reads as one button.
+ */
+.qm-row-widget-main[data-state="blocked"],
+.qm-row-widget[data-state="blocked"] .qm-row-widget-caret {
+  background: var(--qm-danger) !important;
+  color: #ffffff !important;
+}
+.qm-row-widget-main[data-state="blocked"]:hover,
+.qm-row-widget[data-state="blocked"] .qm-row-widget-caret:hover {
+  background: color-mix(in oklch, var(--qm-danger) 90%, #000) !important;
+}
+.qm-row-widget-main[data-state="behind"],
+.qm-row-widget[data-state="behind"] .qm-row-widget-caret {
+  background: var(--qm-color-rebase) !important;
+  color: #1a1a1a !important;
+}
+.qm-row-widget-main[data-state="draft"],
+.qm-row-widget[data-state="draft"] .qm-row-widget-caret,
+.qm-row-widget-main[data-state="pending"],
+.qm-row-widget[data-state="pending"] .qm-row-widget-caret {
+  background: var(--qm-surface-3) !important;
+  color: var(--qm-fg-muted) !important;
+}
+.qm-row-widget-main[data-state="pending"] {
+  animation: qm-pending-breathe 2s ease-in-out infinite;
+}
+@keyframes qm-pending-breathe {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.7; }
 }
