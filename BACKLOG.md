@@ -22,22 +22,25 @@ The backlog is organized by **Epic** (matching `ROADMAP.md`). Each Epic decompos
 
 ## §0 Status board
 
-_Last sync: 2026-05-01 (post-v1.1.0 version bump; Epic 8/10/11 shipped)_
+_Last sync: 2026-05-01 (post-v1.1.0 release; backlog-sync via skill)_
 
-- Ready: 4 (QM-167 Dependabot, QM-168 branch protection, QM-169 Sentry vendoring, QM-170 privacy URL — see §1; full plan at [`docs/plans/v1.1-blockers-plan.md`](./docs/plans/v1.1-blockers-plan.md))
-- Epic 8 (v1.1 Design Refresh): 21 stories (QM-200..220) — **shipped to `main`** through PRs #28..#56 + ui-pass iterations #59 / #60.
-- Epic 9 (v2.0 GitLab port): 31 stories (QM-300..330) — scoped 2026-04-29; plan at `plans/v2-gitlab-port.md`. Phase 0 ready to start now that v1.1 design has merged.
-- Epic 10 (v1.2 PR-page safety): 11 stories (QM-400..410) — **shipped** in PR #46 (2026-04-30); doc-alignment tightening in PR #47.
-- Epic 11 (v1.3 PR-list metadata + filters): 14 stories (QM-500..513) — **shipped** across 4 PRs along clean file boundaries.
-- Blocked-on-human: 2 (QM-104 CWS submit; QM-108 AMO submit — Phase 5 of `v1.1-blockers-plan`)
-- Deferred: 22 (Epic 3 license server + QM-165 BMaC)
+- Ready: 4 (QM-174 onboarding tour, QM-302/303/305 Epic 9 Phase 0 finish — see §1; full plan at [`docs/plans/post-v1.1-plan.md`](./docs/plans/post-v1.1-plan.md))
+- Epic 8 (v1.1 Design Refresh): 21 stories (QM-200..220) — **shipped to `main`** through PRs #28–#69
+- Epic 9 (v2.0 GitLab port): 31 stories (QM-300..330) — Phase 0: 3 of 6 shipped (QM-300/301/304); 3 remaining (QM-302/303/305). Phases 1–5 conditional on Phase F install-signal review per post-v1.1 plan.
+- Epic 10 (v1.2 PR-page safety): 11 stories (QM-400..410) — **shipped** (PRs #46, #47, #53)
+- Epic 11 (v1.3 PR-list metadata + filters): 14 stories (QM-500..513) — **shipped** (PRs #48–#52)
+- Blocked-on-human: 2 (QM-104 CWS submit; QM-108 AMO submit — artifacts ready in `dist/`)
+- Deferred: 22 (Epic 3 license server + QM-165 BMaC + QM-177 PostHog + QM-178 Safari)
 - In progress: 0
 - In review: 0
 - Shipped (v0.2.0): 5
-- Shipped (v0.3 + v0.4 + v1.0 + v1.1 backlog): 90+ (through PR #62 — version 1.1.0 + lockfile fix)
+- Shipped (v0.3 + v0.4 + v1.0 + v1.1 backlog): 110+ (through tag v1.1.0 + the package:both script #73)
 - Done (pre-Epic): 14
 
-**v1.0 effort remaining:** ~2 eng-days (Sentry SDK vendoring + repo settings + store submissions). All code-level v1.0 work is on `main`.
+**v1.1 status:** **shipped + tagged `v1.1.0`**. Code surface complete. Remaining: store submissions (Daisy-blocked) + onboarding tour (QM-174).
+**Next:** Epic 9 Phase 0 finish (QM-302/303/305) — 1.5 eng-days, three small PRs, see [`docs/plans/post-v1.1-plan.md`](./docs/plans/post-v1.1-plan.md) Phase D.
+
+**Product rename for v2.0:** `PR Quick Merge` → `QuickMerge` (one word). Decided 2026-05-01.
 
 **Operating cost:** ~$1.25/mo (domain only — when registered). Donation-funded; first sponsor at any tier covers the floor.
 
@@ -45,27 +48,32 @@ _Last sync: 2026-05-01 (post-v1.1.0 version bump; Epic 8/10/11 shipped)_
 
 ## §1 Ready
 
-### v1.0 launch follow-ups (NEW — surface during v1-polish review, 2026-04-29)
+### v1.1 follow-ups + Phase 5 store submission
 
 | ID | Title | Feature | Est | Deps | Notes |
 |----|-------|---------|-----|------|-------|
-| QM-167 | Enable Dependabot security updates on the repo | F4.5 | XS | — | Settings → Code security → enable. Audited 2026-04-29: currently **disabled**. |
-| QM-168 | Configure branch protection on `main` | F6.6 | S | — | Required: PR review ≥ 1, status checks (`test`, `manifest-lint`, `e2e`) green, no force pushes. Currently unconfigured. |
-| QM-169 | Vendor `@sentry/browser` SDK + DSN injection | F5.2 | M | — | Follow-up from PR #21. Add `npm run vendor:sentry` script; `scripts/package.sh` calls it before `web-ext build`; `SENTRY_DSN` injected via `sed`. See [`docs/runbook-external-services.md`](./docs/runbook-external-services.md) §5. |
-| QM-170 | Privacy-policy stable HTTPS URL | F4.3 | S | — | Currently lives at `docs/privacy-policy.md` in the repo. CWS + AMO submissions need a stable URL — either GitHub Pages on this repo or a custom domain. Recommend GitHub Pages for v1.0 (zero cost). |
+| QM-174 | Onboarding tour for first-time installs | F8.6 | M | Epic 8 ✅ | 3-step popover: token setup → row widget → Auto-Merge. Decided 2026-05-01 to build now (pre-launch polish). |
+| QM-104 | Chrome Web Store submission | F4.1 | S | docs/store-listings/cws-listing-v1.1.0.md ✅, dist/gh-pr-quick-merge-chrome-1.1.0.zip ✅ | **Daisy-blocked** — CWS dev account 2FA required. Listing copy + permission justifications + zip ready. |
+| QM-108 | Mozilla AMO submission | F4.1 | S | docs/store-listings/amo-listing-v1.1.0.md ✅, dist/gh-pr-quick-merge-firefox-1.1.0.zip ✅ | **Daisy-blocked** — AMO dev account required. Manifest already swapped (background.scripts) in the Firefox zip; Sentry-free build means no source archive needed. |
 
-### v1.1 candidates (gaps surfaced 2026-04-29 — not v1.0 blocking)
+_Deferred:_
 
 | ID | Title | Notes |
 |----|-------|-------|
-| QM-171 | Custom modal for bulk close + label confirmation | Replace native `confirm()` / `prompt()`. The typed-confirmation modal already exists for bulk merge (`confirmBulkMergeTyped`); reuse. |
-| QM-172 | Real label-picker dropdown (fetches repo labels) | Currently `prompt()` for comma-separated text. The plan included `lib/label-picker.js` as a stub; v1.1 fills it. |
-| QM-173 | Sentry crash-reporting consent toggle in options | The sanitiser is in place; the SDK boots only when DSN configured at build time. v1.1: surface a user-facing on/off toggle so users can opt in even on builds where DSN is shipped. |
-| QM-174 | Onboarding tour for first-time installs | Pinned-repo + token setup is friction-laden for new users. A 3-step popover walkthrough on first install. |
-| QM-175 | Per-repo merge-template assignment UI | Templates exist; per-repo binding is hard-coded to `*` (global) or `owner/repo`. Options-page picker would let users assign saved templates per repo. |
-| QM-176 | Update-branch poll-instead-of-fixed-3-s wait | Per `plans/v0.4-row-actions.md` §Risks. After clicking Update, poll `/pulls/:n` until `behind_by === 0` instead of a fixed 3-s refresh. |
-| QM-177 | Anonymous opt-in install/usage telemetry (PostHog) | Was deferred from v1.0 per Epic 5 slim; revisit if growth signal is needed for prioritisation. |
-| QM-178 | Safari port assessment | Effort vs. revenue tradeoff. Reserved per Post-1.0 roadmap. |
+| QM-177 | Anonymous opt-in install/usage telemetry (PostHog) | Deferred indefinitely per v1.0 scope-slim. Revisit if prioritisation needs growth signal. |
+| QM-178 | Safari port assessment | Reserved per Post-1.0 roadmap. Effort vs. revenue tradeoff TBD. |
+
+_Shipped — see §7 for full audit:_ QM-167, QM-168, QM-169, QM-170, QM-171, QM-172, QM-173, QM-175, QM-176, QM-220.
+
+### Epic 9 — Phase 0 finish (multi-host refactor)
+
+Phase 0 of [`plans/v2-gitlab-port.md`](./plans/v2-gitlab-port.md). 3 of 6 stories shipped in PR #39 (QM-300, QM-301, QM-304); 3 remaining. Total ~1.5 eng-days. Phase 0 is safe to land before any GitLab adapter exists — it's a refactor that removes GitHub-specific assumptions from `content.js`.
+
+| ID | Title | Est | Deps | Notes |
+|----|-------|-----|------|-------|
+| QM-302 | `lib/hosts/github/adapter.js` implementing `HostAdapter`; route `content.js` through adapter methods | M | QM-301 ✅ | Largest single PR in Phase 0. After this, `content.js` is host-agnostic. Opus implements (judgment on adapter API surface). |
+| QM-303 | Token storage migration — `chrome.storage.local.token` → `tokens["github.com"]` | S | QM-302 | One-shot migration on first run after upgrade. Sonnet — mechanical with a one-time upgrade hook. |
+| QM-305 | Phase 0 regression sweep — full Playwright + unit suites green; manual smoke on real github.com | S | QM-300..304 | Gate before Phase 1 starts. Opus — judgment on whether to greenlight Phase 1 immediately or wait for install signal. |
 
 ### Epic 8 — v1.1 Design Refresh (NEW — handoff received 2026-04-29)
 
@@ -516,3 +524,36 @@ _Merged to main, included in v0.2.0 release._
 - `docs/runbook-external-services.md` + `docs/v1-launch-checklist.md`
 - README + ROADMAP + BACKLOG status sync
 - Stale-branch cleanup; auto-delete-branch enabled on the repo
+
+**Epic 8 — v1.1 Design Refresh (PRs #28, #30, #31, #42, #43, #44, #56, #59, #60):**
+- QM-200..213 — Foundation tokens, primitives, brand, theme switcher, row widget, popup rebuild, options side-nav, bulk bar, sponsor card, toast manager
+- QM-215 — First-run onboarding card (single-card; 3-step popover tour tracked separately as **QM-174**)
+- QM-220 — Visual baselines re-snapped on Linux CI (PR [#69](https://github.com/bradygrapentine/gh-pr-quick-merge/pull/69)) after PR #60 row-layout change
+
+**Epic 10 — v1.2 PR-page safety (PRs #46, #47, #53):**
+- QM-400..410 — Always-visible rebase + inline approve on PR detail page; viewer cache; Merge + Squash buttons; native-control DOM probe; modal/toast copy tightened
+
+**Epic 11 — v1.3 PR-list metadata + filters (PRs #48–#52):**
+- QM-500..513 — Row metadata badges (Track A), quick-filter bar (Track B), noise toggles (Track C), e2e + visual baselines (Track D)
+
+**v1.1 launch-finish (PRs #61–#69, #70–#73, 2026-05-01):**
+- **QM-167** — Dependabot config + repo vulnerability alerts + automated security fixes enabled (config existed; alerts toggled via API)
+- **QM-168** — Branch protection on `main`: required checks `test` / `manifest-lint` / `e2e`; admin enforcement on; lock_branch off
+- **QM-169** — `@sentry/browser` 8.55.2 vendored via pinned-SHA `scripts/vendor-sentry.sh`; DSN injection at build via `scripts/package.sh`; sanitizer scrubs PII; off by default
+- **QM-170** — Privacy policy on GitHub Pages; linked from options + onboarding (PR [#64](https://github.com/bradygrapentine/gh-pr-quick-merge/pull/64))
+- **QM-171** — Bulk close + label confirmation reuses the typed-confirm modal (shipped earlier in #38; deduped here)
+- **QM-172** — Real label-picker dropdown (`lib/label-picker.js`, shipped #38)
+- **QM-173** — Sentry consent toggle wired to `chrome.storage.sync.qm_sentry_consent` (PR [#67](https://github.com/bradygrapentine/gh-pr-quick-merge/pull/67))
+- **QM-175** — Per-repo merge-template assignment UI (shipped #38)
+- **QM-176** — Update-branch poll-until-zero replacing 3 s wait (shipped #38)
+- v1.1.0 version bump (PR [#61](https://github.com/bradygrapentine/gh-pr-quick-merge/pull/61), lockfile fix [#62](https://github.com/bradygrapentine/gh-pr-quick-merge/pull/62))
+- Auto-Merge toggle + Resolve Conflicts pill + 30 s watcher (PR [#60](https://github.com/bradygrapentine/gh-pr-quick-merge/pull/60))
+- HostAdapter ADR 0001 (PR [#65](https://github.com/bradygrapentine/gh-pr-quick-merge/pull/65))
+- Visual-baselines regen workflow + Linux baseline refresh (PRs [#68](https://github.com/bradygrapentine/gh-pr-quick-merge/pull/68), [#69](https://github.com/bradygrapentine/gh-pr-quick-merge/pull/69))
+- Firefox-flavored package script (`scripts/package-firefox.sh`) + `npm run package:both` (PRs [#72](https://github.com/bradygrapentine/gh-pr-quick-merge/pull/72), [#73](https://github.com/bradygrapentine/gh-pr-quick-merge/pull/73))
+- Tag `v1.1.0` + GitHub release ([release page](https://github.com/bradygrapentine/gh-pr-quick-merge/releases/tag/v1.1.0))
+- Store listings drafted (PR [#71](https://github.com/bradygrapentine/gh-pr-quick-merge/pull/71)) — actual submission **blocked-on-human** (QM-104, QM-108)
+
+**Epic 9 Phase 0 partial (PR #39, 2026-04-29):**
+- **QM-300, QM-301, QM-304** — `HostAdapter` interface, GitHub api re-export shim, selectors extraction
+- _Remaining:_ QM-302 (adapter wiring), QM-303 (token storage migration), QM-305 (regression sweep) — see §1 Ready under "Epic 9 — Phase 0 finish".
