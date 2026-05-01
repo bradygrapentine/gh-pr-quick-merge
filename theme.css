@@ -1105,11 +1105,10 @@
  * keep both rendered identically. */
 .qm-auto-rebase-toggle,
 .qm-watch-btn,
-.qm-update-btn,
-.qm-cancel-watch-btn {
+.qm-update-btn {
   /* NOTE: no `display: !important` — JS toggles display:none on
-   * cancel/update/watch when they shouldn't render, and our rule
-   * must not lock them visible. */
+   * update/watch when they shouldn't render, and our rule must not
+   * lock them visible. */
   align-items: center;
   justify-content: center;
   gap: 0;
@@ -1128,14 +1127,12 @@
 }
 .qm-auto-rebase-toggle,
 .qm-watch-btn,
-.qm-update-btn,
-.qm-cancel-watch-btn {
+.qm-update-btn {
   display: inline-flex;
 }
 .qm-auto-rebase-toggle:hover,
 .qm-watch-btn:hover,
-.qm-update-btn:hover,
-.qm-cancel-watch-btn:hover {
+.qm-update-btn:hover {
   background: var(--qm-surface-2) !important;
 }
 .qm-auto-rebase-checkbox {
@@ -1325,11 +1322,12 @@
     0 1px 0 rgba(15, 23, 42, 0.08);
 }
 
-/* Watch / Update / auto-rebase pills: GitHub button shape, all share
- * the same gradient + border so the action cluster reads as one unit. */
+/* Watch / Update / auto-rebase / resolve-conflicts pills: GitHub
+ * button shape, all share the same gradient + border so the action
+ * cluster reads as one unit. */
+.qm-resolve-btn,
 .qm-update-btn,
-.qm-watch-btn,
-.qm-cancel-watch-btn {
+.qm-watch-btn {
   border-radius: 6px;
   padding: 4px 10px;
   border: 1px solid var(--qm-border-strong);
@@ -1338,6 +1336,39 @@
   font-size: 12px;
   font-weight: 500;
 }
+.qm-resolve-btn {
+  color: var(--qm-danger);
+  border-color: color-mix(in oklch, var(--qm-danger) 40%, var(--qm-border-strong));
+  text-decoration: none;
+}
+.qm-resolve-btn:hover {
+  background: color-mix(in oklch, var(--qm-danger) 12%, var(--qm-surface));
+  border-color: var(--qm-danger);
+}
+
+/* Auto-Merge toggle — checkbox-style. Idle = neutral pill; "watching"
+ * is the pressed/checked state with a warm tint + inset shadow so the
+ * pressed-ness reads at a glance. Click toggles. */
+.qm-watch-btn[data-kind="watching"] {
+  background: color-mix(in oklch, var(--qm-warn) 20%, var(--qm-surface));
+  border-color: color-mix(in oklch, var(--qm-warn) 50%, var(--qm-border-strong));
+  color: color-mix(in oklch, var(--qm-warn) 65%, var(--qm-fg));
+  box-shadow: inset 0 1px 2px color-mix(in oklch, var(--qm-warn) 30%, transparent);
+}
+.qm-watch-btn[data-kind="watching"]:hover {
+  background: color-mix(in oklch, var(--qm-warn) 30%, var(--qm-surface));
+}
+.qm-watch-btn[data-kind="merged"] {
+  background: color-mix(in oklch, var(--qm-success) 18%, var(--qm-surface));
+  border-color: color-mix(in oklch, var(--qm-success) 45%, var(--qm-border-strong));
+  color: color-mix(in oklch, var(--qm-success) 65%, var(--qm-fg));
+}
+.qm-watch-btn[data-kind="failed"] {
+  background: color-mix(in oklch, var(--qm-danger) 14%, var(--qm-surface));
+  border-color: color-mix(in oklch, var(--qm-danger) 45%, var(--qm-border-strong));
+  color: var(--qm-danger);
+}
+
 .qm-auto-rebase-label-legacy {
   text-transform: none;
   font-family: var(--qm-font-sans);
@@ -1386,10 +1417,11 @@
     transform: none !important;
     margin-top: 0;
     margin-bottom: 12px;
-    /* Diagnostic showed cluster at x=73, title/meta at x=57. The
-     * 16px difference is the qm-container's own internal offset.
-     * Pull it left to land at the same column. */
-    margin-left: -16px;
+    /* Stacked layout: align with the title text column — past the
+     * row's left padding, the PR icon, and the XS size badge — so the
+     * buttons read as a sub-row under the title rather than as a
+     * separate column flush against the row edge. */
+    margin-left: 48px;
     max-width: 100%;
     justify-content: flex-start;
   }
