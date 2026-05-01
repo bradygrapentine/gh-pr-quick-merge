@@ -307,6 +307,18 @@ function _maybeAutoRebase(pr, prState) {
   const key = prKey(pr);
   if (state.autoRebaseInFlight.has(key)) return;
   state.autoRebaseInFlight.add(key);
+  // Visible in-flight indicator: swap the toggle's label to
+  // "Rebasing…" while the API call is pending so the user sees the
+  // background action happen.
+  const toggleEl = document.querySelector(
+    `.qm-container[data-qm-key="${key}"] .qm-auto-rebase-toggle, [data-qm-key="${key}"] .qm-auto-rebase-toggle`
+  );
+  const labelEl = toggleEl && toggleEl.querySelector(".qm-auto-rebase-label");
+  const originalLabel = labelEl ? labelEl.textContent : "";
+  if (labelEl) {
+    labelEl.textContent = "Rebasing…";
+    toggleEl.classList.add("qm-auto-rebase-running");
+  }
   (async () => {
     try {
       const sync = await chrome.storage.sync.get("updateBranchStrategy");
@@ -321,6 +333,10 @@ function _maybeAutoRebase(pr, prState) {
     } catch (e) {
       toast(`Auto-rebase failed for ${key}: ${e && e.message ? e.message : "unknown"}`, "err");
     } finally {
+      if (labelEl) {
+        labelEl.textContent = originalLabel || "Auto-Rebase";
+        toggleEl.classList.remove("qm-auto-rebase-running");
+      }
       // Cool-down: clear the in-flight flag after 5s so a sustained
       // 403 / 422 doesn't busy-loop.
       setTimeout(() => state.autoRebaseInFlight.delete(key), 5000);

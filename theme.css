@@ -1344,3 +1344,38 @@
   font-size: 11px;
   font-weight: 500;
 }
+
+/* === UI pass 12 — visible in-flight + responsive ====================== */
+
+/* Auto-Rebase active rebase: subtle pulse + warmer tint so the user
+ * sees the action firing rather than guessing. */
+.qm-auto-rebase-toggle.qm-auto-rebase-running {
+  background: linear-gradient(180deg,
+    color-mix(in oklch, var(--qm-color-rebase) 30%, var(--qm-surface)) 0%,
+    color-mix(in oklch, var(--qm-color-rebase) 36%, var(--qm-surface)) 100%) !important;
+  border-color: var(--qm-color-rebase) !important;
+  color: color-mix(in oklch, var(--qm-color-rebase) 50%, #000) !important;
+  animation: qm-auto-rebase-pulse 1.4s ease-in-out infinite;
+}
+@keyframes qm-auto-rebase-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--qm-color-rebase) 40%, transparent); }
+  50%      { box-shadow: 0 0 0 4px color-mix(in oklch, var(--qm-color-rebase) 0%, transparent); }
+}
+
+/* Action cluster wraps when the row is narrow rather than overflowing
+ * past the row's right edge. Keeps the per-row buttons usable on
+ * narrower viewports. */
+.qm-container.qm-container-pinned {
+  flex-wrap: wrap;
+  max-width: min(60vw, 520px);
+  justify-content: flex-end;
+}
+@media (max-width: 800px) {
+  .qm-container.qm-container-pinned {
+    /* On narrow widths fall back to inline-after-title so the cluster
+     * isn't cramped against GitHub's row icons. */
+    position: static !important;
+    transform: none !important;
+    margin-top: 6px;
+  }
+}
