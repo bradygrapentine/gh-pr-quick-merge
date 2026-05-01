@@ -1386,8 +1386,8 @@
     transform: none !important;
     margin-top: 0;
     margin-bottom: 12px;
-    margin-left: 16px;
-    max-width: calc(100% - 16px);
+    margin-left: 56px;
+    max-width: calc(100% - 56px);
     justify-content: flex-start;
   }
 }
