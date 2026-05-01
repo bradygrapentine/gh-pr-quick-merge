@@ -667,3 +667,15 @@ body.qm-popup-syncing .qm-popup-header::after {
   padding: 9px 14px;
   box-shadow: 0 6px 16px -8px var(--qm-accent, #1f6feb);
 }
+.qm-onboarding-privacy {
+  display: block;
+  margin-top: 10px;
+  text-align: center;
+  font-size: 10.5px;
+  color: var(--qm-fg-muted);
+  text-decoration: none;
+}
+.qm-onboarding-privacy:hover {
+  color: var(--qm-fg);
+  text-decoration: underline;
+}
