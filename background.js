@@ -42,7 +42,9 @@ try {
 try {
   // QM-301 — load the canonical GitHub api impl from its new home.
   // lib/api.js is still on disk as a no-op shim through QM-303.
-  importScripts("lib/hosts/github/api.js", "lib/merge-queue.js");
+  // QM-303 — host-tokens.js exposes the per-host storage shape that the
+  // GitLab adapter (Phase 1) will read from.
+  importScripts("lib/hosts/github/api.js", "lib/merge-queue.js", "lib/host-tokens.js");
 } catch (e) {
   console.warn("[QM] merge-queue lib bootstrap skipped:", (e && e.message) || e);
 }
@@ -51,14 +53,29 @@ const TOKEN_STALE_MS = 30 * 86400 * 1000; // 30 days
 const TOKEN_CHECK_ALARM = "qm-token-check";
 const MERGE_QUEUE_ALARM = "qm-merge-queue-poller";
 
+// QM-303 — one-shot per-host token storage migration. Idempotent;
+// runs on install, update, and SW startup so we never miss the case
+// where a user upgrades while the SW is asleep.
+async function _runHostTokensMigration() {
+  try {
+    if (self.QM_HOST_TOKENS && typeof self.QM_HOST_TOKENS.migrate === "function") {
+      await self.QM_HOST_TOKENS.migrate(chrome.storage.local);
+    }
+  } catch (e) {
+    console.warn("[QM] host-tokens migration failed:", (e && e.message) || e);
+  }
+}
+
 chrome.runtime.onInstalled.addListener(() => {
   chrome.alarms.create(TOKEN_CHECK_ALARM, { periodInMinutes: 60 * 24 });
   chrome.alarms.create(MERGE_QUEUE_ALARM, { periodInMinutes: 0.5 });
+  _runHostTokensMigration();
 });
 
 if (chrome.runtime.onStartup && chrome.runtime.onStartup.addListener) {
   chrome.runtime.onStartup.addListener(() => {
     chrome.alarms.create(MERGE_QUEUE_ALARM, { periodInMinutes: 0.5 });
+    _runHostTokensMigration();
   });
 }
 
