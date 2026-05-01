@@ -3,10 +3,16 @@
  */
 
 const API = "https://api.github.com";
-// QM-304 — selectors live in lib/hosts/github/selectors.js so the GitLab
-// adapter (Phase 1) has a parallel file. Fall back to the inline values if
-// the lib didn't load (defensive — older zips may be in flight).
-const _GH_SEL = (typeof window !== "undefined" && window.QM_GITHUB_SELECTORS) || {};
+// QM-302 — host detection now goes through lib/hosts/index.js. The
+// resolved adapter exposes selectors + api in one bundle; legacy
+// QM_GITHUB_SELECTORS / QM_API paths remain as fallback so an older
+// zip without the adapter file still works.
+const _QM_ADAPTER = (typeof window !== "undefined" && window.QM_HOSTS && typeof window.QM_HOSTS.getAdapter === "function")
+  ? window.QM_HOSTS.getAdapter(window.location)
+  : null;
+const _GH_SEL = _QM_ADAPTER
+  || (typeof window !== "undefined" && window.QM_GITHUB_SELECTORS)
+  || {};
 const ROW_SELECTOR = _GH_SEL.ROW_SELECTOR || ".js-issue-row, [data-testid='issue-pr-title-link']";
 const INJECTED_ATTR = _GH_SEL.INJECTED_ATTR || "data-qm-injected";
 const SPONSORS_URL = "https://github.com/sponsors/bradygrapentine";
@@ -22,7 +28,7 @@ const qmMergeMethodFromKind = _QM_HELPERS.mergeMethodFromKind;
 const TEMPLATES = window.QM_TEMPLATES || {};
 const SHORTCUTS = window.QM_SHORTCUTS || {};
 const STALE = window.QM_STALE_PR || {};
-const API_HELPERS = window.QM_API || {};
+const API_HELPERS = (_QM_ADAPTER && _QM_ADAPTER.api) || window.QM_API || {};
 const BULK_OPS = window.QM_BULK_OPS || {};
 const LIST_MODE = window.QM_LIST_MODE || {};
 

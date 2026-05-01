@@ -6,7 +6,7 @@ import api from "../lib/hosts/index.js";
 import githubApi from "../lib/hosts/github/api.js";
 import githubSelectors from "../lib/hosts/github/selectors.js";
 
-const { detect, assertHostAdapterShape, REGISTRY, INTERFACE_VERSION } = api;
+const { detect, assertHostAdapterShape, REGISTRY, INTERFACE_VERSION, register, getAdapter, _resetAdaptersForTests } = api;
 
 describe("hosts/index — detect", () => {
   it("identifies github.com as 'github'", () => {
@@ -203,5 +203,58 @@ describe("hosts/github/selectors — hasNativeUpdateBranchControl", () => {
   it("returns false on a non-element argument", () => {
     expect(githubSelectors.hasNativeUpdateBranchControl(null)).toBe(false);
     expect(githubSelectors.hasNativeUpdateBranchControl({})).toBe(false);
+  });
+});
+
+describe("hosts/index — register + getAdapter (QM-302)", () => {
+  function validAdapter(overrides = {}) {
+    return {
+      hostId: "github",
+      hostMatches: ["github.com"],
+      api: { apiGet: () => {}, apiPost: () => {}, apiPut: () => {} },
+      findPrAnchor: () => null,
+      parsePrLink: () => null,
+      ROW_SELECTOR: ".js-issue-row",
+      INJECTED_ATTR: "data-qm-injected",
+      ...overrides,
+    };
+  }
+
+  it("register returns the adapter when shape is valid", () => {
+    _resetAdaptersForTests();
+    const a = validAdapter();
+    expect(register(a)).toBe(a);
+  });
+
+  it("register rejects an unknown hostId", () => {
+    _resetAdaptersForTests();
+    expect(() => register(validAdapter({ hostId: "bitbucket", hostMatches: ["bitbucket.org"] })))
+      .toThrow(/unknown hostId/);
+  });
+
+  it("register propagates assertHostAdapterShape errors", () => {
+    _resetAdaptersForTests();
+    expect(() => register({ hostId: "github" })).toThrow(/missing key/);
+  });
+
+  it("getAdapter returns the registered adapter for a matching URL", () => {
+    _resetAdaptersForTests();
+    const a = validAdapter();
+    register(a);
+    expect(getAdapter({ hostname: "github.com" })).toBe(a);
+    expect(getAdapter("https://github.com/foo/bar/pulls")).toBe(a);
+  });
+
+  it("getAdapter returns null when no adapter is registered for the host", () => {
+    _resetAdaptersForTests();
+    register(validAdapter());
+    expect(getAdapter({ hostname: "gitlab.com" })).toBeNull();
+  });
+
+  it("getAdapter returns null when input doesn't match any host", () => {
+    _resetAdaptersForTests();
+    register(validAdapter());
+    expect(getAdapter({ hostname: "example.com" })).toBeNull();
+    expect(getAdapter("not-a-url")).toBeNull();
   });
 });

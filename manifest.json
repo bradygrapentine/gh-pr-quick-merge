@@ -43,6 +43,7 @@
         "lib/hosts/github/api.js",
         "lib/hosts/github/selectors.js",
         "lib/hosts/github/pr-state.js",
+        "lib/hosts/github/adapter.js",
         "lib/api.js",
         "lib/update-branch.js",
         "lib/auto-rebase.js",
