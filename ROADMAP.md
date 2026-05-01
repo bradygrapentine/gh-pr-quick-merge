@@ -101,7 +101,7 @@ PAT auth, per-row Squash/Merge/Rebase buttons, mergeability check, MutationObser
 **Features:**
 
 - **F2.1 Per-row "Update branch"** — one-click rebase or merge of base into a PR's head branch (mirrors the green button GitHub buries inside each PR page).
-- **F2.2 Merge-when-green** — schedule a deferred merge that fires once required checks pass; queue state badge per row; cancel-watch.
+- **F2.2 Merge-when-green** — schedule a deferred merge that fires once required checks pass; per-row Auto-Merge toggle (clicking again stops the watch).
 - **F2.3 Bulk close + bulk label** — extend the bulk-action bar with non-merge mass operations.
 - **F2.4 Stale-PR row highlighting** — beyond F1.4: idle-author detection, configurable thresholds, tooltip with last-activity author.
 - **F2.5 Cheaper list-endpoint mode** — opt-in: use `/pulls` list summary instead of one `/pulls/:n` per row, for very long lists.

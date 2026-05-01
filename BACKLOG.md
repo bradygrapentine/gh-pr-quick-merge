@@ -22,19 +22,19 @@ The backlog is organized by **Epic** (matching `ROADMAP.md`). Each Epic decompos
 
 ## §0 Status board
 
-_Last sync: 2026-04-29 (v1.0 polish)_
+_Last sync: 2026-05-01 (post-v1.1.0 version bump; Epic 8/10/11 shipped)_
 
-- Ready: 12 (v1.0 launch follow-ups + 8 v1.1 candidates — see §1)
-- Epic 8 (v1.1 Design Refresh): 21 stories (QM-200..220) — handoff received 2026-04-29; reference at `~/projects/handoff_pr_quick_merge_design/`
-- Epic 9 (v2.0 GitLab port): 31 stories (QM-300..330) — scoped 2026-04-29; plan at `plans/v2-gitlab-port.md`. Requires v1.0 launched + v1.1 design merged before Phase 0 begins.
-- Epic 10 (v1.2 PR-page safety): 11 stories (QM-400..410) — scoped 2026-04-30; plan at `plans/v1.2-epic-10-pr-page-safety.md`. Shipped in PR #46 (2026-04-30); doc-alignment tightening in PR #47.
-- Epic 11 (v1.3 PR-list metadata + filters): 14 stories (QM-500..513) — scoped 2026-04-30; plan at `plans/v1.3-epic-11-pr-list-metadata.md`. Splits into 4 PRs along clean file boundaries (Track A row badges, B filter bar, C noise toggles, D tests + visual).
-- Blocked-on-human: 2 (QM-104 CWS submit; QM-108 AMO submit)
+- Ready: 4 (QM-167 Dependabot, QM-168 branch protection, QM-169 Sentry vendoring, QM-170 privacy URL — see §1; full plan at [`docs/plans/v1.1-blockers-plan.md`](./docs/plans/v1.1-blockers-plan.md))
+- Epic 8 (v1.1 Design Refresh): 21 stories (QM-200..220) — **shipped to `main`** through PRs #28..#56 + ui-pass iterations #59 / #60.
+- Epic 9 (v2.0 GitLab port): 31 stories (QM-300..330) — scoped 2026-04-29; plan at `plans/v2-gitlab-port.md`. Phase 0 ready to start now that v1.1 design has merged.
+- Epic 10 (v1.2 PR-page safety): 11 stories (QM-400..410) — **shipped** in PR #46 (2026-04-30); doc-alignment tightening in PR #47.
+- Epic 11 (v1.3 PR-list metadata + filters): 14 stories (QM-500..513) — **shipped** across 4 PRs along clean file boundaries.
+- Blocked-on-human: 2 (QM-104 CWS submit; QM-108 AMO submit — Phase 5 of `v1.1-blockers-plan`)
 - Deferred: 22 (Epic 3 license server + QM-165 BMaC)
 - In progress: 0
 - In review: 0
 - Shipped (v0.2.0): 5
-- Shipped (v0.3 + v0.4 + v1.0 backlog): 60+ (PRs #16, #18–#25)
+- Shipped (v0.3 + v0.4 + v1.0 + v1.1 backlog): 90+ (through PR #62 — version 1.1.0 + lockfile fix)
 - Done (pre-Epic): 14
 
 **v1.0 effort remaining:** ~2 eng-days (Sentry SDK vendoring + repo settings + store submissions). All code-level v1.0 work is on `main`.
