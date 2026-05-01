@@ -13,6 +13,7 @@
     "vendor:sentry": "bash scripts/vendor-sentry.sh",
     "package": "bash scripts/package.sh",
     "package:firefox": "bash scripts/package-firefox.sh",
+    "package:both": "bash scripts/package-both.sh",
     "release": "bash scripts/release.sh"
   },
   "devDependencies": {
