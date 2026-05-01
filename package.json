@@ -12,6 +12,7 @@
     "test:perf": "playwright test --project=perf",
     "vendor:sentry": "bash scripts/vendor-sentry.sh",
     "package": "bash scripts/package.sh",
+    "package:firefox": "bash scripts/package-firefox.sh",
     "release": "bash scripts/release.sh"
   },
   "devDependencies": {
