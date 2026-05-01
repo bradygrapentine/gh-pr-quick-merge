@@ -110,20 +110,27 @@ describe("default-method dot + active method label", () => {
     expect(w.root.querySelector(".qm-row-widget-default-dot")).toBeTruthy();
   });
 
-  it("falls back to 'squash' when getDefaultMethod returns invalid", () => {
+  it("falls back to 'merge' when getDefaultMethod returns invalid", () => {
     const w = makeRowWidget({ pr: PR, prState: { mergeable_state: "clean" }, getDefaultMethod: () => "bogus", onMerge: vi.fn() });
-    expect(w.getActiveMethod()).toBe("squash");
+    expect(w.getActiveMethod()).toBe("merge");
   });
 });
 
 describe("caret menu (QM-207)", () => {
+  // UI pass 6: menu now mounts to document.body (not w.root) so the
+  // widget's overflow:hidden doesn't clip it.
+  const findMenu = () => document.querySelector(".qm-row-widget-menu");
+
   it("clicking caret opens a 3-item menu", () => {
     const w = makeRowWidget({ pr: PR, prState: { mergeable_state: "clean" }, onMerge: vi.fn() });
     document.body.appendChild(w.root);
     w.root.querySelector(".qm-row-widget-caret").click();
-    const items = w.root.querySelectorAll(".qm-row-widget-menuitem");
+    const menu = findMenu();
+    expect(menu).toBeTruthy();
+    const items = menu.querySelectorAll(".qm-row-widget-menuitem");
     expect(items.length).toBe(3);
     expect(Array.from(items).map((el) => el.dataset.qmMethod)).toEqual(METHOD_ORDER);
+    menu.remove();
   });
 
   it("clicking a menu item switches active method + closes the menu", () => {
@@ -137,19 +144,20 @@ describe("caret menu (QM-207)", () => {
     });
     document.body.appendChild(w.root);
     w.root.querySelector(".qm-row-widget-caret").click();
-    const rebaseItem = w.root.querySelector('[data-qm-method="rebase"]');
+    const rebaseItem = findMenu().querySelector('[data-qm-method="rebase"]');
     rebaseItem.click();
     expect(w.getActiveMethod()).toBe("rebase");
     expect(onMethodChange).toHaveBeenCalledWith("rebase");
-    expect(w.root.querySelector(".qm-row-widget-menu")).toBeNull();
+    expect(findMenu()).toBeNull();
   });
 
   it("the menu marks the active method", () => {
     const w = makeRowWidget({ pr: PR, prState: { mergeable_state: "clean" }, getDefaultMethod: () => "merge", onMerge: vi.fn() });
     document.body.appendChild(w.root);
     w.root.querySelector(".qm-row-widget-caret").click();
-    const active = w.root.querySelector('.qm-row-widget-menuitem[data-active="true"]');
+    const active = findMenu().querySelector('.qm-row-widget-menuitem[data-active="true"]');
     expect(active.dataset.qmMethod).toBe("merge");
+    findMenu().remove();
   });
 
   it("clicking caret again closes an open menu", () => {
@@ -157,9 +165,9 @@ describe("caret menu (QM-207)", () => {
     document.body.appendChild(w.root);
     const caret = w.root.querySelector(".qm-row-widget-caret");
     caret.click();
-    expect(w.root.querySelector(".qm-row-widget-menu")).toBeTruthy();
+    expect(findMenu()).toBeTruthy();
     caret.click();
-    expect(w.root.querySelector(".qm-row-widget-menu")).toBeNull();
+    expect(findMenu()).toBeNull();
   });
 });
 
@@ -197,7 +205,7 @@ describe("optimistic UI on main-button click (QM-210)", () => {
       // We only assert end-state.
     } catch (e) { caught = e; }
     expect(main.disabled).toBe(false);
-    expect(main.textContent).toContain("Squash");
+    expect(main.textContent).toContain("Squash"); // METHOD_LABELS.squash = "Squash & merge"
     expect(main.classList.contains("qm-row-widget-success")).toBe(false);
   });
 });
@@ -226,8 +234,8 @@ describe("hover shortcut hint (QM-209)", () => {
 });
 
 describe("METHOD_LABELS / METHOD_ORDER", () => {
-  it("METHOD_ORDER is squash → merge → rebase", () => {
-    expect(METHOD_ORDER).toEqual(["squash", "merge", "rebase"]);
+  it("METHOD_ORDER puts merge first (UI pass 6 default)", () => {
+    expect(METHOD_ORDER).toEqual(["merge", "squash", "rebase"]);
   });
   it("METHOD_LABELS has every method", () => {
     for (const m of METHOD_ORDER) expect(METHOD_LABELS[m]).toBeTruthy();

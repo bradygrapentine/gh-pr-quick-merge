@@ -38,6 +38,11 @@ jobs:
         run: npm run test:e2e
 
       - name: Run visual regression specs
+        # QM-220 — Linux baselines not yet committed. Visual specs fail
+        # against missing snapshots; not a regression. Job continues so
+        # the rest of the e2e gate stays useful. Remove once QM-220
+        # generates + commits the Linux baselines.
+        continue-on-error: true
         env:
           E2E_GH_TOKEN: ${{ secrets.E2E_GH_TOKEN }}
         run: npm run test:e2e:visual

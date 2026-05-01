@@ -303,6 +303,11 @@
   color: #57606a;
   margin-left: 4px;
 }
+/* Hide entirely when empty — otherwise a 1px×N grey pill renders
+ * between Auto-Rebase and Auto-Merge that reads as a dash. */
+.qm-queue-badge:empty {
+  display: none !important;
+}
 .qm-queue-badge[data-kind="watching"] { background: #fff8c5; color: #4a3c03; }
 .qm-queue-badge[data-kind="merged"]   { background: #dafbe1; color: #1a7f37; }
 .qm-queue-badge[data-kind="failed"]   { background: #ffebe9; color: #cf222e; }

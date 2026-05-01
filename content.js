@@ -10,7 +10,15 @@ const _GH_SEL = (typeof window !== "undefined" && window.QM_GITHUB_SELECTORS) ||
 const ROW_SELECTOR = _GH_SEL.ROW_SELECTOR || ".js-issue-row, [data-testid='issue-pr-title-link']";
 const INJECTED_ATTR = _GH_SEL.INJECTED_ATTR || "data-qm-injected";
 const SPONSORS_URL = "https://github.com/sponsors/bradygrapentine";
-const { parsePrLink: parsePrHref, classifyMergeState, mergeMethodFromKind } = window.QM_HELPERS;
+// pr-helpers.js exposes parsePrLink / classifyMergeState /
+// mergeMethodFromKind as top-level `function`s. Each of those becomes a
+// lexical binding in the content-script isolated world. Destructuring
+// any of those names directly into a `const` here would collide.
+// Rebind into qm-prefixed locals.
+const _QM_HELPERS = window.QM_HELPERS;
+const parsePrHref = _QM_HELPERS.parsePrLink;
+const qmClassifyMergeState = _QM_HELPERS.classifyMergeState;
+const qmMergeMethodFromKind = _QM_HELPERS.mergeMethodFromKind;
 const TEMPLATES = window.QM_TEMPLATES || {};
 const SHORTCUTS = window.QM_SHORTCUTS || {};
 const STALE = window.QM_STALE_PR || {};
@@ -181,7 +189,7 @@ function ghHeaders(token) {
 // QM-304 — parsePrLink + findPrAnchor delegate to lib/hosts/github/selectors.js
 // when present; inline implementations remain as the fallback so a missing
 // selectors lib doesn't blank the extension.
-function parsePrLink(anchor) {
+function qmParsePrLink(anchor) {
   if (!anchor) return null;
   if (_GH_SEL.parsePrLink) return _GH_SEL.parsePrLink(anchor);
   return parsePrHref(anchor.getAttribute("href") || anchor.href);
@@ -225,7 +233,7 @@ function setRowState(container, prState) {
     return;
   }
   const { mergeable_state } = prState;
-  const klass = classifyMergeState(prState);
+  const klass = qmClassifyMergeState(prState);
   const ready = klass === "ready";
   const blocked = klass === "blocked";
   // In list mode the GitHub list endpoint doesn't return mergeable_state,
@@ -299,6 +307,18 @@ function _maybeAutoRebase(pr, prState) {
   const key = prKey(pr);
   if (state.autoRebaseInFlight.has(key)) return;
   state.autoRebaseInFlight.add(key);
+  // Visible in-flight indicator: swap the toggle's label to
+  // "Rebasing…" while the API call is pending so the user sees the
+  // background action happen.
+  const toggleEl = document.querySelector(
+    `.qm-container[data-qm-key="${key}"] .qm-auto-rebase-toggle, [data-qm-key="${key}"] .qm-auto-rebase-toggle`
+  );
+  const labelEl = toggleEl && toggleEl.querySelector(".qm-auto-rebase-label");
+  const originalLabel = labelEl ? labelEl.textContent : "";
+  if (labelEl) {
+    labelEl.textContent = "Rebasing…";
+    toggleEl.classList.add("qm-auto-rebase-running");
+  }
   (async () => {
     try {
       const sync = await chrome.storage.sync.get("updateBranchStrategy");
@@ -313,6 +333,10 @@ function _maybeAutoRebase(pr, prState) {
     } catch (e) {
       toast(`Auto-rebase failed for ${key}: ${e && e.message ? e.message : "unknown"}`, "err");
     } finally {
+      if (labelEl) {
+        labelEl.textContent = originalLabel || "Auto-Rebase";
+        toggleEl.classList.remove("qm-auto-rebase-running");
+      }
       // Cool-down: clear the in-flight flag after 5s so a sustained
       // 403 / 422 doesn't busy-loop.
       setTimeout(() => state.autoRebaseInFlight.delete(key), 5000);
@@ -402,7 +426,7 @@ function buildMergeBody(method, pr, prData) {
 }
 
 async function doMerge({ pr, kind, token, headSha }) {
-  const method = mergeMethodFromKind(kind);
+  const method = qmMergeMethodFromKind(kind);
   const cached = state.cache.get(prKey(pr)) || { head_sha: headSha };
   const res = await fetch(`${API}/repos/${pr.owner}/${pr.repo}/pulls/${pr.num}/merge`, {
     method: "PUT",
@@ -443,7 +467,7 @@ function toast(message, kind = "info") {
 async function injectRow(row) {
   if (row.hasAttribute(INJECTED_ATTR)) return;
   const anchor = findPrAnchor(row);
-  const pr = parsePrLink(anchor);
+  const pr = qmParsePrLink(anchor);
   if (!pr) return;
   row.setAttribute(INJECTED_ATTR, "1");
 
@@ -451,25 +475,18 @@ async function injectRow(row) {
   container.className = "qm-container";
   container.dataset.qmKey = prKey(pr);
 
-  const checkbox = document.createElement("input");
-  checkbox.type = "checkbox";
-  checkbox.className = "qm-select";
-  checkbox.title = "Select for bulk merge (Pro)";
-  checkbox.disabled = true;
-  checkbox.addEventListener("click", (e) => e.stopPropagation());
-  checkbox.addEventListener("change", () => {
-    const key = container.dataset.qmKey;
-    if (checkbox.checked) {
-      state.selected.set(key, { pr, row, container });
-    } else {
-      state.selected.delete(key);
-    }
-    renderBulkBar();
-  });
+  // Per-row bulk-select checkbox removed (UI pass 6). Bulk operations
+  // remain available; we'll surface a different selection affordance
+  // if/when the user wants bulk back. Code below preserves
+  // state.selected hooks so the bulk bar code path doesn't blow up,
+  // but no DOM element is mounted.
+  const checkbox = { checked: false, disabled: true, addEventListener: () => {} };
 
+  // Status indicator (✓/×) removed in UI pass 14 — state lives in
+  // the merge button's color now. Keep the element constructed so
+  // setRowState() callers don't NPE; just don't mount it.
   const status = makeStatus();
-  container.appendChild(checkbox);
-  container.appendChild(status);
+  status.style.display = "none";
 
   // QM-206..210 — single compact pill widget replaces the 3-button stack.
   // The widget owns its own status pill + button enabling + optimistic
@@ -482,7 +499,7 @@ async function injectRow(row) {
     rowWidget = widgetApi.makeRowWidget({
       pr,
       prState: null,
-      getDefaultMethod: () => state.repoDefaults[`${pr.owner}/${pr.repo}`] || "squash",
+      getDefaultMethod: () => state.repoDefaults[`${pr.owner}/${pr.repo}`] || state.repoDefaults["*"] || "merge",
       getShortcutHint: () => state.shortcutMode === "active" ? "▶ S to squash" : null,
       onMethodChange: () => { /* no-op; cached for the next click */ },
       onMerge: async (method) => {
@@ -563,12 +580,16 @@ async function injectRow(row) {
 
   applyRepoDefaultClass(container, pr);
 
-  // Place container in a sensible spot inside the row
-  const target =
-    row.querySelector(".opened-by") ||
-    row.querySelector(".col-9") ||
-    row;
-  target.appendChild(container);
+  // Mount as the row's last child + pin top-right via CSS. Avoids
+  // jamming buttons next to the title (awkward) and avoids the
+  // bottom-of-column position (harder to scan). Reads as an action
+  // group on the right side of each row, vertically centered with
+  // the title.
+  container.classList.add("qm-container-pinned");
+  if (getComputedStyle(row).position === "static") {
+    row.style.position = "relative";
+  }
+  row.appendChild(container);
 
   const token = getToken();
   if (!token) {
@@ -752,8 +773,8 @@ function injectRowActions(ctx) {
       if (!entry) {
         badge.textContent = "";
         badge.dataset.kind = "";
-        watchBtn.textContent = "Watch";
-        watchBtn.title = "Auto-merge once all checks pass";
+        watchBtn.textContent = "Auto-Merge";
+        watchBtn.title = "Once CI is green, automatically merge this PR";
         watchBtn.style.display = "";
         cancelBtn.style.display = "none";
         return;
@@ -1084,7 +1105,14 @@ function confirmBulkActionTyped({ items, action, confirmWord }) {
     }
 
     const prompt = document.createElement("p");
-    prompt.innerHTML = `Type <code>${expected}</code> to confirm:`;
+    // Build via DOM instead of innerHTML — `expected` is user-derived
+    // and AMO's web-ext linter rightly flags innerHTML assignment
+    // even if `expected` looks safe today.
+    prompt.appendChild(document.createTextNode("Type "));
+    const promptCode = document.createElement("code");
+    promptCode.textContent = expected;
+    prompt.appendChild(promptCode);
+    prompt.appendChild(document.createTextNode(" to confirm:"));
 
     const input = document.createElement("input");
     input.type = "text";
@@ -1579,6 +1607,7 @@ async function refreshPrPageActionBar() {
         viewer,
         writePermDenied: prPageState.writePermDenied,
         nativeControlPresent,
+        repoDefault: state.repoDefaults[`${parts.owner}/${parts.repo}`] || state.repoDefaults["*"] || "",
         handlers: {
           onRebaseClick: () => onPrPageRebaseClick(parts, prState),
           onApproveClick: () => onPrPageApproveClick(parts, prState),

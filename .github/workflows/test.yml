@@ -28,4 +28,11 @@ jobs:
       - name: Validate manifest.json
         run: node -e "JSON.parse(require('fs').readFileSync('manifest.json'))"
       - name: web-ext lint (Firefox AMO check)
+        # Chrome MV3 requires background.service_worker; Firefox MV3
+        # requires background.scripts — mutually exclusive in a single
+        # manifest. v1.1 ships Chrome-first; AMO submission (Phase 5
+        # of v1.1-blockers-plan) will introduce a Firefox-specific
+        # manifest variant. Until then, AMO validation is informational
+        # only — don't block Chrome-side merges on it.
+        continue-on-error: true
         run: npx --yes web-ext@8 lint --self-hosted --warnings-as-errors=false

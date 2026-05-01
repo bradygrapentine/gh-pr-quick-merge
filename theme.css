@@ -1099,38 +1099,61 @@
  * is the warning hue — same yellow as the rebase action — so users see
  * at a glance that this row will be auto-mutated by the extension.
  */
-.qm-auto-rebase-toggle {
-  display: inline-flex;
+/* Auto-rebase + Auto-merge: identical button shape; only label differs.
+ * Auto-rebase wraps a hidden checkbox so click toggles persistent
+ * state; Auto-merge is a plain button. The shared selectors below
+ * keep both rendered identically. */
+.qm-auto-rebase-toggle,
+.qm-watch-btn,
+.qm-update-btn,
+.qm-cancel-watch-btn {
+  /* NOTE: no `display: !important` — JS toggles display:none on
+   * cancel/update/watch when they shouldn't render, and our rule
+   * must not lock them visible. */
   align-items: center;
-  gap: 4px;
-  margin-left: 8px;
-  padding: 1px 6px 1px 4px;
-  border-radius: 999px;
-  font-family: var(--qm-font-mono);
-  font-size: 10px;
-  letter-spacing: 0.02em;
-  color: var(--qm-fg-muted);
-  background: var(--qm-surface-2);
-  border: 1px solid var(--qm-border);
+  justify-content: center;
+  gap: 0;
+  padding: 4px 10px !important;
+  border-radius: 6px !important;
+  font-family: var(--qm-font-sans) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+  color: var(--qm-fg) !important;
+  background: linear-gradient(180deg, var(--qm-surface) 0%, var(--qm-surface-2) 100%) !important;
+  border: 1px solid var(--qm-border-strong) !important;
   cursor: pointer;
   user-select: none;
+  margin: 0 !important;
 }
-.qm-auto-rebase-toggle:hover {
-  color: var(--qm-fg);
+.qm-auto-rebase-toggle,
+.qm-watch-btn,
+.qm-update-btn,
+.qm-cancel-watch-btn {
+  display: inline-flex;
+}
+.qm-auto-rebase-toggle:hover,
+.qm-watch-btn:hover,
+.qm-update-btn:hover,
+.qm-cancel-watch-btn:hover {
+  background: var(--qm-surface-2) !important;
 }
 .qm-auto-rebase-checkbox {
-  margin: 0;
-  width: 11px;
-  height: 11px;
-  accent-color: var(--qm-color-rebase);
+  position: absolute;
+  width: 1px; height: 1px;
+  opacity: 0; pointer-events: none;
 }
 .qm-auto-rebase-label {
-  text-transform: lowercase;
+  text-transform: none;
+  font-family: inherit;
+  font-size: inherit;
 }
 .qm-auto-rebase-toggle:has(.qm-auto-rebase-checkbox:checked) {
-  background: color-mix(in oklch, var(--qm-color-rebase) 14%, var(--qm-surface));
-  border-color: color-mix(in oklch, var(--qm-color-rebase) 50%, var(--qm-border));
-  color: color-mix(in oklch, var(--qm-color-rebase) 60%, #000);
+  background: linear-gradient(180deg,
+    color-mix(in oklch, var(--qm-color-rebase) 16%, var(--qm-surface)) 0%,
+    color-mix(in oklch, var(--qm-color-rebase) 22%, var(--qm-surface)) 100%) !important;
+  border-color: color-mix(in oklch, var(--qm-color-rebase) 60%, var(--qm-border-strong)) !important;
+  color: color-mix(in oklch, var(--qm-color-rebase) 60%, #000) !important;
 }
 
 /* === Vendored fonts (QM-205) ============================================
@@ -1171,4 +1194,288 @@
                  U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F,
                  U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
                  U+FEFF, U+FFFD;
+}
+
+/* === UI pass 1 — visibility tweaks ======================================
+ *
+ * Iteration based on first live-test feedback:
+ *  - filter bar right-aligned and quieter
+ *  - PR-page action bar floats bottom-right when no in-page anchor found
+ *  - badges shrink-wrap; no line-count clutter
+ *  - options page muted text bumped one notch darker for legibility
+ */
+
+/* Filter bar — right-justified within its row */
+.qm-filter-bar {
+  margin-left: auto;
+}
+
+/* "More" disclosure inside the filter bar */
+.qm-filter-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.qm-filter-more-summary {
+  font-family: var(--qm-font-sans);
+  font-size: 12px;
+  color: var(--qm-fg-muted);
+  cursor: pointer;
+  list-style: none;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px dashed var(--qm-border);
+}
+.qm-filter-more-summary::-webkit-details-marker { display: none; }
+.qm-filter-more[open] .qm-filter-more-summary {
+  background: var(--qm-surface-2);
+  border-style: solid;
+}
+.qm-filter-more-tray {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 4px;
+}
+
+/* Floating PR-page action bar fallback (no in-page anchor found) */
+.qm-pr-action-bar.qm-pr-action-bar-floating {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 2147483500;
+  box-shadow: var(--qm-shadow-pop);
+  margin: 0;
+}
+
+/* Badge size pill — shrink, no line count needed inline */
+.qm-row-badge-size {
+  font-family: var(--qm-font-mono);
+  font-size: 10px;
+  padding: 0 5px;
+  letter-spacing: 0.04em;
+}
+
+/* Options page legibility bump. The handoff used --qm-fg-subtle for
+ * descriptive text, which proved hard to read against the off-white
+ * surface on most monitors. Promote one notch. */
+.qm-section-help,
+.qm-help-text,
+.qm-section-description,
+.qm-options-page .qm-fg-subtle {
+  color: var(--qm-fg-muted) !important;
+}
+
+/* === UI pass 6 — re-anchored layouts ====================================
+ *
+ * Pinned action container: top-right of each row, vertically aligned
+ * with the title (the row's natural reading center).
+ */
+.qm-container-pinned {
+  position: absolute !important;
+  /* Vertically center the action cluster against the title's
+   * baseline by anchoring at row mid-height. Matches GitHub's
+   * own comments icon vertical position. */
+  top: 50%;
+  transform: translateY(-50%);
+  /* Leave room for GitHub's native row icons (comments, labels,
+   * assignees, milestone) which sit at the row's right edge. */
+  right: 96px;
+  z-index: 5;
+}
+
+/* Filter bar — sit on the right edge of the page-level filter row.
+ * Adds a subtle flare (gradient bottom-edge + warm shadow) so the bar
+ * reads as part of GitHub's toolbar but slightly distinct. */
+.qm-filter-bar {
+  margin-left: auto;
+  background: linear-gradient(180deg, var(--qm-surface) 0%, var(--qm-surface-2) 100%);
+  border: 1px solid var(--qm-border-strong);
+  box-shadow:
+    0 1px 0 var(--qm-border),
+    0 4px 12px color-mix(in oklch, var(--qm-primary) 8%, transparent);
+}
+
+/* Filter chips — GitHub button shape (6px radius, subtle gradient)
+ * with a primary-color underline on active. */
+.qm-filter-chip {
+  background: linear-gradient(180deg, var(--qm-surface) 0%, var(--qm-surface-2) 100%);
+  border-radius: 6px;
+  border: 1px solid var(--qm-border-strong);
+  position: relative;
+  font-weight: 500;
+}
+.qm-filter-chip-active {
+  background: linear-gradient(180deg,
+    color-mix(in oklch, var(--qm-primary-soft) 80%, var(--qm-surface)) 0%,
+    color-mix(in oklch, var(--qm-primary-soft) 100%, var(--qm-surface)) 100%);
+  border-color: color-mix(in oklch, var(--qm-primary) 50%, var(--qm-border-strong));
+  color: var(--qm-primary);
+  box-shadow: inset 0 -2px 0 var(--qm-primary);
+}
+
+/* Row widget — GitHub-shaped (6px) but with a subtle inset highlight
+ * on the primary button for distinct flare. */
+.qm-row-widget {
+  border-radius: 6px;
+}
+.qm-row-widget .qm-button-primary {
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, white 22%, transparent),
+    0 1px 0 rgba(15, 23, 42, 0.08);
+}
+
+/* Watch / Update / auto-rebase pills: GitHub button shape, all share
+ * the same gradient + border so the action cluster reads as one unit. */
+.qm-update-btn,
+.qm-watch-btn,
+.qm-cancel-watch-btn {
+  border-radius: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--qm-border-strong);
+  background: linear-gradient(180deg, var(--qm-surface) 0%, var(--qm-surface-2) 100%);
+  font-family: var(--qm-font-sans);
+  font-size: 12px;
+  font-weight: 500;
+}
+.qm-auto-rebase-label-legacy {
+  text-transform: none;
+  font-family: var(--qm-font-sans);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* === UI pass 12 — visible in-flight + responsive ====================== */
+
+/* Auto-Rebase active rebase: subtle pulse + warmer tint so the user
+ * sees the action firing rather than guessing. */
+.qm-auto-rebase-toggle.qm-auto-rebase-running {
+  background: linear-gradient(180deg,
+    color-mix(in oklch, var(--qm-color-rebase) 30%, var(--qm-surface)) 0%,
+    color-mix(in oklch, var(--qm-color-rebase) 36%, var(--qm-surface)) 100%) !important;
+  border-color: var(--qm-color-rebase) !important;
+  color: color-mix(in oklch, var(--qm-color-rebase) 50%, #000) !important;
+  animation: qm-auto-rebase-pulse 1.4s ease-in-out infinite;
+}
+@keyframes qm-auto-rebase-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--qm-color-rebase) 40%, transparent); }
+  50%      { box-shadow: 0 0 0 4px color-mix(in oklch, var(--qm-color-rebase) 0%, transparent); }
+}
+
+/* Action cluster wraps + has comfortable vertical gap when wrapped. */
+.qm-container.qm-container-pinned {
+  flex-wrap: wrap;
+  max-width: min(48vw, 420px);
+  justify-content: flex-end;
+  gap: 6px 6px;
+  row-gap: 8px;
+}
+@media (max-width: 1100px) {
+  /* Earlier wrap kick-in on medium-narrow viewports. */
+  .qm-container.qm-container-pinned {
+    max-width: min(36vw, 320px);
+  }
+}
+@media (max-width: 900px) {
+  .qm-container.qm-container-pinned {
+    /* Stacked layout: align under the title's content column. The
+     * row pads ~16px on the left and the PR icon sits in that pad,
+     * so margin-left: 16px lines up with the XS size badge / title
+     * text-start. No top margin — sits flush against the meta line. */
+    position: static !important;
+    transform: none !important;
+    margin-top: 0;
+    margin-bottom: 12px;
+    /* Diagnostic showed cluster at x=73, title/meta at x=57. The
+     * 16px difference is the qm-container's own internal offset.
+     * Pull it left to land at the same column. */
+    margin-left: -16px;
+    max-width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+/* === UI pass 13 — merge button color encodes state =====================
+ *
+ * Status pill removed; the merge button itself shows state via color:
+ *   ready    → primary green   (default)
+ *   blocked  → danger red
+ *   behind   → warn yellow
+ *   draft    → muted grey
+ *   pending  → muted grey + breathing animation
+ * Color overrides apply to .qm-row-widget-main + .qm-row-widget-caret
+ * so the pair reads as one button.
+ */
+.qm-row-widget-main[data-state="blocked"],
+.qm-row-widget[data-state="blocked"] .qm-row-widget-caret {
+  background: var(--qm-danger) !important;
+  color: #ffffff !important;
+}
+.qm-row-widget-main[data-state="blocked"]:hover,
+.qm-row-widget[data-state="blocked"] .qm-row-widget-caret:hover {
+  background: color-mix(in oklch, var(--qm-danger) 90%, #000) !important;
+}
+.qm-row-widget-main[data-state="behind"],
+.qm-row-widget[data-state="behind"] .qm-row-widget-caret {
+  background: var(--qm-color-rebase) !important;
+  color: #1a1a1a !important;
+}
+.qm-row-widget-main[data-state="draft"],
+.qm-row-widget[data-state="draft"] .qm-row-widget-caret,
+.qm-row-widget-main[data-state="pending"],
+.qm-row-widget[data-state="pending"] .qm-row-widget-caret {
+  background: var(--qm-surface-3) !important;
+  color: var(--qm-fg-muted) !important;
+}
+.qm-row-widget-main[data-state="pending"] {
+  animation: qm-pending-breathe 2s ease-in-out infinite;
+}
+@keyframes qm-pending-breathe {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.7; }
+}
+
+/* === UI pass 14 — finish hiding status, force state colors over disabled */
+
+/* Status pill: hide unconditionally. Earlier passes left a regular
+ * `display: inline-flex` rule that beat the inline display:none. */
+.qm-row-widget-status,
+.qm-row-widget-status[data-state],
+.qm-status,
+[data-qm-state-icon] {
+  display: none !important;
+}
+
+/* State colors apply even when the merge button is disabled — disabled
+ * dims at 0.45 opacity but the underlying background still reads as
+ * the right hue, signalling WHY it's disabled. */
+.qm-row-widget-main[data-state="blocked"]:disabled,
+.qm-row-widget[data-state="blocked"] .qm-row-widget-caret:disabled {
+  background: var(--qm-danger) !important;
+  color: #ffffff !important;
+  opacity: 0.85 !important;
+  cursor: not-allowed;
+}
+.qm-row-widget-main[data-state="behind"]:disabled,
+.qm-row-widget[data-state="behind"] .qm-row-widget-caret:disabled {
+  background: var(--qm-color-rebase) !important;
+  color: #1a1a1a !important;
+  opacity: 0.85 !important;
+}
+.qm-row-widget-main[data-state="draft"]:disabled,
+.qm-row-widget[data-state="draft"] .qm-row-widget-caret:disabled {
+  background: var(--qm-surface-3) !important;
+  color: var(--qm-fg-muted) !important;
+  opacity: 1 !important;
+}
+
+/* `ready` state already inherits qm-button-primary green — no override
+ * needed there; the user's blue rendering of "Merge" was actually
+ * accent-blue which means data-state isn't 'ready' yet (state hadn't
+ * computed). Force ready = primary green explicitly so it's not
+ * confused with an accent-themed primary. */
+.qm-row-widget-main[data-state="ready"],
+.qm-row-widget[data-state="ready"] .qm-row-widget-caret {
+  background: var(--qm-primary) !important;
+  color: var(--qm-primary-fg) !important;
 }

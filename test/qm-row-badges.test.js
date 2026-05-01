@@ -18,9 +18,10 @@ function makeRow() {
 }
 
 describe("buildSizeBadge", () => {
-  it("renders S · 47 for a 47-line PR", () => {
+  it("renders S for a 47-line PR (line count moved to tooltip)", () => {
     const el = buildSizeBadge({ additions: 30, deletions: 17 });
-    expect(el.textContent).toBe("S · 47");
+    expect(el.textContent).toBe("S");
+    expect(el.title).toBe("47 lines changed");
     expect(el.className).toContain("qm-row-badge-size-s");
     expect(el.getAttribute("aria-label")).toMatch(/47 lines/);
   });
@@ -31,10 +32,14 @@ describe("buildSizeBadge", () => {
 
 describe("buildCommentsBadge", () => {
   const pr = { owner: "octo", repo: "world", num: 5 };
-  it("renders bubble + count and links to #issue-comment-area", () => {
+  it("renders bubble + count and stores the comments href on a data attr", () => {
+    // Span with role=link rather than <a> — the strip mounts inside
+    // the row title <a>, and nested anchors would split the title.
     const el = buildCommentsBadge({ comments: 3 }, pr);
+    expect(el.tagName).toBe("SPAN");
+    expect(el.getAttribute("role")).toBe("link");
     expect(el.textContent).toBe("💬 3");
-    expect(el.getAttribute("href")).toBe("/octo/world/pull/5#issue-comment-area");
+    expect(el.dataset.qmCommentsHref).toBe("/octo/world/pull/5#issue-comment-area");
   });
   it("hides when count is zero or missing", () => {
     expect(buildCommentsBadge({ comments: 0 }, pr)).toBeNull();
@@ -68,13 +73,13 @@ describe("applyRowBadges (QM-500..503)", () => {
   beforeEach(() => { document.body.innerHTML = ""; });
   const pr = { owner: "octo", repo: "world", num: 5 };
 
-  it("mounts size + comments badges from state", () => {
+  it("mounts size badge from state (comments badge removed in pass 6)", () => {
     const { container } = makeRow();
     applyRowBadges(container, { additions: 30, deletions: 19, comments: 2, mergeable_state: "blocked", behind_by: 1 }, pr);
     const strip = container.querySelector('[data-qm-badge="strip"]');
     expect(strip).toBeTruthy();
-    expect(strip.querySelector('[data-qm-badge="size"]').textContent).toBe("S · 49");
-    expect(strip.querySelector('[data-qm-badge="comments"]').textContent).toBe("💬 2");
+    expect(strip.querySelector('[data-qm-badge="size"]').textContent).toBe("S");
+    expect(strip.querySelector('[data-qm-badge="comments"]')).toBeNull();
     expect(strip.querySelector('[data-qm-badge="ci"]')).toBeNull(); // ciState not provided
   });
 
@@ -84,8 +89,7 @@ describe("applyRowBadges (QM-500..503)", () => {
     applyRowBadges(container, { additions: 100, deletions: 50, comments: 4 }, pr);
     const strips = container.querySelectorAll('[data-qm-badge="strip"]');
     expect(strips.length).toBe(1);
-    expect(strips[0].querySelector('[data-qm-badge="size"]').textContent).toBe("M · 150");
-    expect(strips[0].querySelector('[data-qm-badge="comments"]').textContent).toBe("💬 4");
+    expect(strips[0].querySelector('[data-qm-badge="size"]').textContent).toBe("M");
   });
 
   it("sets data-qm-ready on the row when state is clean + caught up", () => {
