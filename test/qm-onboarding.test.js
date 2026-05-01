@@ -4,7 +4,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import api from "../lib/qm-onboarding.js";
 
-const { shouldShow, makeCard, maybeRender, STORE_KEY } = api;
+const { shouldShow, makeCard, maybeRender, STORE_KEY, TOTAL_STEPS } = api;
 
 function fakeLocal(initial = {}) {
   const data = { ...initial };
@@ -46,18 +46,76 @@ describe("shouldShow", () => {
   });
 });
 
-describe("makeCard", () => {
-  it("returns a section with the dialog role and three steps", () => {
+describe("makeCard — multi-step shell", () => {
+  it("returns a section with the dialog role and a 3-dot indicator", () => {
     const card = makeCard({});
     expect(card.tagName).toBe("SECTION");
     expect(card.getAttribute("role")).toBe("dialog");
-    expect(card.querySelectorAll(".qm-onboarding-step").length).toBe(3);
-    expect(card.querySelector(".qm-onboarding-cta").textContent).toMatch(/Continue/i);
+    expect(card.querySelectorAll(".qm-onboarding-dot").length).toBe(TOTAL_STEPS);
   });
 
-  it("connect button fires onConnect", () => {
+  it("starts on step 1 with the merge-method explainer", () => {
+    const card = makeCard({});
+    expect(card.dataset.qmStep).toBe("1");
+    expect(card.querySelector(".qm-onboarding-title").textContent).toMatch(/Welcome/i);
+    // Step 1 renders the 3 merge-method list rows (S/M/R).
+    expect(card.querySelectorAll(".qm-onboarding-step").length).toBe(3);
+  });
+
+  it("step 1 hides Back; shows Skip + Next; hides Connect", () => {
+    const card = makeCard({});
+    expect(card.querySelector(".qm-onboarding-back").hidden).toBe(true);
+    expect(card.querySelector(".qm-onboarding-skip").hidden).toBe(false);
+    expect(card.querySelector(".qm-onboarding-next").hidden).toBe(false);
+    expect(card.querySelector(".qm-onboarding-cta").hidden).toBe(true);
+  });
+
+  it("Next advances to step 2 and shows the row-widget mock", () => {
+    const card = makeCard({});
+    card.querySelector(".qm-onboarding-next").click();
+    expect(card.dataset.qmStep).toBe("2");
+    expect(card.querySelector(".qm-onboarding-title").textContent).toMatch(/list/i);
+    expect(card.querySelector(".qm-onboarding-mock-row")).toBeTruthy();
+    // Now Back is visible.
+    expect(card.querySelector(".qm-onboarding-back").hidden).toBe(false);
+  });
+
+  it("Next from step 2 lands on step 3 with Connect visible", () => {
+    const card = makeCard({});
+    card.querySelector(".qm-onboarding-next").click();
+    card.querySelector(".qm-onboarding-next").click();
+    expect(card.dataset.qmStep).toBe("3");
+    expect(card.querySelector(".qm-onboarding-mock-toggle")).toBeTruthy();
+    expect(card.querySelector(".qm-onboarding-cta").hidden).toBe(false);
+    expect(card.querySelector(".qm-onboarding-skip").hidden).toBe(true);
+    expect(card.querySelector(".qm-onboarding-next").hidden).toBe(true);
+  });
+
+  it("Back from step 3 returns to step 2", () => {
+    const card = makeCard({ startStep: 3 });
+    card.querySelector(".qm-onboarding-back").click();
+    expect(card.dataset.qmStep).toBe("2");
+  });
+
+  it("Next on the last step is a no-op (clamped)", () => {
+    const card = makeCard({ startStep: 3 });
+    expect(card.querySelector(".qm-onboarding-next").hidden).toBe(true);
+    // Programmatic clamp guard:
+    card.__qmGoToStep(99);
+    expect(card.__qmCurrentStep).toBe(TOTAL_STEPS);
+  });
+
+  it("indicator marks current step active and earlier steps done", () => {
+    const card = makeCard({ startStep: 2 });
+    const dots = Array.from(card.querySelectorAll(".qm-onboarding-dot"));
+    expect(dots[0].dataset.qmDone).toBe("true");
+    expect(dots[1].dataset.qmActive).toBe("true");
+    expect(dots[2].dataset.qmActive).toBe("false");
+  });
+
+  it("connect button fires onConnect (step 3)", () => {
     const onConnect = vi.fn();
-    const card = makeCard({ onConnect });
+    const card = makeCard({ onConnect, startStep: 3 });
     card.querySelector(".qm-onboarding-cta").click();
     expect(onConnect).toHaveBeenCalledOnce();
   });
@@ -67,7 +125,16 @@ describe("makeCard", () => {
     const card = makeCard({ onDismiss });
     document.body.appendChild(card);
     card.querySelector(".qm-onboarding-dismiss").click();
-    // Wait a microtask for the async handler.
+    await new Promise((r) => setTimeout(r, 0));
+    expect(onDismiss).toHaveBeenCalledOnce();
+    expect(document.body.contains(card)).toBe(false);
+  });
+
+  it("Skip on intermediate steps also dismisses", async () => {
+    const onDismiss = vi.fn().mockResolvedValue(undefined);
+    const card = makeCard({ onDismiss, startStep: 2 });
+    document.body.appendChild(card);
+    card.querySelector(".qm-onboarding-skip").click();
     await new Promise((r) => setTimeout(r, 0));
     expect(onDismiss).toHaveBeenCalledOnce();
     expect(document.body.contains(card)).toBe(false);
