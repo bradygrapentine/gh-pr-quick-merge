@@ -38,12 +38,6 @@ jobs:
         run: npm run test:e2e
 
       - name: Run visual regression specs
-        # QM-220 — Linux baselines committed in PR #59 don't match the
-        # post-PR #60 row layout (size badge text "S · 47" → "S", row
-        # height 32px → 15px). Leave continue-on-error until baselines
-        # are regenerated on Linux CI; tracked as a Phase 2 follow-up
-        # in docs/plans/v1.1-blockers-plan.md.
-        continue-on-error: true
         env:
           E2E_GH_TOKEN: ${{ secrets.E2E_GH_TOKEN }}
         run: npm run test:e2e:visual
