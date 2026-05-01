@@ -1378,13 +1378,16 @@
 }
 @media (max-width: 900px) {
   .qm-container.qm-container-pinned {
-    /* Stacked layout: flush-left under the row, full width. */
+    /* Stacked layout: align under the title's content column. The
+     * row pads ~16px on the left and the PR icon sits in that pad,
+     * so margin-left: 16px lines up with the XS size badge / title
+     * text-start. No top margin — sits flush against the meta line. */
     position: static !important;
     transform: none !important;
-    margin-top: 12px;
+    margin-top: 0;
     margin-bottom: 12px;
-    margin-left: 0;
-    max-width: 100%;
+    margin-left: 16px;
+    max-width: calc(100% - 16px);
     justify-content: flex-start;
   }
 }
